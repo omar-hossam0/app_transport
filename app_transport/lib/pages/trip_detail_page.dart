@@ -63,403 +63,416 @@ class _TripDetailPageState extends State<TripDetailPage>
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            // ── Main scrollable content ──────────────────────────────
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Hero image area ───────────────────────────────
-                  SizedBox(
-                    height: screenH * 0.42,
-                    width: double.infinity,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Real image from network
-                        Image.network(
-                          t.imageUrl,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          color: const Color(0xFFE8F4F8),
+          child: Stack(
+            children: [
+              // ── Main scrollable content ──────────────────────────────
+              SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Hero image area ───────────────────────────────
+                    SizedBox(
+                      height: screenH * 0.42,
+                      width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Real image from network
+                          Image.network(
+                            t.imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      t.cardColor,
+                                      t.cardColor.withValues(alpha: 0.55),
+                                    ],
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topRight,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      t.cardColor,
+                                      t.cardColor.withValues(alpha: 0.55),
+                                    ],
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topRight,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    t.icon,
+                                    color: Colors.white.withValues(alpha: 0.20),
+                                    size: 90,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          // Top gradient for status bar readability
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: topPad + 60,
+                            child: Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
                                   colors: [
-                                    t.cardColor,
-                                    t.cardColor.withValues(alpha: 0.55),
+                                    Colors.black.withValues(alpha: 0.40),
+                                    Colors.transparent,
                                   ],
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topRight,
                                 ),
                               ),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  strokeWidth: 2,
+                            ),
+                          ),
+                          // Bottom curve overlay
+                          Positioned(
+                            bottom: -1,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 30,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(30),
                                 ),
                               ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    t.cardColor,
-                                    t.cardColor.withValues(alpha: 0.55),
-                                  ],
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topRight,
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  t.icon,
-                                  color: Colors.white.withValues(alpha: 0.20),
-                                  size: 90,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        // Top gradient for status bar readability
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: topPad + 60,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.40),
-                                  Colors.transparent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Content area ──────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Explored badge
+                          FadeTransition(
+                            opacity: _fade(0.0, 0.3),
+                            child: SlideTransition(
+                              position: _slide(0.0, 0.3),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [kBlue, kLightBlue],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.flight_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Cairo International Airport',
+                                    style: roboto(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade500,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
-                        ),
-                        // Bottom curve overlay
-                        Positioned(
-                          bottom: -1,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 30,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(30),
+                          const SizedBox(height: 18),
+
+                          // Trip name
+                          FadeTransition(
+                            opacity: _fade(0.08, 0.38),
+                            child: SlideTransition(
+                              position: _slide(0.08, 0.38),
+                              child: Text(
+                                t.name,
+                                style: roboto(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
+                          const SizedBox(height: 6),
 
-                  // ── Content area ──────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Explored badge
-                        FadeTransition(
-                          opacity: _fade(0.0, 0.3),
-                          child: SlideTransition(
-                            position: _slide(0.0, 0.3),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: [kBlue, kLightBlue],
+                          // Departure info
+                          FadeTransition(
+                            opacity: _fade(0.12, 0.42),
+                            child: SlideTransition(
+                              position: _slide(0.12, 0.42),
+                              child: Text(
+                                'Cairo International Airport, Egypt',
+                                style: roboto(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Rating row
+                          FadeTransition(
+                            opacity: _fade(0.16, 0.46),
+                            child: SlideTransition(
+                              position: _slide(0.16, 0.46),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Color(0xFFFFC107),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '4.${t.durationHours % 7 + 2}',
+                                    style: roboto(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.flight_rounded,
-                                    color: Colors.white,
-                                    size: 18,
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '(${(t.durationHours * 10 + 50)} reviews)',
+                                    style: roboto(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Cairo International Airport',
-                                  style: roboto(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade500,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Trip name
-                        FadeTransition(
-                          opacity: _fade(0.08, 0.38),
-                          child: SlideTransition(
-                            position: _slide(0.08, 0.38),
-                            child: Text(
-                              t.name,
-                              style: roboto(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                height: 1.2,
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
+                          const SizedBox(height: 20),
 
-                        // Departure info
-                        FadeTransition(
-                          opacity: _fade(0.12, 0.42),
-                          child: SlideTransition(
-                            position: _slide(0.12, 0.42),
-                            child: Text(
-                              'Cairo International Airport, Egypt',
-                              style: roboto(
-                                fontSize: 13,
-                                color: Colors.grey.shade500,
+                          // Tags row
+                          FadeTransition(
+                            opacity: _fade(0.22, 0.52),
+                            child: SlideTransition(
+                              position: _slide(0.22, 0.52),
+                              child: Row(
+                                children: [
+                                  _InfoTag(
+                                    icon: Icons.schedule_rounded,
+                                    label: t.durationLabel,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _InfoTag(
+                                    icon: Icons.attach_money_rounded,
+                                    label: t.priceLabel,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const _InfoTag(
+                                    icon: Icons.headset_mic_rounded,
+                                    label: 'AI Guide',
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
+                          const SizedBox(height: 26),
 
-                        // Rating row
-                        FadeTransition(
-                          opacity: _fade(0.16, 0.46),
-                          child: SlideTransition(
-                            position: _slide(0.16, 0.46),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.star_rounded,
-                                  color: Color(0xFFFFC107),
-                                  size: 20,
+                          // Description
+                          FadeTransition(
+                            opacity: _fade(0.28, 0.58),
+                            child: SlideTransition(
+                              position: _slide(0.28, 0.58),
+                              child: Text(
+                                t.description,
+                                textDirection: TextDirection.rtl,
+                                style: roboto(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                  height: 1.7,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '4.${t.durationMins % 7 + 2}',
-                                  style: roboto(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '(${(t.durationMins * 7 + 50)} reviews)',
-                                  style: roboto(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Tags row
-                        FadeTransition(
-                          opacity: _fade(0.22, 0.52),
-                          child: SlideTransition(
-                            position: _slide(0.22, 0.52),
-                            child: Row(
-                              children: [
-                                _InfoTag(
-                                  icon: Icons.schedule_rounded,
-                                  label: t.durationLabel,
-                                ),
-                                const SizedBox(width: 12),
-                                _InfoTag(
-                                  icon: Icons.attach_money_rounded,
-                                  label: t.priceLabel,
-                                ),
-                                const SizedBox(width: 12),
-                                const _InfoTag(
-                                  icon: Icons.headset_mic_rounded,
-                                  label: 'AI Guide',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 26),
-
-                        // Description
-                        FadeTransition(
-                          opacity: _fade(0.28, 0.58),
-                          child: SlideTransition(
-                            position: _slide(0.28, 0.58),
-                            child: Text(
-                              t.description,
-                              textDirection: TextDirection.rtl,
-                              style: roboto(
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
-                                height: 1.7,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 26),
+                          const SizedBox(height: 26),
 
-                        // Route card
-                        FadeTransition(
-                          opacity: _fade(0.34, 0.64),
-                          child: SlideTransition(
-                            position: _slide(0.34, 0.64),
-                            child: _RouteCard(trip: t),
+                          // Route card
+                          FadeTransition(
+                            opacity: _fade(0.34, 0.64),
+                            child: SlideTransition(
+                              position: _slide(0.34, 0.64),
+                              child: _RouteCard(trip: t),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 26),
+                          const SizedBox(height: 26),
 
-                        // Highlights
-                        FadeTransition(
-                          opacity: _fade(0.40, 0.70),
-                          child: SlideTransition(
-                            position: _slide(0.40, 0.70),
-                            child: _buildHighlights(t),
+                          // Highlights
+                          FadeTransition(
+                            opacity: _fade(0.40, 0.70),
+                            child: SlideTransition(
+                              position: _slide(0.40, 0.70),
+                              child: _buildHighlights(t),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 30),
 
-                        // Extra space for bottom bar
-                        const SizedBox(height: 110),
+                          // Reviews Section
+                          FadeTransition(
+                            opacity: _fade(0.46, 0.76),
+                            child: SlideTransition(
+                              position: _slide(0.46, 0.76),
+                              child: _buildReviewsSection(t),
+                            ),
+                          ),
+
+                          // Extra space for bottom bar
+                          const SizedBox(height: 110),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Top nav buttons ──────────────────────────────────────
+              Positioned(
+                top: topPad + 10,
+                left: 18,
+                right: 18,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _CircleBtn(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    _CircleBtn(icon: Icons.share_rounded, onTap: () {}),
+                  ],
+                ),
+              ),
+
+              // ── Bottom action bar ────────────────────────────────────
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: FadeTransition(
+                  opacity: _fade(0.50, 0.85),
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(
+                      22,
+                      16,
+                      22,
+                      MediaQuery.of(context).padding.bottom + 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.94),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, -6),
+                        ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Top nav buttons ──────────────────────────────────────
-            Positioned(
-              top: topPad + 10,
-              left: 18,
-              right: 18,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _CircleBtn(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                  _CircleBtn(icon: Icons.share_rounded, onTap: () {}),
-                ],
-              ),
-            ),
-
-            // ── Bottom action bar ────────────────────────────────────
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _fade(0.50, 0.85),
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(
-                    22,
-                    16,
-                    22,
-                    MediaQuery.of(context).padding.bottom + 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, -6),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
                       ),
-                    ],
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Heart button
-                      GestureDetector(
-                        onTap: () => setState(() => _liked = !_liked),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: _liked
-                                ? _kRed.withValues(alpha: 0.10)
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _liked
-                                  ? _kRed.withValues(alpha: 0.30)
-                                  : Colors.grey.shade200,
-                            ),
-                          ),
-                          child: Icon(
-                            _liked
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: _liked ? _kRed : Colors.grey.shade500,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Book button
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {},
-                          child: Container(
+                    child: Row(
+                      children: [
+                        // Heart button
+                        GestureDetector(
+                          onTap: () => setState(() => _liked = !_liked),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [kBlue, kLightBlue],
-                              ),
+                              color: _liked
+                                  ? _kRed.withValues(alpha: 0.10)
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kBlue.withValues(alpha: 0.35),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
+                              border: Border.all(
+                                color: _liked
+                                    ? _kRed.withValues(alpha: 0.30)
+                                    : Colors.grey.shade200,
+                              ),
                             ),
-                            child: Center(
-                              child: Text(
-                                'Book This Flight',
-                                style: roboto(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 0.3,
+                            child: Icon(
+                              _liked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: _liked ? _kRed : Colors.grey.shade500,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Book button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [kBlue, kLightBlue],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kBlue.withValues(alpha: 0.35),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Book This Flight',
+                                  style: roboto(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 0.3,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -513,11 +526,292 @@ class _TripDetailPageState extends State<TripDetailPage>
       ],
     );
   }
+
+  // ── Reviews Section ──────────────────────────────────────────────────────
+  Widget _buildReviewsSection(FlyingTaxiTrip t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Reviews',
+              style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '(${t.reviews.length})',
+              style: roboto(fontSize: 14, color: Colors.grey.shade500),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Display reviews from trip data
+        ...t.reviews.map(
+          (review) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ReviewCard(
+              name: review.name,
+              rating: review.rating,
+              date: review.date,
+              comment: review.comment,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Add review button
+        GestureDetector(
+          onTap: () {
+            _showAddReviewDialog();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.93),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: kBlue.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Write a Review',
+                  style: roboto(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: kBlue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Show Add Review Dialog ──────────────────────────────────────────────
+  void _showAddReviewDialog() {
+    final reviewController = TextEditingController();
+    int selectedRating = 5;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                'Write Your Review',
+                style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rating',
+                    style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: List.generate(5, (index) {
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedRating = index + 1;
+                          });
+                        },
+                        child: Icon(
+                          index < selectedRating
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: const Color(0xFFFFC107),
+                          size: 32,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your Comment',
+                    style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reviewController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Share your experience...',
+                      hintStyle: roboto(color: Colors.grey.shade400),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Cancel',
+                    style: roboto(color: Colors.grey.shade600),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Thank you for your review!',
+                          style: roboto(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: Text(
+                    'Submit',
+                    style: roboto(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Info tag chip
+//  Review Card Widget
 // ═════════════════════════════════════════════════════════════════════════════
+class _ReviewCard extends StatelessWidget {
+  final String name;
+  final int rating;
+  final String date;
+  final String comment;
+
+  const _ReviewCard({
+    required this.name,
+    required this.rating,
+    required this.date,
+    required this.comment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: kBlue.withValues(alpha: 0.15),
+                child: Text(
+                  name[0],
+                  style: roboto(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: kBlue,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: roboto(fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        ...List.generate(
+                          5,
+                          (index) => Icon(
+                            index < rating
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: const Color(0xFFFFC107),
+                            size: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          date,
+                          style: roboto(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            comment,
+            style: roboto(
+              fontSize: 13,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoTag extends StatelessWidget {
   final IconData icon;
   final String label;

@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
+import 'transit_trips_page.dart';
+import 'my_bookings_page.dart';
+import 'chatbot_page.dart';
+import 'profile_page.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -179,19 +183,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF0F6FC), // Light blue tint
-                Color(0xFFFFFDF7), // Cream white
-                Color(0xFFFFFFFF), // Pure white
-                Color(0xFFF8FBFF), // Very light blue
-              ],
-              stops: [0.0, 0.35, 0.65, 1.0],
-            ),
-          ),
+          color: const Color(0xFFE8F4F8),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(
@@ -347,11 +339,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: 22),
           child: Row(
             children: [
-              const Icon(
-                Icons.auto_awesome_rounded,
-                color: _kDarkBlue,
-                size: 18,
-              ),
+              const Icon(Icons.smart_toy_rounded, color: _kDarkBlue, size: 18),
               const SizedBox(width: 6),
               Text(
                 'AI Suggestions',
@@ -451,6 +439,76 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  void _openTransitTrips() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, anim, secAnim) => const TransitTripsPage(),
+        transitionsBuilder: (context, anim, secAnim, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openMyBookings() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, anim, secAnim) => const MyBookingsPage(),
+        transitionsBuilder: (context, anim, secAnim, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, anim, secAnim) => ProfilePage(
+          onLogout: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        transitionsBuilder: (context, anim, secAnim, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildCategories() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -458,7 +516,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: _categories.map((c) {
           return GestureDetector(
-            onTap: c.label == 'Flying Taxi' ? _openFlyingTaxi : () {},
+            onTap: c.label == 'Flying Taxi'
+                ? _openFlyingTaxi
+                : c.label == 'Transit Trips'
+                ? _openTransitTrips
+                : () {},
             child: Column(
               children: [
                 Container(
@@ -578,6 +640,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 onTap: () {
                   if (i == 1) {
                     _openFlyingTaxi();
+                  } else if (i == 2) {
+                    _openTransitTrips();
+                  } else if (i == 3) {
+                    _openMyBookings();
+                  } else if (i == 4) {
+                    _openProfile();
                   } else {
                     setState(() => _navIndex = i);
                   }
@@ -651,11 +719,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(28),
-          onTap: () {
-            // TODO: open AI chat
-          },
+          onTap: () => showChatBot(context),
           child: const Icon(
-            Icons.auto_awesome_rounded,
+            Icons.smart_toy_rounded,
             color: Colors.white,
             size: 24,
           ),

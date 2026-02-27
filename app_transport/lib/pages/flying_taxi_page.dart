@@ -7,152 +7,402 @@ import 'trip_detail_page.dart';
 const _kDarkBlue = Color(0xFF4A44AA);
 const _kRed = Color(0xFFE02850);
 
+// ── Review model ─────────────────────────────────────────────────────────────
+class Review {
+  final String name;
+  final int rating;
+  final String date;
+  final String comment;
+  const Review({
+    required this.name,
+    required this.rating,
+    required this.date,
+    required this.comment,
+  });
+}
+
 // ── Trip model ───────────────────────────────────────────────────────────────
 class FlyingTaxiTrip {
   final String name;
-  final int durationMins;
+  final int durationHours;
   final int priceUsd;
   final String description;
   final String mapHint;
   final Color cardColor;
   final IconData icon;
   final String imageUrl;
+  final List<Review> reviews;
 
   const FlyingTaxiTrip({
     required this.name,
-    required this.durationMins,
+    required this.durationHours,
     required this.priceUsd,
     required this.description,
     required this.mapHint,
     required this.cardColor,
     required this.icon,
     required this.imageUrl,
+    this.reviews = const [],
   });
 
-  String get durationLabel => '$durationMins mins';
+  String get durationLabel => '$durationHours hours';
   String get priceLabel => '\$$priceUsd';
 }
 
-// ── 10 Cairo Flying-Taxi trips ───────────────────────────────────────────────
+// ── 10 Egyptian Day Trips ───────────────────────────────────────────────────
 const _flyingTrips = <FlyingTaxiTrip>[
   FlyingTaxiTrip(
-    name: 'Nile Aerial Tour',
-    durationMins: 30,
-    priceUsd: 220,
+    name: 'Giza Pyramids & Museum',
+    durationHours: 8,
+    priceUsd: 90,
     description:
-        'جولة جوية على نهر النيل ورؤية الجسور والمعالم العمرانية الرئيسية في القاهرة من الأعلى.',
-    mapHint: 'Flight path along the Nile through central Cairo.',
-    cardColor: Color(0xFF187BCD),
-    icon: Icons.water_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Giza Skyline Flight',
-    durationMins: 35,
-    priceUsd: 230,
-    description:
-        'مشاهدة أهرامات الجيزة وأبو الهول من الجو مع التقاط صور بانورامية.',
-    mapHint: 'Route passes over the Pyramids area and surroundings.',
+        'يتجه المسافر إلى منطقة أهرامات الجيزة لزيارة هضبة الأهرامات وأبو الهول والتجول داخل المنطقة وقضاء نحو ثلاث ساعات، ثم الانتقال إلى المتحف القومي للحضارة المصرية للتعرف على تاريخ الحضارة المصرية ومشاهدة قاعة المومياوات الملكية وقضاء نحو ساعة و نصف، يلي ذلك التوجه إلى كورنيش النيل في الفسطاط للاستمتاع بالمشهد العام وتناول وجبة خفيفة قبل العودة إلى مطار القاهرة الدولي.',
+    mapHint: 'Airport → Giza Pyramids → NMEC Museum → Nile Corniche → Airport',
     cardColor: Color(0xFFD4A843),
     icon: Icons.landscape_rounded,
     imageUrl:
         'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Ahmed Mohamed',
+        rating: 5,
+        date: '2 days ago',
+        comment: 'رحلة رائعة جداً! المرشد السياحي كان محترف والتنظيم ممتاز.',
+      ),
+      Review(
+        name: 'Sara Ali',
+        rating: 4,
+        date: '1 week ago',
+        comment: 'تجربة جميلة، الأماكن كانت مذهلة لكن الوقت كان ضيق شوية.',
+      ),
+      Review(
+        name: 'John Smith',
+        rating: 5,
+        date: '2 weeks ago',
+        comment:
+            'Amazing pyramids! The guide was very knowledgeable. Highly recommended!',
+      ),
+      Review(
+        name: 'Fatima Hassan',
+        rating: 5,
+        date: '3 weeks ago',
+        comment:
+            'تجربة لا تُنسى! المتحف القومي كان مذهل والمرشد شرح كل شيء بالتفصيل.',
+      ),
+    ],
   ),
   FlyingTaxiTrip(
-    name: 'Cairo Downtown Highlights',
-    durationMins: 25,
+    name: 'Alexandria Mediterranean Tour',
+    durationHours: 12,
+    priceUsd: 120,
+    description:
+        'رحلة إلى عروس البحر المتوسط، زيارة مكتبة الإسكندرية الحديثة، قلعة قايتباي على البحر، المسرح الروماني، حدائق المنتزه، والاستمتاع بالكورنيش وتناول المأكولات البحرية الطازجة في أحد المطاعم المطلة على البحر.',
+    mapHint:
+        'Cairo → Alexandria Library → Citadel → Roman Theater → Montaza → Cairo',
+    cardColor: Color(0xFF187BCD),
+    icon: Icons.water_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Mohamed Karim',
+        rating: 5,
+        date: '3 days ago',
+        comment: 'مدينة جميلة جداً والمكتبة رائعة. الطعم السمك طازجة وشهية!',
+      ),
+      Review(
+        name: 'Lisa Johnson',
+        rating: 4,
+        date: '5 days ago',
+        comment:
+            'Beautiful coastal city. The seafood was excellent. Worth the long drive!',
+      ),
+      Review(
+        name: 'Nadia Patel',
+        rating: 5,
+        date: '1 week ago',
+        comment:
+            'The Citadel was breathtaking! Great views of the Mediterranean.',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Luxor Temples & Valley',
+    durationHours: 16,
+    priceUsd: 250,
+    description:
+        'رحلة إلى الأقصر، عاصمة مصر القديمة، زيارة معبد الكرنك ومعبد الأقصر على الضفة الشرقية، ثم العبور إلى البر الغربي لاستكشاف وادي الملوك ومعبد حتشبسوت ومعبد الرامسيوم، مع مرشد سياحي متخصص.',
+    mapHint: 'Fly to Luxor → Karnak → Luxor Temple → Valley of Kings → Return',
+    cardColor: Color(0xFFE02850),
+    icon: Icons.account_balance_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Amira Hassan',
+        rating: 5,
+        date: '4 days ago',
+        comment:
+            'وادي الملوك مذهل! مشاهدة المومياوات والمعابد تجربة روحانية رائعة.',
+      ),
+      Review(
+        name: 'David Chen',
+        rating: 5,
+        date: '1 week ago',
+        comment:
+            'The Valley of Kings is mind-blowing! History comes alive here.',
+      ),
+      Review(
+        name: 'Zainab Ahmed',
+        rating: 4,
+        date: '2 weeks ago',
+        comment:
+            'معابد الكرنك كانت مذهلة فعلاً. الرحلة متعبة لكن تستحق كل ثانية.',
+      ),
+      Review(
+        name: 'Marco Rossi',
+        rating: 5,
+        date: '3 weeks ago',
+        comment: 'Simply unforgettable! Best trip of my life!',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Siwa Oasis Adventure',
+    durationHours: 20,
+    priceUsd: 280,
+    description:
+        'مغامرة إلى واحة سيوا في الصحراء الغربية، زيارة معبد آمون، قلعة شالي القديمة، عين كليوباترا للاستحمام في المياه الطبيعية، رحلة سفاري في الكثبان الرملية، والاستمتاع بالهدوء والليالي الصحراوية تحت النجوم.',
+    mapHint:
+        'Cairo → Siwa Oasis → Shali Fortress → Cleopatra Spring → Desert Safari',
+    cardColor: Color(0xFFE87832),
+    icon: Icons.wb_sunny_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Hassan El-Sayed',
+        rating: 5,
+        date: '1 day ago',
+        comment: 'واحة سيوا ساحرة! الليال تحت النجوم لا تنسى أبداً.',
+      ),
+      Review(
+        name: 'Emma Wilson',
+        rating: 5,
+        date: '2 days ago',
+        comment:
+            'The starry nights in Siwa are magical! A truly unique experience.',
+      ),
+      Review(
+        name: 'Layla Ibrahim',
+        rating: 4,
+        date: '5 days ago',
+        comment: 'جميل جداً لكن الطريق طويل والرمال عندها حرارة شديدة جداً.',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Aswan & Abu Simbel',
+    durationHours: 18,
+    priceUsd: 300,
+    description:
+        'رحلة إلى أسوان والنوبة، زيارة معابد أبو سمبل المهيبة لرمسيس الثاني ونفرتاري، السد العالي، معبد فيلة على جزيرة أجيليكا، المسلة الناقصة، والاستمتاع بجولة بالفلوكة على نهر النيل عند غروب الشمس.',
+    mapHint:
+        'Fly to Aswan → Abu Simbel → High Dam → Philae Temple → Felucca Ride',
+    cardColor: Color(0xFF4A44AA),
+    icon: Icons.temple_buddhist_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Samira Fakhri',
+        rating: 5,
+        date: '2 days ago',
+        comment: 'معابد أبو سمبل روعة! والفلوكة جولة رومانسية جداً عند الغروب.',
+      ),
+      Review(
+        name: 'Thomas Brown',
+        rating: 5,
+        date: '1 week ago',
+        comment: 'Abu Simbel is awe-inspiring! The felucca ride was perfect.',
+      ),
+      Review(
+        name: 'Youssef Khalil',
+        rating: 5,
+        date: '2 weeks ago',
+        comment: 'رحلة الفلوكة على النيل عند الغروب كانت أجمل جزء!',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Red Sea Hurghada Diving',
+    durationHours: 10,
+    priceUsd: 150,
+    description:
+        'رحلة إلى البحر الأحمر للغوص والسنوركل، استكشاف الشعاب المرجانية الملونة والأسماك الاستوائية، رحلة بالقارب إلى جزيرة جفتون، الاسترخاء على الشواطئ الرملية البيضاء، وتناول غداء المأكولات البحرية.',
+    mapHint: 'Cairo → Hurghada → Giftun Island → Diving Sites → Beach Resort',
+    cardColor: Color(0xFF5BC0EB),
+    icon: Icons.pool_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Riham Nassar',
+        rating: 5,
+        date: '1 day ago',
+        comment:
+            'الشعب المرجانية ملونة للغاية والأسماك رائعة. الشاطئ نظيف جداً.',
+      ),
+      Review(
+        name: 'Sophie Laurent',
+        rating: 5,
+        date: '3 days ago',
+        comment:
+            'Best snorkeling experience ever! Crystal clear waters and amazing marine life.',
+      ),
+      Review(
+        name: 'Khalid Saeed',
+        rating: 4,
+        date: '1 week ago',
+        comment: 'Diving في البحر الأحمر لا يقارن بأي مكان آخر!',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Fayoum Wadi El Rayan',
+    durationHours: 7,
+    priceUsd: 75,
+    description:
+        'رحلة قريبة إلى الفيوم، زيارة محمية وادي الريان وشلالاتها الطبيعية، بحيرة قارون، وادي الحيتان (موقع تراث عالمي)، قرية تونس الفنية، والاستمتاع بالمناظر الطبيعية الخلابة وركوب الخيل.',
+    mapHint:
+        'Cairo → Wadi El Rayan → Lake Qarun → Wadi El Hitan → Tunis Village',
+    cardColor: Color(0xFF0D7377),
+    icon: Icons.water_drop_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1548919973-5cef591cdbc9?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Dina Mansour',
+        rating: 5,
+        date: '2 days ago',
+        comment:
+            'الشلالات جميلة جداً وقرية تونس كانت رومانسية! رحلة قصيرة لكن ممتعة.',
+      ),
+      Review(
+        name: 'Peter Anderson',
+        rating: 4,
+        date: '5 days ago',
+        comment:
+            'Nice waterfalls and beautiful scenery. Wadi El Hitan fossils are fascinating!',
+      ),
+      Review(
+        name: 'Maha Rageh',
+        rating: 5,
+        date: '1 week ago',
+        comment: 'ركوب الخيل في الفيوم تجربة لا تنسى!',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'Dahab Sinai Mountains',
+    durationHours: 14,
+    priceUsd: 180,
+    description:
+        'رحلة إلى دهب في سيناء، تسلق جبل موسى لمشاهدة شروق الشمس، زيارة دير سانت كاترين (أقدم دير في العالم)، الغطس في البلو هول، الاسترخاء على شواطئ دهب الهادئة، وتجربة الثقافة البدوية.',
+    mapHint: 'Cairo → Dahab → Mount Sinai → St. Catherine → Blue Hole → Beach',
+    cardColor: Color(0xFF8B6F47),
+    icon: Icons.terrain_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1591604129853-b71f29e3b39e?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Ibrahim Moustafa',
+        rating: 5,
+        date: '1 day ago',
+        comment: 'شروق الشمس من جبل موسى روعة! والبلو هول غطس مذهل.',
+      ),
+      Review(
+        name: 'Jessica Taylor',
+        rating: 5,
+        date: '3 days ago',
+        comment:
+            'Mount Sinai sunrise is absolutely breathtaking. The Blue Hole diving is world-class!',
+      ),
+      Review(
+        name: 'Omar Hassan',
+        rating: 4,
+        date: '1 week ago',
+        comment: 'دير سانت كاترين كان مؤثر جداً. رحلة روحانية وجسدية معاً.',
+      ),
+    ],
+  ),
+  FlyingTaxiTrip(
+    name: 'White Desert Safari',
+    durationHours: 15,
     priceUsd: 200,
     description:
-        'استكشاف قلب القاهرة، تشمل مناطق وسط المدينة والأحياء التاريخية من السماء.',
-    mapHint: 'Path over Tahrir Square, the Nile and historic mosques.',
-    cardColor: Color(0xFF4A44AA),
-    icon: Icons.location_city_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Evening Cairo Lights',
-    durationMins: 30,
-    priceUsd: 220,
-    description: 'جولة مسائية لمشاهدة أضواء القاهرة والمعالم مضاءة من الجو.',
-    mapHint: 'Route covers historic temples and the corniche.',
+        'مغامرة فريدة إلى الصحراء البيضاء بتشكيلاتها الطباشيرية المذهلة، المرور بالصحراء السوداء والتلال البركانية، زيارة وادي الأجبان، مبيت في الصحراء تحت النجوم، وتجربة الطعام البدوي التقليدي.',
+    mapHint: 'Cairo → Bahariya Oasis → Black Desert → White Desert → Camping',
     cardColor: Color(0xFF1A1A40),
     icon: Icons.nights_stay_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
+        'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Yasmin Soliman',
+        rating: 5,
+        date: '3 days ago',
+        comment:
+            'الصحراء البيضاء مثل كوكب آخر! التشكيلات الصخرية مذهلة والمخيم جميل.',
+      ),
+      Review(
+        name: 'Michael Schmidt',
+        rating: 5,
+        date: '1 week ago',
+        comment:
+            'Otherworldly landscapes in the White Desert. Camping under the stars is unforgettable!',
+      ),
+      Review(
+        name: 'Salma Shaker',
+        rating: 5,
+        date: '2 weeks ago',
+        comment: 'رحلة ستجعلك تشعر أنك على المريخ! جمال مختلف تماماً.',
+      ),
+    ],
   ),
   FlyingTaxiTrip(
-    name: 'Pyramids & Museum Loop',
-    durationMins: 40,
-    priceUsd: 250,
+    name: 'Sharm El Sheikh Beach',
+    durationHours: 9,
+    priceUsd: 140,
     description:
-        'رحلة طويلة تشمل الأهرامات والمتحف المصري الكبير من الجو، مع تعليق صوتي عن المعالم.',
-    mapHint: 'Circular: Airport → Pyramids → Grand Museum → Return.',
-    cardColor: Color(0xFFE02850),
-    icon: Icons.museum_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'River Nile Sunset',
-    durationMins: 30,
-    priceUsd: 220,
-    description:
-        'مشاهدة غروب الشمس على نهر النيل من الأعلى مع إطلالة على الجسور والفلل.',
-    mapHint: 'Along the Nile from Cairo to Fustat.',
-    cardColor: Color(0xFFE87832),
-    icon: Icons.wb_twilight_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1548919973-5cef591cdbc9?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Ancient Landmarks Tour',
-    durationMins: 35,
-    priceUsd: 230,
-    description:
-        'استكشاف المعالم القديمة في القاهرة، بما في ذلك المساجد والمقابر القديمة.',
-    mapHint: 'Covers Pyramids area and ancient archaeological sites.',
-    cardColor: Color(0xFF8B6F47),
-    icon: Icons.account_balance_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1555993539-1732f7b1446e?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Cairo Panorama Quick Flight',
-    durationMins: 20,
-    priceUsd: 180,
-    description:
-        'جولة سريعة للمبتدئين أو المسافرين ذوي الوقت القصير، رؤية بانورامية عامة للقاهرة.',
-    mapHint: 'Short route covering main landmarks only.',
-    cardColor: Color(0xFF5BC0EB),
-    icon: Icons.panorama_photosphere_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1591604129853-b71f29e3b39e?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Historic Cairo Skyline',
-    durationMins: 30,
-    priceUsd: 220,
-    description:
-        'التعرف على القاهرة القديمة والمعالم التاريخية من الجو، مع صوت AI يشرح المعالم.',
-    mapHint: 'Path over old quarters and heritage districts.',
-    cardColor: Color(0xFF0D7377),
-    icon: Icons.mosque_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
-  ),
-  FlyingTaxiTrip(
-    name: 'Night Sky Flight',
-    durationMins: 30,
-    priceUsd: 220,
-    description:
-        'جولة ليلية لمشاهدة النجوم وأضواء المدينة من الطائرة، تجربة فريدة وهادئة.',
-    mapHint: 'Route over well-lit areas from above.',
+        'رحلة استجمام إلى شرم الشيخ، الغطس في خليج نعمة وجزيرة تيران، زيارة محمية رأس محمد الطبيعية، التسوق في السوق القديم، الاستمتاع بالمنتجعات السياحية الفاخرة والشواطئ الذهبية.',
+    mapHint: 'Cairo → Sharm → Naama Bay → Ras Mohammed → Tiran Island → Resort',
     cardColor: Color(0xFF1C1C3B),
-    icon: Icons.dark_mode_rounded,
+    icon: Icons.beach_access_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80',
+        'https://images.unsplash.com/photo-1523482580674-f109c8b2107e?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'Noor Shawky',
+        rating: 5,
+        date: '2 days ago',
+        comment: 'شرم الشيخ روعة! الشواطئ نظيفة والمياه صافية والسوق جميل!',
+      ),
+      Review(
+        name: 'Patricia Garcia',
+        rating: 5,
+        date: '5 days ago',
+        comment:
+            'Luxurious resorts and golden beaches. Perfect for relaxation and diving!',
+      ),
+      Review(
+        name: 'Tamer Nabil',
+        rating: 4,
+        date: '1 week ago',
+        comment:
+            'رحلة ممتازة للعائلة. الأطفال استمتعوا على الشواطئ والكبار في الغوص!',
+      ),
+    ],
   ),
 ];
 
@@ -234,19 +484,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
       ),
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF0F6FC), // Light blue tint
-                Color(0xFFFFFDF7), // Cream white
-                Color(0xFFFFFFFF), // Pure white
-                Color(0xFFF8FBFF), // Very light blue
-              ],
-              stops: [0.0, 0.35, 0.65, 1.0],
-            ),
-          ),
+          color: const Color(0xFFE8F4F8),
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -262,7 +500,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(13),
                             boxShadow: [
                               BoxShadow(
@@ -363,7 +601,7 @@ class _FlyingTripCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -537,7 +775,7 @@ class _FlyingTripCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          '4.${trip.durationMins % 7 + 2}',
+                          '4.${trip.durationHours % 7 + 2}',
                           style: roboto(
                             fontSize: 11,
                             color: Colors.grey.shade600,
