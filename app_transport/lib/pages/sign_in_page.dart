@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'home_page.dart';
 import 'sign_up_page.dart';
+import '../services/auth_service.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -63,6 +65,55 @@ class _SignInPageState extends State<SignInPage>
         },
       ),
       (_) => false,
+    );
+  }
+
+  Future<void> _handleSignIn() async {
+    if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
+      _showErrorSnackBar('البريد والكلمة مطلوبة (Email and password required)');
+      return;
+    }
+
+    final authService = context.read<AuthService>();
+
+    bool success = await authService.signIn(
+      email: _emailCtrl.text.trim(),
+      password: _passCtrl.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      _showSuccessSnackBar('✅ تم تسجيل الدخول بنجاح (Sign in successful)');
+      Future.delayed(const Duration(milliseconds: 500), _goToHome);
+    } else {
+      _showErrorSnackBar(
+        authService.errorMessage ?? 'خطأ في تسجيل الدخول (Sign in failed)',
+      );
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[700],
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green[700],
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -160,9 +211,17 @@ class _SignInPageState extends State<SignInPage>
                                   ),
                                 ),
                                 const SizedBox(height: 26),
-                                AuthGradientButton(
-                                  label: 'Sign In',
-                                  onTap: _goToHome,
+                                Consumer<AuthService>(
+                                  builder: (context, authService, _) {
+                                    return AuthGradientButton(
+                                      label: authService.isLoading
+                                          ? 'جاري التسجيل...'
+                                          : 'Sign In',
+                                      onTap: authService.isLoading
+                                          ? () {}
+                                          : _handleSignIn,
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 14),
                                 Center(

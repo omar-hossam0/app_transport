@@ -49,358 +49,362 @@ class FlyingTaxiTrip {
   String get priceLabel => '\$$priceUsd';
 }
 
-// ── 10 Egyptian Day Trips ───────────────────────────────────────────────────
+// ── 10 Cairo Day Trips (within Cairo – max 5 hours) ─────────────────────────
 const _flyingTrips = <FlyingTaxiTrip>[
+  // 1 ─ أهرامات الجيزة وأبو الهول
   FlyingTaxiTrip(
-    name: 'Giza Pyramids & Museum',
-    durationHours: 8,
-    priceUsd: 90,
+    name: 'أهرامات الجيزة وأبو الهول',
+    durationHours: 3,
+    priceUsd: 85,
     description:
-        'يتجه المسافر إلى منطقة أهرامات الجيزة لزيارة هضبة الأهرامات وأبو الهول والتجول داخل المنطقة وقضاء نحو ثلاث ساعات، ثم الانتقال إلى المتحف القومي للحضارة المصرية للتعرف على تاريخ الحضارة المصرية ومشاهدة قاعة المومياوات الملكية وقضاء نحو ساعة و نصف، يلي ذلك التوجه إلى كورنيش النيل في الفسطاط للاستمتاع بالمشهد العام وتناول وجبة خفيفة قبل العودة إلى مطار القاهرة الدولي.',
-    mapHint: 'Airport → Giza Pyramids → NMEC Museum → Nile Corniche → Airport',
+        'رحلة من مطار القاهرة إلى هضبة الأهرامات لمشاهدة الهرم الأكبر خوفو وهرم خفرع ومنقرع وتمثال أبو الهول، مع جولة تصوير بانورامية من المنطقة البانورامية، ثم العودة إلى المطار.',
+    mapHint: 'مطار القاهرة → هضبة الأهرامات → أبو الهول → المنطقة البانورامية → المطار',
     cardColor: Color(0xFFD4A843),
     icon: Icons.landscape_rounded,
     imageUrl:
         'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
     reviews: [
       Review(
-        name: 'Ahmed Mohamed',
+        name: 'أحمد محمد',
         rating: 5,
-        date: '2 days ago',
-        comment: 'رحلة رائعة جداً! المرشد السياحي كان محترف والتنظيم ممتاز.',
+        date: 'من يومين',
+        comment: 'رحلة رائعة جداً! الأهرامات كانت مهيبة والمرشد شرح كل حاجة.',
       ),
       Review(
         name: 'Sara Ali',
         rating: 4,
-        date: '1 week ago',
-        comment: 'تجربة جميلة، الأماكن كانت مذهلة لكن الوقت كان ضيق شوية.',
+        date: 'من أسبوع',
+        comment: 'أبو الهول كان مذهل! بس الشمس كانت حارة شوية.',
       ),
       Review(
         name: 'John Smith',
         rating: 5,
-        date: '2 weeks ago',
-        comment:
-            'Amazing pyramids! The guide was very knowledgeable. Highly recommended!',
+        date: 'من أسبوعين',
+        comment: 'Absolutely stunning! The pyramids are even more impressive in person.',
       ),
       Review(
-        name: 'Fatima Hassan',
+        name: 'فاطمة حسن',
         rating: 5,
-        date: '3 weeks ago',
-        comment:
-            'تجربة لا تُنسى! المتحف القومي كان مذهل والمرشد شرح كل شيء بالتفصيل.',
+        date: 'من ٣ أسابيع',
+        comment: 'المنطقة البانورامية كانت أحلى حاجة، صورنا صور جميلة جداً.',
       ),
     ],
   ),
+
+  // 2 ─ المتحف المصري الكبير (GEM)
   FlyingTaxiTrip(
-    name: 'Alexandria Mediterranean Tour',
-    durationHours: 12,
-    priceUsd: 120,
+    name: 'المتحف المصري الكبير',
+    durationHours: 3,
+    priceUsd: 70,
     description:
-        'رحلة إلى عروس البحر المتوسط، زيارة مكتبة الإسكندرية الحديثة، قلعة قايتباي على البحر، المسرح الروماني، حدائق المنتزه، والاستمتاع بالكورنيش وتناول المأكولات البحرية الطازجة في أحد المطاعم المطلة على البحر.',
-    mapHint:
-        'Cairo → Alexandria Library → Citadel → Roman Theater → Montaza → Cairo',
-    cardColor: Color(0xFF187BCD),
-    icon: Icons.water_rounded,
+        'زيارة المتحف المصري الكبير بالرماية، أكبر متحف أثري في العالم، لمشاهدة كنوز توت عنخ آمون والمومياوات الملكية والتماثيل العملاقة لرمسيس الثاني، مع جولة إرشادية متكاملة.',
+    mapHint: 'مطار القاهرة → المتحف المصري الكبير → قاعة توت عنخ آمون → المطار',
+    cardColor: Color(0xFFB8860B),
+    icon: Icons.museum_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+        'https://images.unsplash.com/photo-1646921305696-8448b037c33a?w=800&q=80',
     reviews: [
       Review(
-        name: 'Mohamed Karim',
+        name: 'محمد كريم',
         rating: 5,
-        date: '3 days ago',
-        comment: 'مدينة جميلة جداً والمكتبة رائعة. الطعم السمك طازجة وشهية!',
+        date: 'من ٣ أيام',
+        comment: 'المتحف تحفة معمارية! كنوز توت عنخ آمون لا مثيل لها.',
       ),
       Review(
-        name: 'Lisa Johnson',
+        name: 'Emily Brown',
+        rating: 5,
+        date: 'من ٥ أيام',
+        comment: 'The GEM is world-class! Tutankhamun gallery is breathtaking.',
+      ),
+      Review(
+        name: 'نادية عبدالله',
         rating: 4,
-        date: '5 days ago',
-        comment:
-            'Beautiful coastal city. The seafood was excellent. Worth the long drive!',
-      ),
-      Review(
-        name: 'Nadia Patel',
-        rating: 5,
-        date: '1 week ago',
-        comment:
-            'The Citadel was breathtaking! Great views of the Mediterranean.',
+        date: 'من أسبوع',
+        comment: 'مكان رائع لكن محتاج وقت أكتر عشان تشوف كل حاجة.',
       ),
     ],
   ),
+
+  // 3 ─ برج القاهرة وجزيرة الزمالك
   FlyingTaxiTrip(
-    name: 'Luxor Temples & Valley',
-    durationHours: 16,
-    priceUsd: 250,
+    name: 'برج القاهرة والزمالك',
+    durationHours: 2,
+    priceUsd: 45,
     description:
-        'رحلة إلى الأقصر، عاصمة مصر القديمة، زيارة معبد الكرنك ومعبد الأقصر على الضفة الشرقية، ثم العبور إلى البر الغربي لاستكشاف وادي الملوك ومعبد حتشبسوت ومعبد الرامسيوم، مع مرشد سياحي متخصص.',
-    mapHint: 'Fly to Luxor → Karnak → Luxor Temple → Valley of Kings → Return',
-    cardColor: Color(0xFFE02850),
-    icon: Icons.account_balance_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
-    reviews: [
-      Review(
-        name: 'Amira Hassan',
-        rating: 5,
-        date: '4 days ago',
-        comment:
-            'وادي الملوك مذهل! مشاهدة المومياوات والمعابد تجربة روحانية رائعة.',
-      ),
-      Review(
-        name: 'David Chen',
-        rating: 5,
-        date: '1 week ago',
-        comment:
-            'The Valley of Kings is mind-blowing! History comes alive here.',
-      ),
-      Review(
-        name: 'Zainab Ahmed',
-        rating: 4,
-        date: '2 weeks ago',
-        comment:
-            'معابد الكرنك كانت مذهلة فعلاً. الرحلة متعبة لكن تستحق كل ثانية.',
-      ),
-      Review(
-        name: 'Marco Rossi',
-        rating: 5,
-        date: '3 weeks ago',
-        comment: 'Simply unforgettable! Best trip of my life!',
-      ),
-    ],
-  ),
-  FlyingTaxiTrip(
-    name: 'Siwa Oasis Adventure',
-    durationHours: 20,
-    priceUsd: 280,
-    description:
-        'مغامرة إلى واحة سيوا في الصحراء الغربية، زيارة معبد آمون، قلعة شالي القديمة، عين كليوباترا للاستحمام في المياه الطبيعية، رحلة سفاري في الكثبان الرملية، والاستمتاع بالهدوء والليالي الصحراوية تحت النجوم.',
-    mapHint:
-        'Cairo → Siwa Oasis → Shali Fortress → Cleopatra Spring → Desert Safari',
-    cardColor: Color(0xFFE87832),
-    icon: Icons.wb_sunny_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80',
-    reviews: [
-      Review(
-        name: 'Hassan El-Sayed',
-        rating: 5,
-        date: '1 day ago',
-        comment: 'واحة سيوا ساحرة! الليال تحت النجوم لا تنسى أبداً.',
-      ),
-      Review(
-        name: 'Emma Wilson',
-        rating: 5,
-        date: '2 days ago',
-        comment:
-            'The starry nights in Siwa are magical! A truly unique experience.',
-      ),
-      Review(
-        name: 'Layla Ibrahim',
-        rating: 4,
-        date: '5 days ago',
-        comment: 'جميل جداً لكن الطريق طويل والرمال عندها حرارة شديدة جداً.',
-      ),
-    ],
-  ),
-  FlyingTaxiTrip(
-    name: 'Aswan & Abu Simbel',
-    durationHours: 18,
-    priceUsd: 300,
-    description:
-        'رحلة إلى أسوان والنوبة، زيارة معابد أبو سمبل المهيبة لرمسيس الثاني ونفرتاري، السد العالي، معبد فيلة على جزيرة أجيليكا، المسلة الناقصة، والاستمتاع بجولة بالفلوكة على نهر النيل عند غروب الشمس.',
-    mapHint:
-        'Fly to Aswan → Abu Simbel → High Dam → Philae Temple → Felucca Ride',
+        'الصعود إلى قمة برج القاهرة (١٨٧ متر) للاستمتاع بمنظر بانورامي ٣٦٠ درجة للقاهرة بأكملها، ثم التجول في شوارع الزمالك الراقية وزيارة متحف الخزف الإسلامي وتناول قهوة في أحد الكافيهات.',
+    mapHint: 'مطار القاهرة → برج القاهرة → شوارع الزمالك → كافيه → المطار',
     cardColor: Color(0xFF4A44AA),
-    icon: Icons.temple_buddhist_rounded,
+    icon: Icons.cell_tower_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=800&q=80',
+        'https://images.unsplash.com/photo-1724921910233-002751d0d861?w=800&q=80',
     reviews: [
       Review(
-        name: 'Samira Fakhri',
+        name: 'ليلى إبراهيم',
         rating: 5,
-        date: '2 days ago',
-        comment: 'معابد أبو سمبل روعة! والفلوكة جولة رومانسية جداً عند الغروب.',
+        date: 'من يوم',
+        comment: 'المنظر من فوق البرج خرافي! شوفت القاهرة كلها من فوق.',
       ),
       Review(
         name: 'Thomas Brown',
         rating: 5,
-        date: '1 week ago',
-        comment: 'Abu Simbel is awe-inspiring! The felucca ride was perfect.',
+        date: 'من ٣ أيام',
+        comment: 'Amazing 360° view of Cairo! Zamalek streets are charming.',
       ),
       Review(
-        name: 'Youssef Khalil',
-        rating: 5,
-        date: '2 weeks ago',
-        comment: 'رحلة الفلوكة على النيل عند الغروب كانت أجمل جزء!',
+        name: 'سارة عمر',
+        rating: 4,
+        date: 'من أسبوع',
+        comment: 'الزمالك منطقة جميلة جداً والكافيهات فيها مستوى عالي.',
       ),
     ],
   ),
+
+  // 4 ─ خان الخليلي والحسين
   FlyingTaxiTrip(
-    name: 'Red Sea Hurghada Diving',
-    durationHours: 10,
-    priceUsd: 150,
+    name: 'خان الخليلي والحسين',
+    durationHours: 3,
+    priceUsd: 40,
     description:
-        'رحلة إلى البحر الأحمر للغوص والسنوركل، استكشاف الشعاب المرجانية الملونة والأسماك الاستوائية، رحلة بالقارب إلى جزيرة جفتون، الاسترخاء على الشواطئ الرملية البيضاء، وتناول غداء المأكولات البحرية.',
-    mapHint: 'Cairo → Hurghada → Giftun Island → Diving Sites → Beach Resort',
-    cardColor: Color(0xFF5BC0EB),
-    icon: Icons.pool_rounded,
+        'جولة في أشهر سوق تاريخي في القاهرة، خان الخليلي، للتسوق وشراء الهدايا التذكارية والمشغولات اليدوية، ثم زيارة مسجد الحسين وشارع المعز لدين الله الفاطمي والاستمتاع بالمشروبات في مقهى الفيشاوي التاريخي.',
+    mapHint: 'مطار القاهرة → خان الخليلي → مسجد الحسين → شارع المعز → المطار',
+    cardColor: Color(0xFFE87832),
+    icon: Icons.store_mall_directory_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+        'https://images.unsplash.com/photo-1710211288826-b7df3ab71588?w=800&q=80',
     reviews: [
       Review(
-        name: 'Riham Nassar',
+        name: 'حسن السيد',
         rating: 5,
-        date: '1 day ago',
-        comment:
-            'الشعب المرجانية ملونة للغاية والأسماك رائعة. الشاطئ نظيف جداً.',
+        date: 'من يومين',
+        comment: 'خان الخليلي سوق مذهل! اشتريت هدايا جميلة بأسعار حلوة.',
       ),
       Review(
         name: 'Sophie Laurent',
         rating: 5,
-        date: '3 days ago',
-        comment:
-            'Best snorkeling experience ever! Crystal clear waters and amazing marine life.',
+        date: 'من ٣ أيام',
+        comment: 'The atmosphere is magical! Love the traditional crafts and El Fishawy café.',
       ),
       Review(
-        name: 'Khalid Saeed',
+        name: 'زينب أحمد',
         rating: 4,
-        date: '1 week ago',
-        comment: 'Diving في البحر الأحمر لا يقارن بأي مكان آخر!',
+        date: 'من أسبوع',
+        comment: 'شارع المعز بالليل كان مختلف تماماً! الإضاءة والعمارة الإسلامية روعة.',
+      ),
+      Review(
+        name: 'Marco Rossi',
+        rating: 5,
+        date: 'من أسبوعين',
+        comment: 'Best bazaar experience! The old Cairo vibes are priceless.',
       ),
     ],
   ),
+
+  // 5 ─ قلعة صلاح الدين ومسجد محمد علي
   FlyingTaxiTrip(
-    name: 'Fayoum Wadi El Rayan',
-    durationHours: 7,
-    priceUsd: 75,
+    name: 'قلعة صلاح الدين',
+    durationHours: 3,
+    priceUsd: 50,
     description:
-        'رحلة قريبة إلى الفيوم، زيارة محمية وادي الريان وشلالاتها الطبيعية، بحيرة قارون، وادي الحيتان (موقع تراث عالمي)، قرية تونس الفنية، والاستمتاع بالمناظر الطبيعية الخلابة وركوب الخيل.',
-    mapHint:
-        'Cairo → Wadi El Rayan → Lake Qarun → Wadi El Hitan → Tunis Village',
-    cardColor: Color(0xFF0D7377),
-    icon: Icons.water_drop_rounded,
+        'زيارة قلعة صلاح الدين الأيوبي، أحد أهم معالم القاهرة الإسلامية، ومسجد محمد علي باشا (مسجد المرمر) ذو القباب الفضية، والاستمتاع بإطلالة بانورامية على القاهرة من أعلى القلعة، مع زيارة متحف الشرطة ومتحف المركبات.',
+    mapHint: 'مطار القاهرة → قلعة صلاح الدين → مسجد محمد علي → المتاحف → المطار',
+    cardColor: Color(0xFF8B4513),
+    icon: Icons.castle_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1548919973-5cef591cdbc9?w=800&q=80',
+        'https://images.unsplash.com/photo-1639332127279-fb933aa20fdc?w=800&q=80',
     reviews: [
       Review(
-        name: 'Dina Mansour',
+        name: 'أميرة حسان',
         rating: 5,
-        date: '2 days ago',
-        comment:
-            'الشلالات جميلة جداً وقرية تونس كانت رومانسية! رحلة قصيرة لكن ممتعة.',
+        date: 'من يوم',
+        comment: 'مسجد محمد علي من جوه تحفة! والمنظر من القلعة لا يوصف.',
+      ),
+      Review(
+        name: 'David Chen',
+        rating: 5,
+        date: 'من أسبوع',
+        comment: 'The Alabaster Mosque is incredible! Best panoramic view of Cairo.',
+      ),
+      Review(
+        name: 'يوسف خليل',
+        rating: 4,
+        date: 'من أسبوعين',
+        comment: 'القلعة مكان تاريخي عظيم. محتاج حذاء مريح عشان المشي كتير.',
+      ),
+    ],
+  ),
+
+  // 6 ─ حديقة الأزهر
+  FlyingTaxiTrip(
+    name: 'حديقة الأزهر',
+    durationHours: 2,
+    priceUsd: 35,
+    description:
+        'الاسترخاء في حديقة الأزهر، واحدة من أجمل حدائق القاهرة، المصممة على الطراز الإسلامي مع النوافير والمسطحات الخضراء، والاستمتاع بإطلالة على القاهرة القديمة وقلعة صلاح الدين، مع تناول الطعام في مطعم الحديقة.',
+    mapHint: 'مطار القاهرة → حديقة الأزهر → المطعم البانورامي → المطار',
+    cardColor: Color(0xFF2E8B57),
+    icon: Icons.park_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1693273647745-10f31ae894bf?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'دينا منصور',
+        rating: 5,
+        date: 'من يومين',
+        comment: 'حديقة الأزهر من أجمل أماكن القاهرة! هادية ومنظمة جداً.',
       ),
       Review(
         name: 'Peter Anderson',
         rating: 4,
-        date: '5 days ago',
-        comment:
-            'Nice waterfalls and beautiful scenery. Wadi El Hitan fossils are fascinating!',
+        date: 'من ٥ أيام',
+        comment: 'Beautiful Islamic garden design. The view of old Cairo is stunning.',
       ),
       Review(
-        name: 'Maha Rageh',
+        name: 'مها راجح',
         rating: 5,
-        date: '1 week ago',
-        comment: 'ركوب الخيل في الفيوم تجربة لا تنسى!',
+        date: 'من أسبوع',
+        comment: 'مكان مثالي للعائلات. الأطفال استمتعوا جداً والمطعم أكله لذيذ.',
       ),
     ],
   ),
+
+  // 7 ─ القاهرة القبطية (مصر القديمة)
   FlyingTaxiTrip(
-    name: 'Dahab Sinai Mountains',
-    durationHours: 14,
-    priceUsd: 180,
+    name: 'القاهرة القبطية',
+    durationHours: 3,
+    priceUsd: 45,
     description:
-        'رحلة إلى دهب في سيناء، تسلق جبل موسى لمشاهدة شروق الشمس، زيارة دير سانت كاترين (أقدم دير في العالم)، الغطس في البلو هول، الاسترخاء على شواطئ دهب الهادئة، وتجربة الثقافة البدوية.',
-    mapHint: 'Cairo → Dahab → Mount Sinai → St. Catherine → Blue Hole → Beach',
-    cardColor: Color(0xFF8B6F47),
-    icon: Icons.terrain_rounded,
+        'جولة في منطقة مصر القديمة، زيارة الكنيسة المعلقة (أقدم كنيسة في مصر)، كنيسة أبو سرجة، المعبد اليهودي (معبد بن عزرا)، والمتحف القبطي، والتعرف على تاريخ المسيحية في مصر في أجواء روحانية فريدة.',
+    mapHint: 'مطار القاهرة → الكنيسة المعلقة → المتحف القبطي → أبو سرجة → المطار',
+    cardColor: Color(0xFF800020),
+    icon: Icons.church_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1591604129853-b71f29e3b39e?w=800&q=80',
+        'https://images.unsplash.com/photo-1680053550482-1c47dc7d97ea?w=800&q=80',
     reviews: [
       Review(
-        name: 'Ibrahim Moustafa',
+        name: 'سميرة فخري',
         rating: 5,
-        date: '1 day ago',
-        comment: 'شروق الشمس من جبل موسى روعة! والبلو هول غطس مذهل.',
+        date: 'من يومين',
+        comment: 'الكنيسة المعلقة مكان روحاني جداً! والمتحف القبطي فيه كنوز.',
       ),
       Review(
         name: 'Jessica Taylor',
         rating: 5,
-        date: '3 days ago',
-        comment:
-            'Mount Sinai sunrise is absolutely breathtaking. The Blue Hole diving is world-class!',
+        date: 'من ٣ أيام',
+        comment: 'A deeply spiritual place. The Hanging Church architecture is unique.',
       ),
       Review(
-        name: 'Omar Hassan',
+        name: 'عمر حسان',
         rating: 4,
-        date: '1 week ago',
-        comment: 'دير سانت كاترين كان مؤثر جداً. رحلة روحانية وجسدية معاً.',
+        date: 'من أسبوع',
+        comment: 'منطقة تاريخية جميلة. كل مبنى فيها ليه قصة مختلفة.',
       ),
     ],
   ),
+
+  // 8 ─ قصر البارون إمبان (هليوبوليس)
   FlyingTaxiTrip(
-    name: 'White Desert Safari',
-    durationHours: 15,
-    priceUsd: 200,
+    name: 'قصر البارون إمبان',
+    durationHours: 2,
+    priceUsd: 40,
     description:
-        'مغامرة فريدة إلى الصحراء البيضاء بتشكيلاتها الطباشيرية المذهلة، المرور بالصحراء السوداء والتلال البركانية، زيارة وادي الأجبان، مبيت في الصحراء تحت النجوم، وتجربة الطعام البدوي التقليدي.',
-    mapHint: 'Cairo → Bahariya Oasis → Black Desert → White Desert → Camping',
-    cardColor: Color(0xFF1A1A40),
-    icon: Icons.nights_stay_rounded,
+        'زيارة قصر البارون إمبان في مصر الجديدة (أقرب معلم لمطار القاهرة)، القصر المبني على الطراز الهندي والأوروبي، مع جولة في القاعات المرممة والحدائق، ثم التجول في شوارع هليوبوليس التاريخية وكوربا.',
+    mapHint: 'مطار القاهرة → قصر البارون → شوارع هليوبوليس → كوربا → المطار',
+    cardColor: Color(0xFF6A0DAD),
+    icon: Icons.villa_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80',
+        'https://images.unsplash.com/photo-1678729991067-d20cca194056?w=800&q=80',
     reviews: [
       Review(
-        name: 'Yasmin Soliman',
+        name: 'نور شوقي',
         rating: 5,
-        date: '3 days ago',
-        comment:
-            'الصحراء البيضاء مثل كوكب آخر! التشكيلات الصخرية مذهلة والمخيم جميل.',
-      ),
-      Review(
-        name: 'Michael Schmidt',
-        rating: 5,
-        date: '1 week ago',
-        comment:
-            'Otherworldly landscapes in the White Desert. Camping under the stars is unforgettable!',
-      ),
-      Review(
-        name: 'Salma Shaker',
-        rating: 5,
-        date: '2 weeks ago',
-        comment: 'رحلة ستجعلك تشعر أنك على المريخ! جمال مختلف تماماً.',
-      ),
-    ],
-  ),
-  FlyingTaxiTrip(
-    name: 'Sharm El Sheikh Beach',
-    durationHours: 9,
-    priceUsd: 140,
-    description:
-        'رحلة استجمام إلى شرم الشيخ، الغطس في خليج نعمة وجزيرة تيران، زيارة محمية رأس محمد الطبيعية، التسوق في السوق القديم، الاستمتاع بالمنتجعات السياحية الفاخرة والشواطئ الذهبية.',
-    mapHint: 'Cairo → Sharm → Naama Bay → Ras Mohammed → Tiran Island → Resort',
-    cardColor: Color(0xFF1C1C3B),
-    icon: Icons.beach_access_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1523482580674-f109c8b2107e?w=800&q=80',
-    reviews: [
-      Review(
-        name: 'Noor Shawky',
-        rating: 5,
-        date: '2 days ago',
-        comment: 'شرم الشيخ روعة! الشواطئ نظيفة والمياه صافية والسوق جميل!',
+        date: 'من يومين',
+        comment: 'قصر البارون بعد الترميم بقى تحفة! قريب جداً من المطار.',
       ),
       Review(
         name: 'Patricia Garcia',
         rating: 5,
-        date: '5 days ago',
-        comment:
-            'Luxurious resorts and golden beaches. Perfect for relaxation and diving!',
+        date: 'من ٥ أيام',
+        comment: 'The palace is gorgeous! Indian-style architecture in the heart of Cairo.',
       ),
       Review(
-        name: 'Tamer Nabil',
+        name: 'تامر نبيل',
         rating: 4,
-        date: '1 week ago',
-        comment:
-            'رحلة ممتازة للعائلة. الأطفال استمتعوا على الشواطئ والكبار في الغوص!',
+        date: 'من أسبوع',
+        comment: 'مكان قريب من المطار ومثالي لو عندك وقت قصير. الترميم اتعمل باحتراف.',
+      ),
+    ],
+  ),
+
+  // 9 ─ كورنيش النيل ورحلة نيلية
+  FlyingTaxiTrip(
+    name: 'رحلة نيلية وكورنيش النيل',
+    durationHours: 4,
+    priceUsd: 70,
+    description:
+        'رحلة مسائية على النيل في مركب نيلي فاخر، الاستمتاع بعشاء مع موسيقى حية وعرض تنورة، مشاهدة أضواء القاهرة الليلية من على النيل، والتجول على كورنيش النيل في المعادي وجاردن سيتي.',
+    mapHint: 'مطار القاهرة → كورنيش النيل → مركب نيلي → عشاء وموسيقى → المطار',
+    cardColor: Color(0xFF1A1A40),
+    icon: Icons.directions_boat_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1761351108323-dc01e88a01aa?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'ياسمين سليمان',
+        rating: 5,
+        date: 'من ٣ أيام',
+        comment: 'الرحلة النيلية بالليل كانت سحرية! الأكل كان لذيذ والموسيقى حلوة.',
+      ),
+      Review(
+        name: 'Michael Schmidt',
+        rating: 5,
+        date: 'من أسبوع',
+        comment: 'Cairo at night from the Nile is magical! Great dinner and live music.',
+      ),
+      Review(
+        name: 'سلمى شاكر',
+        rating: 5,
+        date: 'من أسبوعين',
+        comment: 'أحلى عشاء رومانسي على النيل! التنورة كانت عرض ممتع جداً.',
+      ),
+    ],
+  ),
+
+  // 10 ─ المتحف القومي للحضارة المصرية
+  FlyingTaxiTrip(
+    name: 'متحف الحضارة المصرية',
+    durationHours: 3,
+    priceUsd: 55,
+    description:
+        'زيارة المتحف القومي للحضارة المصرية في الفسطاط، لمشاهدة قاعة المومياوات الملكية (٢٢ مومياء ملكية)، وقاعة النسيج المصري، والقاعة الرئيسية التي تروي تاريخ الحضارة المصرية من عصور ما قبل التاريخ حتى العصر الحديث.',
+    mapHint: 'مطار القاهرة → متحف الحضارة → قاعة المومياوات → الفسطاط → المطار',
+    cardColor: Color(0xFF187BCD),
+    icon: Icons.account_balance_rounded,
+    imageUrl:
+        'https://images.unsplash.com/photo-1715430503417-b8c856cff735?w=800&q=80',
+    reviews: [
+      Review(
+        name: 'إبراهيم مصطفى',
+        rating: 5,
+        date: 'من يوم',
+        comment: 'قاعة المومياوات الملكية مهيبة! شوفت رمسيس التاني بنفسي.',
+      ),
+      Review(
+        name: 'Lisa Johnson',
+        rating: 5,
+        date: 'من ٣ أيام',
+        comment: 'The Royal Mummies Hall is absolutely incredible! A must-visit.',
+      ),
+      Review(
+        name: 'خالد سعيد',
+        rating: 4,
+        date: 'من أسبوع',
+        comment: 'متحف رائع ومنظم جداً. محتاج وقت كافي عشان تستمتع بكل قاعة.',
+      ),
+      Review(
+        name: 'ريهام نصار',
+        rating: 5,
+        date: 'من أسبوعين',
+        comment: 'أفضل متحف زرته في حياتي! التصميم المعماري نفسه تحفة.',
       ),
     ],
   ),
@@ -476,7 +480,19 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
+    final mq = MediaQuery.of(context);
+    final topPad = mq.padding.top;
+    final w = mq.size.width;
+    final h = mq.size.height;
+
+    // ── Responsive values tuned for Samsung M31 (411×891 lp) ──
+    final hPad = (w * 0.053).clamp(16.0, 28.0);       // ~22 on M31
+    final gridSpacing = (w * 0.039).clamp(12.0, 20.0); // ~16 on M31
+    final gridMainSpacing = (w * 0.044).clamp(14.0, 22.0); // ~18
+    // Taller cards on narrow/tall phones → better for Arabic text
+    final aspectRatio = (w / h) < 0.48 ? 0.64 : 0.72;
+    final titleFs = (w * 0.053).clamp(18.0, 24.0);     // ~22
+    final subtitleFs = (w * 0.031).clamp(11.0, 14.0);   // ~13
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -491,7 +507,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
               // ── App bar ──────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(22, topPad + 14, 22, 0),
+                  padding: EdgeInsets.fromLTRB(hPad, topPad + 14, hPad, 0),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -522,7 +538,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                         child: Text(
                           'Flying Taxi',
                           style: roboto(
-                            fontSize: 22,
+                            fontSize: titleFs,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -542,10 +558,10 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
               // ── Subtitle ─────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Text(
-                    'Departing & returning to Cairo International Airport',
-                    style: roboto(fontSize: 13, color: Colors.grey.shade500),
+                    'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي',
+                    style: roboto(fontSize: subtitleFs, color: Colors.grey.shade500),
                   ),
                 ),
               ),
@@ -554,13 +570,13 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 
               // ── Grid ─────────────────────────────────────────────────
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
+                padding: EdgeInsets.symmetric(horizontal: hPad),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.72,
+                    mainAxisSpacing: gridMainSpacing,
+                    crossAxisSpacing: gridSpacing,
+                    childAspectRatio: aspectRatio,
                   ),
                   delegate: SliverChildBuilderDelegate((context, i) {
                     final trip = _flyingTrips[i];
@@ -597,12 +613,22 @@ class _FlyingTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    // ── Responsive card values for Samsung M31 (~411 lp) ──
+    final nameFs = (w * 0.030).clamp(11.0, 15.0);      // ~12.3
+    final subFs = (w * 0.024).clamp(9.0, 12.0);        // ~10
+    final priceFs = (w * 0.030).clamp(11.0, 15.0);     // ~12.3
+    final ratingFs = (w * 0.026).clamp(9.0, 13.0);     // ~10.7
+    final cardPadH = (w * 0.028).clamp(8.0, 14.0);     // ~11.5
+    final cardPadV = (w * 0.022).clamp(6.0, 12.0);     // ~9
+    final cardRadius = (w * 0.048).clamp(14.0, 24.0);  // ~20
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(cardRadius),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.07),
@@ -687,6 +713,29 @@ class _FlyingTripCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // duration badge
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.schedule_rounded, size: 11, color: Colors.white),
+                          const SizedBox(width: 3),
+                          Text(
+                            trip.durationLabel,
+                            style: roboto(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   // heart icon
                   Positioned(
                     top: 10,
@@ -713,9 +762,9 @@ class _FlyingTripCard extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                padding: EdgeInsets.symmetric(
+                  horizontal: cardPadH,
+                  vertical: cardPadV,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -725,7 +774,7 @@ class _FlyingTripCard extends StatelessWidget {
                       trip.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: roboto(fontSize: 13, fontWeight: FontWeight.w700),
+                      style: roboto(fontSize: nameFs, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
                     // Location
@@ -733,17 +782,17 @@ class _FlyingTripCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.flight_takeoff_rounded,
-                          size: 12,
+                          size: 11,
                           color: Colors.grey.shade400,
                         ),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
-                            'Cairo International Airport',
+                            'مطار القاهرة الدولي',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: roboto(
-                              fontSize: 10,
+                              fontSize: subFs,
                               color: Colors.grey.shade500,
                             ),
                           ),
@@ -751,18 +800,18 @@ class _FlyingTripCard extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    // Bottom row: price + duration + rating
+                    // Bottom row: price + rating
                     Row(
                       children: [
                         Icon(
                           Icons.attach_money_rounded,
-                          size: 14,
+                          size: 13,
                           color: kBlue,
                         ),
                         Text(
                           trip.priceLabel,
                           style: roboto(
-                            fontSize: 13,
+                            fontSize: priceFs,
                             fontWeight: FontWeight.w800,
                             color: kBlue,
                           ),
@@ -770,14 +819,14 @@ class _FlyingTripCard extends StatelessWidget {
                         const Spacer(),
                         const Icon(
                           Icons.star_rounded,
-                          size: 14,
+                          size: 13,
                           color: Color(0xFFFFC107),
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          '4.${trip.durationHours % 7 + 2}',
+                          '4.${trip.durationHours % 5 + 4}',
                           style: roboto(
-                            fontSize: 11,
+                            fontSize: ratingFs,
                             color: Colors.grey.shade600,
                           ),
                         ),

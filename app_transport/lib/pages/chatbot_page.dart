@@ -74,6 +74,129 @@ void showChatBot(BuildContext context) {
   );
 }
 
+// ── Full-page chatbot route with slide-up animation ────────────────────────
+void openChatBotFullPage(BuildContext context) {
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const ChatBotPage(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(curved),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.5, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    ),
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Full-page ChatBot
+// ═════════════════════════════════════════════════════════════════════════════
+class ChatBotPage extends StatefulWidget {
+  const ChatBotPage({super.key});
+
+  @override
+  State<ChatBotPage> createState() => _ChatBotPageState();
+}
+
+class _ChatBotPageState extends State<ChatBotPage> {
+  final _ctrl = TextEditingController();
+  final _scroll = ScrollController();
+  bool _typing = false;
+
+  final List<_ChatMsg> _msgs = [
+    _ChatMsg(
+      text:
+          'Hello! \u{1F44B} Welcome to App Transport.\nHow can I help you plan your perfect layover experience today?',
+      isUser: false,
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send(String text) async {
+    final msg = text.trim();
+    if (msg.isEmpty) return;
+    _ctrl.clear();
+    setState(() {
+      _msgs.add(_ChatMsg(text: msg, isUser: true));
+      _typing = true;
+    });
+    _scrollToBottom();
+
+    await Future.delayed(const Duration(milliseconds: 1100));
+    if (!mounted) return;
+
+    setState(() {
+      _typing = false;
+      _msgs.add(_ChatMsg(text: _getResponse(msg), isUser: false));
+    });
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F8FC),
+      body: Column(
+        children: [
+          // Header with status bar padding
+          _Header(onClose: () => Navigator.pop(context), fullPage: true),
+          // Chips
+          _ChipsRow(onChip: _send),
+          // Messages
+          Expanded(
+            child: ListView.builder(
+              controller: _scroll,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              itemCount: _msgs.length + (_typing ? 1 : 0),
+              itemBuilder: (ctx, i) {
+                if (_typing && i == _msgs.length) {
+                  return const _TypingBubble();
+                }
+                return _Bubble(msg: _msgs[i]);
+              },
+            ),
+          ),
+          // Input
+          _InputBar(controller: _ctrl, onSend: _send),
+        ],
+      ),
+    );
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  Chat Message model
 // ═════════════════════════════════════════════════════════════════════════════
@@ -201,19 +324,24 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 // ─── Header ──────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
   final VoidCallback onClose;
-  const _Header({required this.onClose});
+  final bool fullPage;
+  const _Header({required this.onClose, this.fullPage = false});
 
   @override
   Widget build(BuildContext context) {
+    final topPad = fullPage ? MediaQuery.of(context).padding.top : 0.0;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
+      padding: EdgeInsets.fromLTRB(18, topPad + 16, 18, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
           colors: [kBlue, kLightBlue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: fullPage
+            ? null
+            : const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Row(
         children: [

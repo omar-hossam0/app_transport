@@ -182,6 +182,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
+        extendBody: true,
         body: Container(
           color: const Color(0xFFE8F4F8),
           child: SingleChildScrollView(
@@ -209,13 +210,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
                 // ── 4  Popular Trips ────────────────────────────────
                 _stagger(4, _buildPopularTrips()),
-                const SizedBox(height: 24),
+                const SizedBox(height: 96),
               ],
             ),
           ),
         ),
         bottomNavigationBar: _buildBottomNav(),
-        floatingActionButton: _buildAiFab(),
       ),
     );
   }
@@ -226,56 +226,70 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Greeting + title
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hi, Traveler',
-                  style: roboto(
-                    fontSize: 14,
-                    color: kLightBlue,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Let's Enjoy\nYour Vacation!",
-                  style: roboto(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    height: 1.25,
-                  ),
-                ),
-              ],
+          // Logo row
+          Center(
+            child: Image.asset(
+              'img/logo2.png',
+              height: 72,
+              fit: BoxFit.contain,
             ),
           ),
-          // Profile avatar
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
-                boxShadow: [
-                  BoxShadow(
-                    color: kBlue.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              // Greeting + title
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hi, Traveler',
+                      style: roboto(
+                        fontSize: 14,
+                        color: kLightBlue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Let's Enjoy\nYour Vacation!",
+                      style: roboto(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Profile avatar
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
+                    boxShadow: [
+                      BoxShadow(
+                        color: kBlue.withValues(alpha: 0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 26,
-              ),
-            ),
+            ],
           ),
         ],
       ),
@@ -608,43 +622,56 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Bottom nav
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBottomNav() {
+    // items: (icon, action-index)
+    // action-index: -1=setState home, 1=flyingTaxi, 2=transit, 3=bookings, 4=chatbot, 5=profile
     const items = [
-      (Icons.home_rounded, 'Home'),
-      (Icons.flight_rounded, 'Flying Taxi'),
-      (Icons.directions_bus_rounded, 'Trips'),
-      (Icons.calendar_today_rounded, 'Bookings'),
-      (Icons.person_outline_rounded, 'Profile'),
+      (Icons.home_rounded, -1),
+      (Icons.flight_rounded, 1),
+      (Icons.directions_bus_rounded, 2),
+      (Icons.calendar_today_rounded, 3),
+      (Icons.smart_toy_rounded, 4),
+      (Icons.person_outline_rounded, 5),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 0, 28, 12),
+        child: Container(
+          height: 62,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF3AADE0), Color(0xFF6BCFF0)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(31),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3AADE0).withValues(alpha: 0.40),
+                blurRadius: 22,
+                spreadRadius: 0,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(items.length, (i) {
               final active = i == _navIndex;
+              final icon = items[i].$1;
+              final action = items[i].$2;
+
               return GestureDetector(
                 onTap: () {
-                  if (i == 1) {
+                  if (action == 1) {
                     _openFlyingTaxi();
-                  } else if (i == 2) {
+                  } else if (action == 2) {
                     _openTransitTrips();
-                  } else if (i == 3) {
+                  } else if (action == 3) {
                     _openMyBookings();
-                  } else if (i == 4) {
+                  } else if (action == 4) {
+                    openChatBotFullPage(context);
+                  } else if (action == 5) {
                     _openProfile();
                   } else {
                     setState(() => _navIndex = i);
@@ -652,37 +679,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 },
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: active
-                        ? kBlue.withValues(alpha: 0.10)
+                        ? Colors.white.withValues(alpha: 0.28)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        items[i].$1,
-                        size: 24,
-                        color: active ? kBlue : Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        items[i].$2,
-                        style: GoogleFonts.roboto(
-                          fontSize: 10,
-                          fontWeight: active
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: active ? kBlue : Colors.grey.shade400,
-                        ),
-                      ),
-                    ],
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: active
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.60),
                   ),
                 ),
               );
@@ -694,41 +706,134 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  //  AI FAB
+  //  "Search with AI" button (wave shape)
   // ═══════════════════════════════════════════════════════════════════
-  Widget _buildAiFab() {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [_kDarkBlue, kBlue],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _kDarkBlue.withValues(alpha: 0.4),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(28),
-          onTap: () => showChatBot(context),
-          child: const Icon(
-            Icons.smart_toy_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
+  Widget _buildAiSearchButton() {
+    return GestureDetector(
+      onTap: () => openChatBotFullPage(context),
+      child: SizedBox(
+        width: 250,
+        height: 68,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Wave / organic blob background
+            CustomPaint(
+              size: const Size(250, 68),
+              painter: const _AiWavePainter(),
+            ),
+            // Content
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.30),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.smart_toy_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Search with AI',
+                      style: roboto(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                // "NEW" badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFB800),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFB800).withValues(alpha: 0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'NEW',
+                    style: roboto(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Wave / organic blob painter for the AI search button
+// ═════════════════════════════════════════════════════════════════════════════
+class _AiWavePainter extends CustomPainter {
+  const _AiWavePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final path = Path();
+    path.moveTo(0, h * 0.50);
+    // Top curve (dome)
+    path.cubicTo(w * 0.12, -h * 0.12, w * 0.88, -h * 0.12, w, h * 0.50);
+    // Bottom curve
+    path.cubicTo(w * 0.88, h * 1.12, w * 0.12, h * 1.12, 0, h * 0.50);
+    path.close();
+
+    // Shadow
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF4A44AA).withValues(alpha: 0.30)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    canvas.save();
+    canvas.translate(0, 4);
+    canvas.drawPath(path, shadowPaint);
+    canvas.restore();
+
+    // Gradient fill
+    final rect = Rect.fromLTWH(0, 0, w, h);
+    final gradient = const LinearGradient(
+      colors: [Color(0xFF4A44AA), Color(0xFF187BCD)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    final paint = Paint()..shader = gradient.createShader(rect);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -786,8 +891,8 @@ class _TripCard extends StatelessWidget {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 46,
                   child: Container(
+                    height: 46,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,

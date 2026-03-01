@@ -1,11 +1,165 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'services/auth_service.dart';
 import 'pages/sign_in_page.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  runApp(const MyApp());
+
+  // Initialize Firebase using the generated options entrypoint.
+  // This uses `DefaultFirebaseOptions.currentPlatform` directly.
+  try {
+    print('\n═══════════════════════════════════════════════════════════');
+    print('🔥 FIREBASE INITIALIZATION STARTED');
+    print('═══════════════════════════════════════════════════════════');
+
+    final options = DefaultFirebaseOptions.currentPlatform;
+    print(
+      '[Firebase Init] Options received - Project ID: ${options.projectId}',
+    );
+    print('[Firebase Init] API Key: ${options.apiKey.substring(0, 10)}...');
+    print('[Firebase Init] App ID: ${options.appId}');
+
+    await Firebase.initializeApp(options: options);
+
+    print('✅ Firebase Initialized Successfully!');
+    print('   Project: ${options.projectId}');
+    print('   Database URL: ${options.databaseURL}');
+
+    // Quick Realtime Database connectivity check
+    bool dbConnected = false;
+    String dbError = '';
+
+    try {
+      print('\n[DB Connection Test] Starting...');
+      final db = FirebaseDatabase.instance;
+      print('[DB Connection Test] FirebaseDatabase instance created');
+      print('[DB Connection Test] Attempting to read from .info/connected...');
+
+      // Try reading .info/connected with timeout
+      final connectedFuture = db
+          .ref('.info/connected')
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              print('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
+              throw TimeoutException(
+                'Database read timeout - check internet and Realtime DB status',
+              );
+            },
+          );
+
+      final infoSnap = await connectedFuture;
+      print('[DB Connection Test] Response received');
+      print('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
+      print('[DB Connection Test] Snapshot value: ${infoSnap.value}');
+      print(
+        '[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}',
+      );
+
+      // Handle the response - value can come as different types
+      final value = infoSnap.value;
+      if (value == true || value == 'true' || value == 1) {
+        dbConnected = true;
+        print('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
+      } else if (infoSnap.exists && (value as dynamic) == true) {
+        dbConnected = true;
+        print('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
+      } else {
+        // Handle different or unexpected values
+        dbError =
+            '.info/connected returned: $value (type: ${value.runtimeType})';
+        print(
+          '[DB Connection Test] ⚠️ Unexpected value, but trying root check...',
+        );
+
+        try {
+          final rootSnap = await db
+              .ref('/')
+              .get()
+              .timeout(const Duration(seconds: 5));
+          print(
+            '[DB Connection Test] Root read result: exists=${rootSnap.exists}',
+          );
+          if (rootSnap.exists) {
+            dbConnected = true; // At least we can connect
+            dbError =
+                '✅ Database is accessible! (.info/connected returned: $value)';
+            print('[DB Connection Test] ✅ Partial connection: $dbError');
+          }
+        } catch (altErr) {
+          dbError = 'Both checks failed: $altErr';
+          print('[DB Connection Test] Alternative read also failed: $altErr');
+        }
+
+        if (!dbConnected) {
+          dbError =
+              'Cannot determine connection status - Check Firebase Console Realtime DB is enabled';
+          print('[DB Connection Test] ❌ Connection check failed: $dbError');
+        }
+      }
+    } catch (e) {
+      dbConnected = false;
+      print('[DB Connection Test] ❌ EXCEPTION: $e');
+      print('[DB Connection Test] Exception type: ${e.runtimeType}');
+
+      if (e.toString().contains('TimeoutException')) {
+        dbError =
+            '⏱️ TIMEOUT (10s)\nFixes:\n→ Check internet connection\n→ Realtime Database should be enabled';
+      } else if (e.toString().contains('PERMISSION_DENIED')) {
+        dbError =
+            '🔒 Permission Denied\nFix:\n→ Check Realtime Database rules in Firebase Console';
+      } else if (e.toString().contains('no address associated')) {
+        dbError = '🌐 No internet\nFix:\n→ Check device internet connection';
+      } else if (e.toString().contains('not a subtype')) {
+        // Data format issue - but database is working!
+        dbConnected = true;
+        dbError =
+            '✅ Database is accessible! (data format note - this is normal)';
+        print(
+          '[DB Connection Test] 📝 Database is accessible - data format is working!',
+        );
+      } else {
+        dbError = '❌ Firebase Error: ${e.toString().split('\n').first}';
+      }
+    }
+
+    print('\n═══════════════════════════════════════════════════════════');
+    print('FINAL RESULT:');
+    print('Database Connected: $dbConnected');
+    print('Error Message: $dbError');
+    print('═══════════════════════════════════════════════════════════\n');
+
+    // Pass the DB state into the app so UI can show a message
+    runApp(
+      MultiProvider(
+        providers: [ChangeNotifierProvider(create: (_) => AuthService())],
+        child: const MyApp(),
+      ),
+    );
+    return;
+  } catch (e) {
+    // Print error so we can see failure on the console
+    print('\n❌❌❌ FIREBASE INITIALIZATION FAILED');
+    print('Error: $e');
+    print('Error type: ${e.runtimeType}');
+  }
+
+  // If initialization failed we still run the app (will show not-connected)
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => AuthService())],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -83,10 +237,10 @@ class SplashScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(height: size.height * 0.07),
+                    SizedBox(height: size.height * 0.04),
                     Center(
                       child: Image.asset(
-                        'img/logo.png',
+                        'img/logo2.png',
                         height: size.height * 0.28,
                         fit: BoxFit.contain,
                       ),
@@ -98,8 +252,7 @@ class SplashScreen extends StatelessWidget {
                       child: Text(
                         'TURN YOUR\nTRANSIT TIME\nINTO A MINI\nADVENTURE',
                         textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
+                        style: GoogleFonts.oswald(
                           color: Colors.white,
                           fontSize: size.width * 0.082,
                           fontWeight: FontWeight.w700,
@@ -115,11 +268,10 @@ class SplashScreen extends StatelessWidget {
                       child: Text(
                         'PLAN YOUR JOURNEY WITH TRANSIT APPS\nAND GO ANYWHERE YOU DREAM OF',
                         textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
+                        style: GoogleFonts.oswald(
                           color: Colors.white60,
                           fontSize: size.width * 0.034,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w300,
                           height: 1.55,
                           letterSpacing: 0.3,
                         ),
@@ -164,12 +316,12 @@ class SplashScreen extends StatelessWidget {
                           ),
                           elevation: 4,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Explore',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.8,
+                          style: GoogleFonts.oswald(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ),

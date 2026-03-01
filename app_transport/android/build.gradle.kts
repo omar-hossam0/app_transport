@@ -1,3 +1,15 @@
+// Add Google Services classpath so the Android app can apply the
+// 'com.google.gms.google-services' plugin.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.google.gms:google-services:4.3.15")
+    }
+}
+
 allprojects {
     repositories {
         google()

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.app_transport"
+    namespace = "com.omar.app_transport"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.app_transport"
+        applicationId = "com.omar.app_transport"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -39,6 +39,23 @@ android {
     }
 }
 
+dependencies {
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.9.0"))
+
+    // Firebase libraries (versions are managed by BoM)
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-database")
+}
+
 flutter {
     source = "../.."
 }
+
+// Apply Google Services plugin to enable Firebase / Google services
+// integration. This mirrors `apply plugin: 'com.google.gms.google-services'`
+// from Groovy Gradle into Kotlin DSL.
+apply(plugin = "com.google.gms.google-services")

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'home_page.dart';
 import 'sign_in_page.dart';
+import '../services/auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -88,6 +90,67 @@ class _SignUpPageState extends State<SignUpPage>
         },
       ),
       (_) => false,
+    );
+  }
+
+  Future<void> _handleSignUp() async {
+    if (_emailCtrl.text.isEmpty ||
+        _passCtrl.text.isEmpty ||
+        _nameCtrl.text.isEmpty) {
+      _showErrorSnackBar('جميع الحقول مطلوبة (All fields required)');
+      return;
+    }
+
+    if (_passCtrl.text.length < 6) {
+      _showErrorSnackBar(
+        'كلمة المرور يجب أن تكون 6 أحرف على الأقل (Password minimum 6 characters)',
+      );
+      return;
+    }
+
+    final authService = context.read<AuthService>();
+
+    bool success = await authService.signUp(
+      email: _emailCtrl.text.trim(),
+      password: _passCtrl.text,
+      name: _nameCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      _showSuccessSnackBar(
+        '✅ تم إنشاء الحساب بنجاح (Account created successfully)',
+      );
+      Future.delayed(const Duration(milliseconds: 500), _goToHome);
+    } else {
+      _showErrorSnackBar(
+        authService.errorMessage ?? 'خطأ في إنشاء الحساب (Sign up failed)',
+      );
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[700],
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green[700],
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -223,9 +286,17 @@ class _SignUpPageState extends State<SignUpPage>
                                   ),
                                 ],
                                 const SizedBox(height: 24),
-                                AuthGradientButton(
-                                  label: 'Sign up',
-                                  onTap: _goToHome,
+                                Consumer<AuthService>(
+                                  builder: (context, authService, _) {
+                                    return AuthGradientButton(
+                                      label: authService.isLoading
+                                          ? 'جاري الإنشاء...'
+                                          : 'Sign up',
+                                      onTap: authService.isLoading
+                                          ? () {}
+                                          : _handleSignUp,
+                                    );
+                                  },
                                 ),
                               ],
                             ),

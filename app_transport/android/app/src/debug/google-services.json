@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "83204859004",
+    "firebase_url": "https://transit-app-307ac-default-rtdb.firebaseio.com",
+    "project_id": "transit-app-307ac",
+    "storage_bucket": "transit-app-307ac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83204859004:android:d96f126d7228f17071d5f9",
+        "android_client_info": {
+          "package_name": "com.omar.app_transport"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZKOH97aKwLTOyqI4PT5dR54rgG2N4udw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

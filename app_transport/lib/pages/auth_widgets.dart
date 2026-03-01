@@ -279,11 +279,14 @@ class AuthHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text(
-                trailingText,
-                style: roboto(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.88),
+              Flexible(
+                child: Text(
+                  trailingText,
+                  overflow: TextOverflow.ellipsis,
+                  style: roboto(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.88),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -311,15 +314,11 @@ class AuthHeader extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          // App name
-          Text(
-            'Transit Apps',
-            style: roboto(
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: 0.4,
-            ),
+          // App logo
+          Image.asset(
+            'img/logo2.png',
+            height: 80,
+            fit: BoxFit.contain,
           ),
           const SizedBox(height: 6),
         ],
