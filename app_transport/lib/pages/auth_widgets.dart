@@ -315,11 +315,7 @@ class AuthHeader extends StatelessWidget {
           ),
           const Spacer(),
           // App logo
-          Image.asset(
-            'img/logo2.png',
-            height: 80,
-            fit: BoxFit.contain,
-          ),
+          Image.asset('img/logo2.png', height: 80, fit: BoxFit.contain),
           const SizedBox(height: 6),
         ],
       ),

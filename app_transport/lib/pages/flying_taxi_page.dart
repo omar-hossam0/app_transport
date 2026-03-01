@@ -58,7 +58,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
     priceUsd: 85,
     description:
         'رحلة من مطار القاهرة إلى هضبة الأهرامات لمشاهدة الهرم الأكبر خوفو وهرم خفرع ومنقرع وتمثال أبو الهول، مع جولة تصوير بانورامية من المنطقة البانورامية، ثم العودة إلى المطار.',
-    mapHint: 'مطار القاهرة → هضبة الأهرامات → أبو الهول → المنطقة البانورامية → المطار',
+    mapHint:
+        'مطار القاهرة → هضبة الأهرامات → أبو الهول → المنطقة البانورامية → المطار',
     cardColor: Color(0xFFD4A843),
     icon: Icons.landscape_rounded,
     imageUrl:
@@ -80,7 +81,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'John Smith',
         rating: 5,
         date: 'من أسبوعين',
-        comment: 'Absolutely stunning! The pyramids are even more impressive in person.',
+        comment:
+            'Absolutely stunning! The pyramids are even more impressive in person.',
       ),
       Review(
         name: 'فاطمة حسن',
@@ -182,13 +184,15 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'Sophie Laurent',
         rating: 5,
         date: 'من ٣ أيام',
-        comment: 'The atmosphere is magical! Love the traditional crafts and El Fishawy café.',
+        comment:
+            'The atmosphere is magical! Love the traditional crafts and El Fishawy café.',
       ),
       Review(
         name: 'زينب أحمد',
         rating: 4,
         date: 'من أسبوع',
-        comment: 'شارع المعز بالليل كان مختلف تماماً! الإضاءة والعمارة الإسلامية روعة.',
+        comment:
+            'شارع المعز بالليل كان مختلف تماماً! الإضاءة والعمارة الإسلامية روعة.',
       ),
       Review(
         name: 'Marco Rossi',
@@ -206,7 +210,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
     priceUsd: 50,
     description:
         'زيارة قلعة صلاح الدين الأيوبي، أحد أهم معالم القاهرة الإسلامية، ومسجد محمد علي باشا (مسجد المرمر) ذو القباب الفضية، والاستمتاع بإطلالة بانورامية على القاهرة من أعلى القلعة، مع زيارة متحف الشرطة ومتحف المركبات.',
-    mapHint: 'مطار القاهرة → قلعة صلاح الدين → مسجد محمد علي → المتاحف → المطار',
+    mapHint:
+        'مطار القاهرة → قلعة صلاح الدين → مسجد محمد علي → المتاحف → المطار',
     cardColor: Color(0xFF8B4513),
     icon: Icons.castle_rounded,
     imageUrl:
@@ -222,7 +227,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'David Chen',
         rating: 5,
         date: 'من أسبوع',
-        comment: 'The Alabaster Mosque is incredible! Best panoramic view of Cairo.',
+        comment:
+            'The Alabaster Mosque is incredible! Best panoramic view of Cairo.',
       ),
       Review(
         name: 'يوسف خليل',
@@ -256,13 +262,15 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'Peter Anderson',
         rating: 4,
         date: 'من ٥ أيام',
-        comment: 'Beautiful Islamic garden design. The view of old Cairo is stunning.',
+        comment:
+            'Beautiful Islamic garden design. The view of old Cairo is stunning.',
       ),
       Review(
         name: 'مها راجح',
         rating: 5,
         date: 'من أسبوع',
-        comment: 'مكان مثالي للعائلات. الأطفال استمتعوا جداً والمطعم أكله لذيذ.',
+        comment:
+            'مكان مثالي للعائلات. الأطفال استمتعوا جداً والمطعم أكله لذيذ.',
       ),
     ],
   ),
@@ -274,7 +282,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
     priceUsd: 45,
     description:
         'جولة في منطقة مصر القديمة، زيارة الكنيسة المعلقة (أقدم كنيسة في مصر)، كنيسة أبو سرجة، المعبد اليهودي (معبد بن عزرا)، والمتحف القبطي، والتعرف على تاريخ المسيحية في مصر في أجواء روحانية فريدة.',
-    mapHint: 'مطار القاهرة → الكنيسة المعلقة → المتحف القبطي → أبو سرجة → المطار',
+    mapHint:
+        'مطار القاهرة → الكنيسة المعلقة → المتحف القبطي → أبو سرجة → المطار',
     cardColor: Color(0xFF800020),
     icon: Icons.church_rounded,
     imageUrl:
@@ -290,7 +299,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'Jessica Taylor',
         rating: 5,
         date: 'من ٣ أيام',
-        comment: 'A deeply spiritual place. The Hanging Church architecture is unique.',
+        comment:
+            'A deeply spiritual place. The Hanging Church architecture is unique.',
       ),
       Review(
         name: 'عمر حسان',
@@ -324,13 +334,15 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'Patricia Garcia',
         rating: 5,
         date: 'من ٥ أيام',
-        comment: 'The palace is gorgeous! Indian-style architecture in the heart of Cairo.',
+        comment:
+            'The palace is gorgeous! Indian-style architecture in the heart of Cairo.',
       ),
       Review(
         name: 'تامر نبيل',
         rating: 4,
         date: 'من أسبوع',
-        comment: 'مكان قريب من المطار ومثالي لو عندك وقت قصير. الترميم اتعمل باحتراف.',
+        comment:
+            'مكان قريب من المطار ومثالي لو عندك وقت قصير. الترميم اتعمل باحتراف.',
       ),
     ],
   ),
@@ -352,13 +364,15 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'ياسمين سليمان',
         rating: 5,
         date: 'من ٣ أيام',
-        comment: 'الرحلة النيلية بالليل كانت سحرية! الأكل كان لذيذ والموسيقى حلوة.',
+        comment:
+            'الرحلة النيلية بالليل كانت سحرية! الأكل كان لذيذ والموسيقى حلوة.',
       ),
       Review(
         name: 'Michael Schmidt',
         rating: 5,
         date: 'من أسبوع',
-        comment: 'Cairo at night from the Nile is magical! Great dinner and live music.',
+        comment:
+            'Cairo at night from the Nile is magical! Great dinner and live music.',
       ),
       Review(
         name: 'سلمى شاكر',
@@ -392,7 +406,8 @@ const _flyingTrips = <FlyingTaxiTrip>[
         name: 'Lisa Johnson',
         rating: 5,
         date: 'من ٣ أيام',
-        comment: 'The Royal Mummies Hall is absolutely incredible! A must-visit.',
+        comment:
+            'The Royal Mummies Hall is absolutely incredible! A must-visit.',
       ),
       Review(
         name: 'خالد سعيد',
@@ -486,13 +501,13 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final h = mq.size.height;
 
     // ── Responsive values tuned for Samsung M31 (411×891 lp) ──
-    final hPad = (w * 0.053).clamp(16.0, 28.0);       // ~22 on M31
+    final hPad = (w * 0.053).clamp(16.0, 28.0); // ~22 on M31
     final gridSpacing = (w * 0.039).clamp(12.0, 20.0); // ~16 on M31
     final gridMainSpacing = (w * 0.044).clamp(14.0, 22.0); // ~18
     // Taller cards on narrow/tall phones → better for Arabic text
     final aspectRatio = (w / h) < 0.48 ? 0.64 : 0.72;
-    final titleFs = (w * 0.053).clamp(18.0, 24.0);     // ~22
-    final subtitleFs = (w * 0.031).clamp(11.0, 14.0);   // ~13
+    final titleFs = (w * 0.053).clamp(18.0, 24.0); // ~22
+    final subtitleFs = (w * 0.031).clamp(11.0, 14.0); // ~13
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -561,7 +576,10 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                   padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Text(
                     'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي',
-                    style: roboto(fontSize: subtitleFs, color: Colors.grey.shade500),
+                    style: roboto(
+                      fontSize: subtitleFs,
+                      color: Colors.grey.shade500,
+                    ),
                   ),
                 ),
               ),
@@ -615,13 +633,13 @@ class _FlyingTripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     // ── Responsive card values for Samsung M31 (~411 lp) ──
-    final nameFs = (w * 0.030).clamp(11.0, 15.0);      // ~12.3
-    final subFs = (w * 0.024).clamp(9.0, 12.0);        // ~10
-    final priceFs = (w * 0.030).clamp(11.0, 15.0);     // ~12.3
-    final ratingFs = (w * 0.026).clamp(9.0, 13.0);     // ~10.7
-    final cardPadH = (w * 0.028).clamp(8.0, 14.0);     // ~11.5
-    final cardPadV = (w * 0.022).clamp(6.0, 12.0);     // ~9
-    final cardRadius = (w * 0.048).clamp(14.0, 24.0);  // ~20
+    final nameFs = (w * 0.030).clamp(11.0, 15.0); // ~12.3
+    final subFs = (w * 0.024).clamp(9.0, 12.0); // ~10
+    final priceFs = (w * 0.030).clamp(11.0, 15.0); // ~12.3
+    final ratingFs = (w * 0.026).clamp(9.0, 13.0); // ~10.7
+    final cardPadH = (w * 0.028).clamp(8.0, 14.0); // ~11.5
+    final cardPadV = (w * 0.022).clamp(6.0, 12.0); // ~9
+    final cardRadius = (w * 0.048).clamp(14.0, 24.0); // ~20
 
     return GestureDetector(
       onTap: onTap,
@@ -718,7 +736,10 @@ class _FlyingTripCard extends StatelessWidget {
                     bottom: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.55),
                         borderRadius: BorderRadius.circular(8),
@@ -726,11 +747,19 @@ class _FlyingTripCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.schedule_rounded, size: 11, color: Colors.white),
+                          const Icon(
+                            Icons.schedule_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             trip.durationLabel,
-                            style: roboto(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+                            style: roboto(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -774,7 +803,10 @@ class _FlyingTripCard extends StatelessWidget {
                       trip.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: roboto(fontSize: nameFs, fontWeight: FontWeight.w700),
+                      style: roboto(
+                        fontSize: nameFs,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     // Location
