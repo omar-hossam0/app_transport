@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
+import '../services/auth_service.dart';
+import '../services/favorites_service.dart';
 
 // ── Card brand SVG logos ────────────────────────────────────────────────────
 const _kVisaSvg = '''
@@ -432,9 +435,20 @@ class _ProfilePageState extends State<ProfilePage> {
         body: 'Are you sure you want to log out of App Transport?',
         confirmLabel: 'Log Out',
         confirmColor: const Color(0xFFE02850),
-        onConfirm: () {
-          Navigator.pop(ctx);
-          if (widget.onLogout != null) widget.onLogout!();
+        onConfirm: () async {
+          final auth = context.read<AuthService>();
+          final favorites = context.read<FavoritesService>();
+
+          // Clear favorites first
+          favorites.clearFavorites();
+
+          // Then sign out
+          await auth.signOut();
+
+          if (mounted) {
+            Navigator.pop(ctx);
+            if (widget.onLogout != null) widget.onLogout!();
+          }
         },
       ),
     );

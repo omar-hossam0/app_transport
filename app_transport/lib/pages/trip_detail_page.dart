@@ -1,5 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/booking_model.dart';
+import '../services/auth_service.dart';
+import '../services/booking_service.dart';
+import '../services/favorites_service.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
 
@@ -256,7 +262,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '4.${t.durationHours % 7 + 2}',
+                                    '4.${t.flightMinutes % 7 + 2}',
                                     style: roboto(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -264,7 +270,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '(${(t.durationHours * 10 + 50)} reviews)',
+                                    '(${(t.flightMinutes * 3 + 50)} reviews)',
                                     style: roboto(
                                       fontSize: 13,
                                       color: Colors.grey.shade500,
@@ -371,7 +377,42 @@ class _TripDetailPageState extends State<TripDetailPage>
                       icon: Icons.arrow_back_ios_new_rounded,
                       onTap: () => Navigator.of(context).pop(),
                     ),
-                    _CircleBtn(icon: Icons.share_rounded, onTap: () {}),
+                    Row(
+                      children: [
+                        Consumer2<AuthService, FavoritesService>(
+                          builder: (context, auth, favorites, _) {
+                            final uid = auth.currentUser?.uid ?? '';
+                            final tripId =
+                                'flying_${widget.trip.name.hashCode}';
+                            final isFav =
+                                uid.isNotEmpty && favorites.isFavorite(tripId);
+                            return _CircleBtn(
+                              icon: isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              onTap: uid.isEmpty
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await favorites.toggleFavorite(
+                                          uid,
+                                          tripId,
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text('Error: $e')),
+                                        );
+                                      }
+                                    },
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        _CircleBtn(icon: Icons.share_rounded, onTap: () {}),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -436,7 +477,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                         // Book button
                         Expanded(
                           child: GestureDetector(
-                            onTap: () {},
+                            onTap: () => _showBookingSheet(widget.trip),
                             child: Container(
                               height: 52,
                               decoration: BoxDecoration(
@@ -476,6 +517,342 @@ class _TripDetailPageState extends State<TripDetailPage>
         ),
       ),
     );
+  }
+
+  // ── Booking sheet ──────────────────────────────────────────────────────────────────
+  void _showBookingSheet(FlyingTaxiTrip trip) {
+    DateTime? selectedDate;
+    int travelers = 1;
+    int paymentIdx = 0;
+    const methods = [
+      'Visa •••• 4242',
+      'Mastercard •••• 7890',
+      'Cash on pickup',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ];
+          final dateLabel = selectedDate == null
+              ? 'Select a date'
+              : '${selectedDate!.day} ${months[selectedDate!.month - 1]} ${selectedDate!.year}';
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Book Flight',
+                    style: roboto(fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    trip.name,
+                    style: roboto(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 22),
+
+                  // ── Date ──
+                  Text(
+                    'Flight Date',
+                    style: roboto(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 1),
+                        ),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) setS(() => selectedDate = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F7FA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 17,
+                            color: kBlue,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            dateLabel,
+                            style: roboto(
+                              fontSize: 14,
+                              color: selectedDate == null
+                                  ? Colors.grey.shade400
+                                  : const Color(0xFF1A1A2E),
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.grey.shade400,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Travelers ──
+                  Text(
+                    'Passengers',
+                    style: roboto(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _CircleBtn(
+                        icon: Icons.remove_rounded,
+                        onTap: travelers > 1
+                            ? () => setS(() => travelers--)
+                            : null,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          '$travelers',
+                          style: roboto(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      _CircleBtn(
+                        icon: Icons.add_rounded,
+                        onTap: travelers < 10
+                            ? () => setS(() => travelers++)
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'Total: \$${trip.priceUsd * travelers}',
+                        style: roboto(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: kBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Payment ──
+                  Text(
+                    'Payment',
+                    style: roboto(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: List.generate(methods.length, (i) {
+                      final sel = paymentIdx == i;
+                      return ChoiceChip(
+                        label: Text(
+                          methods[i],
+                          style: roboto(
+                            fontSize: 11,
+                            color: sel ? kBlue : Colors.grey.shade700,
+                          ),
+                        ),
+                        selected: sel,
+                        onSelected: (_) => setS(() => paymentIdx = i),
+                        selectedColor: kBlue.withValues(alpha: 0.12),
+                        backgroundColor: const Color(0xFFF5F7FA),
+                        side: BorderSide(
+                          color: sel ? kBlue : Colors.transparent,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Confirm ──
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: selectedDate == null
+                          ? null
+                          : () async {
+                              Navigator.pop(ctx);
+                              await _confirmBooking(
+                                trip,
+                                selectedDate!,
+                                travelers,
+                                methods[paymentIdx],
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBlue,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade200,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        selectedDate == null
+                            ? 'Select a date first'
+                            : 'Confirm Booking  \$${trip.priceUsd * travelers}',
+                        style: roboto(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: selectedDate == null
+                              ? Colors.grey.shade400
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmBooking(
+    FlyingTaxiTrip trip,
+    DateTime date,
+    int travelers,
+    String paymentMethod,
+  ) async {
+    final auth = context.read<AuthService>();
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please sign in to book a flight.',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final uid = auth.currentUser!.uid;
+    final rand = math.Random();
+    final bookingId = 'FLY-${rand.nextInt(90000) + 10000}';
+
+    final booking = Booking(
+      id: bookingId,
+      tripName: trip.name,
+      tripImage: trip.imageUrl,
+      date: date,
+      time: '10:00 AM',
+      travelers: travelers,
+      pricePerPerson: trip.priceUsd.toDouble(),
+      paymentMethod: paymentMethod,
+      pickupLocation: 'Cairo International Airport',
+      dropoffLocation: 'Cairo International Airport',
+      routeLabel: trip.mapHint,
+      accentColor: trip.cardColor,
+    );
+
+    try {
+      await context.read<BookingService>().saveBooking(uid, booking);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Flight booked! 🎉  Ref: $bookingId',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to save booking. Check your connection.',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildHighlights(FlyingTaxiTrip t) {
@@ -1027,7 +1404,7 @@ class _RoutePainter extends CustomPainter {
 // ═════════════════════════════════════════════════════════════════════════════
 class _CircleBtn extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _CircleBtn({required this.icon, required this.onTap});
 
   @override

@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/booking_service.dart';
+import 'services/favorites_service.dart';
 import 'pages/sign_in_page.dart';
 
 Future<void> main() async {
@@ -141,7 +143,11 @@ Future<void> main() async {
     // Pass the DB state into the app so UI can show a message
     runApp(
       MultiProvider(
-        providers: [ChangeNotifierProvider(create: (_) => AuthService())],
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthService()),
+          ChangeNotifierProvider(create: (_) => BookingService()),
+          ChangeNotifierProvider(create: (_) => FavoritesService()),
+        ],
         child: const MyApp(),
       ),
     );
@@ -156,7 +162,11 @@ Future<void> main() async {
   // If initialization failed we still run the app (will show not-connected)
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthService())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => BookingService()),
+        ChangeNotifierProvider(create: (_) => FavoritesService()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -240,8 +250,8 @@ class SplashScreen extends StatelessWidget {
                     SizedBox(height: size.height * 0.04),
                     Center(
                       child: Image.asset(
-                        'img/logo2.png',
-                        height: size.height * 0.28,
+                        'img/logo_new.png',
+                        height: size.height * 0.40,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -252,7 +262,7 @@ class SplashScreen extends StatelessWidget {
                       child: Text(
                         'TURN YOUR\nTRANSIT TIME\nINTO A MINI\nADVENTURE',
                         textAlign: TextAlign.left,
-                        style: GoogleFonts.oswald(
+                        style: GoogleFonts.playfairDisplay(
                           color: Colors.white,
                           fontSize: size.width * 0.082,
                           fontWeight: FontWeight.w700,
@@ -268,7 +278,7 @@ class SplashScreen extends StatelessWidget {
                       child: Text(
                         'PLAN YOUR JOURNEY WITH TRANSIT APPS\nAND GO ANYWHERE YOU DREAM OF',
                         textAlign: TextAlign.left,
-                        style: GoogleFonts.oswald(
+                        style: GoogleFonts.playfairDisplay(
                           color: Colors.white60,
                           fontSize: size.width * 0.034,
                           fontWeight: FontWeight.w300,

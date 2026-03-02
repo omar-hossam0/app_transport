@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'auth_widgets.dart';
 import 'transit_trip_detail_page.dart';
@@ -61,6 +61,7 @@ class TransitStop {
   final String duration;
   final IconData icon;
   final Color color;
+  final String imageUrl;
 
   const TransitStop({
     required this.title,
@@ -68,347 +69,868 @@ class TransitStop {
     required this.duration,
     required this.icon,
     required this.color,
+    this.imageUrl = '',
   });
 }
 
 // ── Trip data ─────────────────────────────────────────────────────────────
-final _transitTrips = <TransitTrip>[
+final transitTrips = <TransitTrip>[
+  // ─── Trip 1: قصر البارون + متحف أم كلثوم + القرية الفرعونية + ممشى أهل مصر ───
   TransitTrip(
-    name: 'Giza Pyramids, NMEC & Nile Corniche',
+    name: 'Baron Palace, Um Kulthum & Pharaonic Village',
     shortDescription:
-        'Explore Egypt\'s iconic pyramids, discover ancient history at NMEC, and relax by the Nile — all in one transit experience.',
-    durationHours: 8,
-    durationHoursExact: 8.0,
-    priceUsd: 90,
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى قصر البارون إمبان في مصر الجديدة للتعرف على طرازه المعماري الفريد والتقاط الصور لمدة ساعة، ثم الانتقال إلى متحف أم كلثوم في منطقة المنيل للتعرف على سيرة كوكب الشرق ومشاهدة مقتنياتها الشخصية لمدة ساعة، يلي ذلك التوجه إلى القرية الفرعونية لخوض تجربة حية تحاكي الحياة في مصر القديمة لمدة ساعتين، ثم التوقف عند ممشى أهل مصر على كورنيش النيل للاستمتاع بالمشهد العام وتناول وجبة خفيفة لمدة ساعة قبل العودة إلى مطار القاهرة الدولي.',
+    durationHours: 6,
+    durationHoursExact: 6.0,
+    priceUsd: 180,
     imageUrl:
-        'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
     accentColor: const Color(0xFFD4A843),
-    routeLabel: 'Airport → Pyramids → NMEC → Nile → Airport',
+    routeLabel:
+        'المطار → قصر البارون → متحف أم كلثوم → القرية الفرعونية → ممشى أهل مصر → المطار',
     included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Light Meal'],
     itinerary: [
       TransitStop(
-        title: 'Pickup – Cairo International Airport',
-        subtitle: 'Private car pickup from arrivals hall',
-        duration: '30 min',
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '20 min',
         icon: Icons.flight_land_rounded,
         color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
       ),
       TransitStop(
-        title: 'Giza Pyramids Plateau',
-        subtitle: 'Great Pyramid, Sphinx, panoramic views & free photo time',
-        duration: '3 hours',
-        icon: Icons.landscape_rounded,
+        title: 'قصر البارون إمبان – مصر الجديدة',
+        subtitle: 'التعرف على الطراز المعماري الفريد والتقاط الصور',
+        duration: '1 hour',
+        icon: Icons.castle_rounded,
         color: Color(0xFFD4A843),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
       ),
       TransitStop(
-        title: 'National Museum of Egyptian Civilization',
-        subtitle: 'Museum tour + Royal Mummies Hall',
-        duration: '1.5 hours',
-        icon: Icons.museum_rounded,
+        title: 'متحف أم كلثوم – المنيل',
+        subtitle: 'التعرف على سيرة كوكب الشرق ومشاهدة مقتنياتها الشخصية',
+        duration: '1 hour',
+        icon: Icons.music_note_rounded,
         color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Manial_Palace.jpg/1280px-Manial_Palace.jpg',
       ),
       TransitStop(
-        title: 'Nile Corniche – Fustat',
-        subtitle: 'Waterfront stroll + light meal by the Nile',
+        title: 'القرية الفرعونية',
+        subtitle: 'تجربة حية تحاكي الحياة في مصر القديمة',
+        duration: '2 hours',
+        icon: Icons.account_balance_rounded,
+        color: Color(0xFF8B6F47),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Pharaonic_Village.jpg/1280px-Pharaonic_Village.jpg',
+      ),
+      TransitStop(
+        title: 'ممشى أهل مصر – كورنيش النيل',
+        subtitle: 'الاستمتاع بالمشهد العام وتناول وجبة خفيفة',
         duration: '1 hour',
         icon: Icons.water_rounded,
         color: Color(0xFF0D7377),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Cairo_Nile_River.jpg/1280px-Cairo_Nile_River.jpg',
       ),
       TransitStop(
-        title: 'Return to Cairo International Airport',
-        subtitle: 'Direct drop-off at departures',
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
         duration: '30 min',
         icon: Icons.flight_takeoff_rounded,
         color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
       ),
     ],
     reviews: [
       Review(
-        name: 'Ahmed Mohamed',
+        name: 'أحمد محمد',
         rating: 5,
-        date: '2 days ago',
-        comment: 'الأهرامات رائعة والمتحف مذهل! رحلة منظمة بشكل ممتاز.',
+        date: 'منذ يومين',
+        comment: 'قصر البارون رائع والقرية الفرعونية تجربة ممتعة للعائلة!',
       ),
       Review(
         name: 'Sarah Johnson',
         rating: 5,
         date: '5 days ago',
         comment:
-            'Incredible experience! The guide was knowledgeable. Highly recommend!',
+            'The Pharaonic Village was incredible! A unique experience in Cairo.',
       ),
       Review(
-        name: 'Layla Hassan',
+        name: 'ليلى حسن',
         rating: 4,
-        date: '1 week ago',
-        comment: 'مشهد النيل جميل جداً والطعم كان لذيذ!',
+        date: 'منذ أسبوع',
+        comment: 'ممشى أهل مصر جميل جداً ومتحف أم كلثوم مؤثر!',
       ),
     ],
   ),
+
+  // ─── Trip 2: قصر البارون + سيتي ستارز ───
   TransitTrip(
-    name: 'Old Cairo & Khan El-Khalili Bazaar',
+    name: 'Baron Palace & City Stars Mall',
     shortDescription:
-        'Walk through Cairo\'s oldest Christian quarter, visit hanging church, and explore the famous Islamic bazaar.',
-    durationHours: 5,
-    durationHoursExact: 5.0,
-    priceUsd: 65,
-    imageUrl:
-        'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&q=80',
-    accentColor: const Color(0xFF4A44AA),
-    routeLabel: 'Airport → Old Cairo → Khan El-Khalili → Airport',
-    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets'],
-    itinerary: [
-      TransitStop(
-        title: 'Pickup – Cairo International Airport',
-        subtitle: 'Private car from arrivals',
-        duration: '25 min',
-        icon: Icons.flight_land_rounded,
-        color: Color(0xFF187BCD),
-      ),
-      TransitStop(
-        title: 'Coptic Cairo',
-        subtitle: 'Hanging Church, Ben Ezra Synagogue, Coptic Museum',
-        duration: '1.5 hours',
-        icon: Icons.church_rounded,
-        color: Color(0xFF4A44AA),
-      ),
-      TransitStop(
-        title: 'Al-Azhar Mosque & Al-Hussein',
-        subtitle: 'Iconic Islamic monuments in the heart of Old Cairo',
-        duration: '1 hour',
-        icon: Icons.mosque_rounded,
-        color: Color(0xFF8B6F47),
-      ),
-      TransitStop(
-        title: 'Khan El-Khalili Bazaar',
-        subtitle: 'Shopping, spices, antiques, and Egyptian coffee',
-        duration: '1.5 hours',
-        icon: Icons.shopping_bag_rounded,
-        color: Color(0xFFE87832),
-      ),
-      TransitStop(
-        title: 'Return to Cairo Airport',
-        subtitle: 'Direct drop-off',
-        duration: '25 min',
-        icon: Icons.flight_takeoff_rounded,
-        color: Color(0xFF187BCD),
-      ),
-    ],
-    reviews: [
-      Review(
-        name: 'Fatima Khalil',
-        rating: 5,
-        date: '1 day ago',
-        comment: 'خان الخليلي رائع والكنيسة المعلقة جميلة جداً!',
-      ),
-      Review(
-        name: 'Mike Brown',
-        rating: 4,
-        date: '4 days ago',
-        comment: 'Great bazaar experience and historic churches. Worth it!',
-      ),
-      Review(
-        name: 'Noor Hassan',
-        rating: 5,
-        date: '1 week ago',
-        comment: 'الشارع القديم مليء بالتاريخ والحرف التقليدية!',
-      ),
-    ],
-  ),
-  TransitTrip(
-    name: 'Cairo Tower & Nile Felucca Cruise',
-    shortDescription:
-        'Admire Cairo from the top of the iconic Tower, then enjoy a relaxing traditional felucca sailboat on the Nile.',
-    durationHours: 4,
-    durationHoursExact: 4.0,
-    priceUsd: 55,
-    imageUrl:
-        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
-    accentColor: const Color(0xFF187BCD),
-    routeLabel: 'Airport → Cairo Tower → Nile Cruise → Airport',
-    included: ['Airport Transfer', 'Felucca Boat', 'Tower Tickets'],
-    itinerary: [
-      TransitStop(
-        title: 'Pickup – Cairo Airport',
-        subtitle: 'Private transfer to Zamalek island',
-        duration: '30 min',
-        icon: Icons.flight_land_rounded,
-        color: Color(0xFF187BCD),
-      ),
-      TransitStop(
-        title: 'Cairo Tower – Gezira',
-        subtitle: '187m tall lotus-shaped tower, 360° panoramic views',
-        duration: '1 hour',
-        icon: Icons.cell_tower_rounded,
-        color: Color(0xFF187BCD),
-      ),
-      TransitStop(
-        title: 'Nile Felucca Sailing',
-        subtitle: 'Traditional Egyptian sailboat past Rhoda Island',
-        duration: '1.5 hours',
-        icon: Icons.sailing_rounded,
-        color: Color(0xFF5BC0EB),
-      ),
-      TransitStop(
-        title: 'Return to Cairo Airport',
-        subtitle: 'Direct drop-off at departures',
-        duration: '30 min',
-        icon: Icons.flight_takeoff_rounded,
-        color: Color(0xFF187BCD),
-      ),
-    ],
-    reviews: [
-      Review(
-        name: 'Youssef Ahmed',
-        rating: 5,
-        date: '2 days ago',
-        comment: 'برج القاهرة مشهد رائع والفلوكة تجربة رومانسية جداً!',
-      ),
-      Review(
-        name: 'Emma Davis',
-        rating: 5,
-        date: '1 week ago',
-        comment: 'Felucca ride at sunset was magical! Perfect 4-hour trip.',
-      ),
-      Review(
-        name: 'Omar Hassan',
-        rating: 4,
-        date: '2 weeks ago',
-        comment: 'المنظر من البرج خيالي أفضل عند غروب الشمس.',
-      ),
-    ],
-  ),
-  TransitTrip(
-    name: 'Saladin Citadel & Islamic Cairo',
-    shortDescription:
-        'Visit the magnificent alabaster mosque of Muhammad Ali, explore the medieval citadel, and walk through historic Islamic streets.',
-    durationHours: 5,
-    durationHoursExact: 5.0,
-    priceUsd: 70,
-    imageUrl:
-        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
-    accentColor: const Color(0xFFE02850),
-    routeLabel: 'Airport → Citadel → Al-Muizz Street → Airport',
-    included: ['Airport Transfer', 'Tour Guide', 'Citadel Tickets', 'Tea'],
-    itinerary: [
-      TransitStop(
-        title: 'Pickup – Cairo International Airport',
-        subtitle: 'Private car to the citadel',
-        duration: '30 min',
-        icon: Icons.flight_land_rounded,
-        color: Color(0xFF187BCD),
-      ),
-      TransitStop(
-        title: 'Saladin Citadel',
-        subtitle: 'Muhammad Ali Mosque, Military Museum, panoramic views',
-        duration: '2 hours',
-        icon: Icons.fort_rounded,
-        color: Color(0xFFE02850),
-      ),
-      TransitStop(
-        title: 'Al-Muizz Street',
-        subtitle: 'Medieval Islamic architecture, bazaars, and food stalls',
-        duration: '1.5 hours',
-        icon: Icons.storefront_rounded,
-        color: Color(0xFF8B6F47),
-      ),
-      TransitStop(
-        title: 'Return to Cairo Airport',
-        subtitle: 'Direct drop-off',
-        duration: '30 min',
-        icon: Icons.flight_takeoff_rounded,
-        color: Color(0xFF187BCD),
-      ),
-    ],
-    reviews: [
-      Review(
-        name: 'Reem Mansour',
-        rating: 5,
-        date: '3 days ago',
-        comment: 'القلعة مجموعة أثرية رهيبة والشارع الإسلامي ممتع جداً!',
-      ),
-      Review(
-        name: 'James Wilson',
-        rating: 5,
-        date: '1 week ago',
-        comment:
-            'Al-Muizz Street is fascinating! Great Islamic architecture preserved.',
-      ),
-      Review(
-        name: 'Dina Noor',
-        rating: 5,
-        date: '2 weeks ago',
-        comment: 'جولة تاريخية ممتعة هل تعود لآلاف السنين!',
-      ),
-    ],
-  ),
-  TransitTrip(
-    name: 'Memphis, Saqqara & Dahshur Pyramids',
-    shortDescription:
-        'Step 5000 years back in time at the Step Pyramid of Djoser, the Bent Pyramid, and ancient Memphis — Egypt\'s first capital.',
-    durationHours: 8,
-    durationHoursExact: 8.0,
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى قصر البارون إمبان بمصر الجديدة لقربه من المطار، حيث يتم القيام بزيارة سريعة والتقاط الصور والتعرف على تاريخه المعماري لمدة 40 دقيقة تقريباً، ثم التوجه إلى مول سيتي ستارز لقضاء وقت قصير للتسوق أو تناول مشروب لمدة 30 دقيقة، ثم العودة مباشرة إلى مطار القاهرة الدولي.',
+    durationHours: 2,
+    durationHoursExact: 2.0,
     priceUsd: 100,
     imageUrl:
-        'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=800&q=80',
-    accentColor: const Color(0xFF8B6F47),
-    routeLabel: 'Airport → Memphis → Saqqara → Dahshur → Airport',
-    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Lunch'],
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
+    accentColor: const Color(0xFF9C27B0),
+    routeLabel: 'المطار → قصر البارون → سيتي ستارز → المطار',
+    included: ['Airport Transfer'],
     itinerary: [
       TransitStop(
-        title: 'Pickup – Cairo International Airport',
-        subtitle: 'Private car heading south',
-        duration: '40 min',
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال لقصر البارون القريب من المطار',
+        duration: '15 min',
         icon: Icons.flight_land_rounded,
         color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
       ),
       TransitStop(
-        title: 'Memphis – Egypt\'s First Capital',
-        subtitle: 'Statue of Ramesses II, Alabaster Sphinx',
-        duration: '1.5 hours',
-        icon: Icons.account_balance_rounded,
-        color: Color(0xFF8B6F47),
-      ),
-      TransitStop(
-        title: 'Saqqara – Step Pyramid of Djoser',
-        subtitle: 'Oldest pyramid in Egypt (2700 BC), ancient necropolis',
-        duration: '2 hours',
-        icon: Icons.landscape_rounded,
-        color: Color(0xFFD4A843),
-      ),
-      TransitStop(
-        title: 'Dahshur – Bent & Red Pyramids',
-        subtitle: 'Less-visited pyramids with stunning desert backdrops',
-        duration: '1.5 hours',
-        icon: Icons.landscape_rounded,
-        color: Color(0xFFE87832),
-      ),
-      TransitStop(
-        title: 'Return to Cairo Airport',
-        subtitle: 'Drop-off at departures terminal',
+        title: 'قصر البارون إمبان – مصر الجديدة',
+        subtitle: 'زيارة سريعة والتقاط الصور والتعرف على تاريخه المعماري',
         duration: '40 min',
+        icon: Icons.castle_rounded,
+        color: Color(0xFF9C27B0),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
+      ),
+      TransitStop(
+        title: 'مول سيتي ستارز',
+        subtitle: 'وقت قصير للتسوق أو تناول مشروب',
+        duration: '30 min',
+        icon: Icons.shopping_cart_rounded,
+        color: Color(0xFFE87832),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Cairo_Tower%2C_Egypt.jpg/1280px-Cairo_Tower%2C_Egypt.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '15 min',
         icon: Icons.flight_takeoff_rounded,
         color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
       ),
     ],
     reviews: [
       Review(
-        name: 'Tarek Saeed',
+        name: 'سارة أحمد',
         rating: 5,
-        date: '1 day ago',
-        comment: 'هرم جوسر مذهل وواد الحيتان موقع فريد وعميق التاريخ!',
+        date: 'منذ يومين',
+        comment: 'مثالية للترانزيت القصير! قصر البارون قريب من المطار.',
+      ),
+      Review(
+        name: 'David Brown',
+        rating: 4,
+        date: '1 week ago',
+        comment: 'Quick and convenient. Perfect for a short layover!',
+      ),
+      Review(
+        name: 'مريم خالد',
+        rating: 5,
+        date: 'منذ أسبوعين',
+        comment: 'سيتي ستارز مول كبير وجميل والقصر تحفة معمارية!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 3: أهرامات الجيزة + المتحف القومي للحضارة + كورنيش الفسطاط ───
+  TransitTrip(
+    name: 'Pyramids, NMEC & Nile Corniche',
+    shortDescription:
+        'يتجه المسافر إلى منطقة أهرامات الجيزة لزيارة هضبة الأهرامات وأبو الهول والتجول داخل المنطقة وقضاء نحو ثلاث ساعات ثم الانتقال إلى المتحف القومي للحضارة المصرية للتعرف على تاريخ الحضارة المصرية ومشاهدة قاعة المومياوات الملكية وقضاء نحو ساعة ونصف، يلي ذلك التوجه إلى كورنيش النيل في الفسطاط للاستمتاع بالمشهد العام وتناول وجبة خفيفة قبل العودة إلى مطار القاهرة الدولي.',
+    durationHours: 8,
+    durationHoursExact: 8.0,
+    priceUsd: 220,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/1280px-Kheops-Pyramid.jpg',
+    accentColor: const Color(0xFFD4A843),
+    routeLabel:
+        'المطار → أهرامات الجيزة → المتحف القومي → كورنيش الفسطاط → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Light Meal'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '30 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'أهرامات الجيزة وأبو الهول',
+        subtitle: 'زيارة هضبة الأهرامات والتجول داخل المنطقة ومشاهدة أبو الهول',
+        duration: '3 hours',
+        icon: Icons.landscape_rounded,
+        color: Color(0xFFD4A843),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/1280px-Kheops-Pyramid.jpg',
+      ),
+      TransitStop(
+        title: 'المتحف القومي للحضارة المصرية',
+        subtitle:
+            'التعرف على تاريخ الحضارة المصرية ومشاهدة قاعة المومياوات الملكية',
+        duration: '1.5 hours',
+        icon: Icons.museum_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/NMEC-MainEntrance.jpg/1280px-NMEC-MainEntrance.jpg',
+      ),
+      TransitStop(
+        title: 'كورنيش النيل – الفسطاط',
+        subtitle: 'الاستمتاع بالمشهد العام وتناول وجبة خفيفة',
+        duration: '1 hour',
+        icon: Icons.water_rounded,
+        color: Color(0xFF0D7377),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Cairo_skyline%2C_Nile_River%2C_Egypt.jpg/1280px-Cairo_skyline%2C_Nile_River%2C_Egypt.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '30 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'طارق سعيد',
+        rating: 5,
+        date: 'منذ يوم',
+        comment: 'الأهرامات مذهلة وقاعة المومياوات تجربة فريدة!',
       ),
       Review(
         name: 'Patricia Miller',
         rating: 5,
         date: '5 days ago',
         comment:
-            'Three pyramids in one day! Memphis was fascinating. Excellent guide!',
+            'The pyramids were breathtaking! NMEC mummies hall is a must-see.',
       ),
       Review(
-        name: 'Aisha Karim',
+        name: 'عائشة كريم',
         rating: 5,
-        date: '10 days ago',
-        comment: 'تجربة أثرية شاملة تجمع بين ثلاث مواقع مهمة!',
+        date: 'منذ 10 أيام',
+        comment: 'كورنيش الفسطاط مكان رائع للاسترخاء بعد يوم حافل!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 4: حديقة الأزهر + قلعة صلاح الدين + خان الخليلي + الكنيسة المعلقة ───
+  TransitTrip(
+    name: 'Azhar Park, Citadel, Khan & Coptic Cairo',
+    shortDescription:
+        'مطار القاهرة الدولي — يتم استقبال المسافر داخل المطار ثم الانتقال بسيارة سياحية مريحة إلى أول نقطة زيارة. خلال البرنامج يتم التوجه إلى حديقة الأزهر للتجول وسط المساحات الخضراء والاستمتاع بإطلالة بانورامية على القاهرة القديمة، وهي تجربة هادئة ومناسبة للتصوير. بعد ذلك يتم الانتقال إلى قلعة صلاح الدين حيث يمكن مشاهدة أسوار القلعة التاريخية وإطلالة علوية على المدينة مع شرح تاريخي مختصر. تستغرق الزيارتان نحو ساعتين إجمالًا. يلي ذلك زيارة خان الخليلي للتجول في السوق التاريخي وشراء الهدايا التذكارية وتناول مشروب أو وجبة خفيفة لمدة نحو ساعة. في ختام الجولة يتم التوجه إلى منطقة القاهرة القبطية لزيارة الكنيسة المعلقة والتعرف على أحد أقدم المعالم الدينية في مصر في زيارة قصيرة مدتها نحو 30 دقيقة.',
+    durationHours: 4,
+    durationHoursExact: 4.0,
+    priceUsd: 160,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Al-Azhar_Park_Kairo_04.jpg/1280px-Al-Azhar_Park_Kairo_04.jpg',
+    accentColor: const Color(0xFF4CAF50),
+    routeLabel:
+        'المطار → حديقة الأزهر → قلعة صلاح الدين → خان الخليلي → الكنيسة المعلقة → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Drink'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '25 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'حديقة الأزهر',
+        subtitle:
+            'التجول وسط المساحات الخضراء والاستمتاع بإطلالة بانورامية على القاهرة القديمة',
+        duration: '1 hour',
+        icon: Icons.park_rounded,
+        color: Color(0xFF4CAF50),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Al-Azhar_Park_Kairo_04.jpg/1280px-Al-Azhar_Park_Kairo_04.jpg',
+      ),
+      TransitStop(
+        title: 'قلعة صلاح الدين',
+        subtitle:
+            'مشاهدة أسوار القلعة التاريخية وإطلالة علوية على المدينة مع شرح تاريخي مختصر',
+        duration: '1 hour',
+        icon: Icons.fort_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cairo_Citadel_DSCF3411.jpg/1280px-Cairo_Citadel_DSCF3411.jpg',
+      ),
+      TransitStop(
+        title: 'خان الخليلي',
+        subtitle:
+            'التجول في السوق التاريخي وشراء الهدايا التذكارية وتناول مشروب أو وجبة خفيفة',
+        duration: '1 hour',
+        icon: Icons.shopping_bag_rounded,
+        color: Color(0xFFE87832),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Khan_el-Khalili_2019.jpg/1280px-Khan_el-Khalili_2019.jpg',
+      ),
+      TransitStop(
+        title: 'الكنيسة المعلقة – القاهرة القبطية',
+        subtitle: 'زيارة أحد أقدم المعالم الدينية في مصر',
+        duration: '30 min',
+        icon: Icons.church_rounded,
+        color: Color(0xFF4A44AA),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hanging_Church_Cairo.jpg/1280px-Hanging_Church_Cairo.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '25 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'يوسف أحمد',
+        rating: 5,
+        date: 'منذ يومين',
+        comment: 'حديقة الأزهر مكان هادئ ورائع والقلعة إطلالة لا تنسى!',
+      ),
+      Review(
+        name: 'Emma Davis',
+        rating: 5,
+        date: '1 week ago',
+        comment:
+            'Great variety of sights in 4 hours. Khan El-Khalili was amazing!',
+      ),
+      Review(
+        name: 'عمر حسن',
+        rating: 4,
+        date: 'منذ أسبوعين',
+        comment: 'جولة منوعة وممتعة تجمع الطبيعة والتاريخ والتسوق!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 5: قصر عابدين + الكنيسة المعلقة + حديقة الأزهر ───
+  TransitTrip(
+    name: 'Abdeen Palace, Hanging Church & Azhar Park',
+    shortDescription:
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى قصر عابدين لزيارة القاعات الملكية والتعرف على تاريخ أسرة محمد علي لمدة ساعة، ثم الانتقال إلى الكنيسة المعلقة في منطقة مصر القديمة لاستكشاف أحد أقدم الكنائس في مصر وقضاء نحو 45 دقيقة، يلي ذلك التوجه إلى حديقة الأزهر للاستمتاع بإطلالة رائعة على القاهرة وتناول مشروب خفيف لمدة 45 دقيقة، ثم العودة إلى مطار القاهرة الدولي.',
+    durationHours: 3,
+    durationHoursExact: 3.0,
+    priceUsd: 130,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Abdeen_Palace.jpg/1280px-Abdeen_Palace.jpg',
+    accentColor: const Color(0xFF4A44AA),
+    routeLabel: 'المطار → قصر عابدين → الكنيسة المعلقة → حديقة الأزهر → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '20 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'قصر عابدين',
+        subtitle: 'زيارة القاعات الملكية والتعرف على تاريخ أسرة محمد علي',
+        duration: '1 hour',
+        icon: Icons.castle_rounded,
+        color: Color(0xFF4A44AA),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Abdeen_Palace.jpg/1280px-Abdeen_Palace.jpg',
+      ),
+      TransitStop(
+        title: 'الكنيسة المعلقة – مصر القديمة',
+        subtitle: 'استكشاف أحد أقدم الكنائس في مصر',
+        duration: '45 min',
+        icon: Icons.church_rounded,
+        color: Color(0xFF8B6F47),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hanging_Church_Cairo.jpg/1280px-Hanging_Church_Cairo.jpg',
+      ),
+      TransitStop(
+        title: 'حديقة الأزهر',
+        subtitle: 'إطلالة رائعة على القاهرة وتناول مشروب خفيف',
+        duration: '45 min',
+        icon: Icons.park_rounded,
+        color: Color(0xFF4CAF50),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Al-Azhar_Park_Kairo_04.jpg/1280px-Al-Azhar_Park_Kairo_04.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '20 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'فاطمة خليل',
+        rating: 5,
+        date: 'منذ يوم',
+        comment: 'قصر عابدين فخم جداً والكنيسة المعلقة مكان روحاني!',
+      ),
+      Review(
+        name: 'Mark Thompson',
+        rating: 4,
+        date: '4 days ago',
+        comment: 'Short but packed with history. Abdeen Palace is stunning!',
+      ),
+      Review(
+        name: 'نور حسن',
+        rating: 5,
+        date: 'منذ أسبوع',
+        comment: 'رحلة مناسبة لمن لديه وقت قصير. المناظر من الأزهر رائعة!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 6: قلعة صلاح الدين + شارع المعز + خان الخليلي + مقهى نيلي ───
+  TransitTrip(
+    name: 'Citadel, Al-Muizz Street & Nile Café',
+    shortDescription:
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى قلعة صلاح الدين الأيوبي للاستمتاع بجولة لمدة ساعة ونصف وزيارة مسجد محمد علي ومشاهدة الإطلالة البانورامية على القاهرة، ثم الانتقال إلى شارع المعز والتجول بين المباني الأثرية والأسواق التاريخية وصولاً إلى خان الخليلي لقضاء وقت ممتع وشراء الهدايا التذكارية لمدة ساعة ونصف، يلي ذلك التوجه إلى أحد المقاهي المطلة على نهر النيل في وسط القاهرة للاستمتاع بالمشهد العام وتناول مشروب أو وجبة خفيفة لمدة ساعة، ثم العودة إلى مطار القاهرة الدولي.',
+    durationHours: 5,
+    durationHoursExact: 5.0,
+    priceUsd: 160,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cairo_Citadel_DSCF3411.jpg/1280px-Cairo_Citadel_DSCF3411.jpg',
+    accentColor: const Color(0xFFE02850),
+    routeLabel:
+        'المطار → القلعة → شارع المعز → خان الخليلي → مقهى نيلي → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Citadel Tickets', 'Drink'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '25 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'قلعة صلاح الدين الأيوبي',
+        subtitle:
+            'زيارة مسجد محمد علي ومشاهدة الإطلالة البانورامية على القاهرة',
+        duration: '1.5 hours',
+        icon: Icons.fort_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cairo_Citadel_DSCF3411.jpg/1280px-Cairo_Citadel_DSCF3411.jpg',
+      ),
+      TransitStop(
+        title: 'شارع المعز وخان الخليلي',
+        subtitle:
+            'التجول بين المباني الأثرية والأسواق التاريخية وشراء الهدايا التذكارية',
+        duration: '1.5 hours',
+        icon: Icons.storefront_rounded,
+        color: Color(0xFF8B6F47),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Khan_el-Khalili_2019.jpg/1280px-Khan_el-Khalili_2019.jpg',
+      ),
+      TransitStop(
+        title: 'مقهى مطل على نهر النيل',
+        subtitle: 'الاستمتاع بالمشهد العام وتناول مشروب أو وجبة خفيفة',
+        duration: '1 hour',
+        icon: Icons.local_cafe_rounded,
+        color: Color(0xFF0D7377),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg/1280px-Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '25 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'ريم منصور',
+        rating: 5,
+        date: 'منذ 3 أيام',
+        comment: 'القلعة مذهلة وشارع المعز مليء بالتاريخ!',
+      ),
+      Review(
+        name: 'James Wilson',
+        rating: 5,
+        date: '1 week ago',
+        comment:
+            'Loved the citadel views and the Nile café was a perfect ending!',
+      ),
+      Review(
+        name: 'دينا نور',
+        rating: 4,
+        date: 'منذ أسبوعين',
+        comment: 'جولة تاريخية ممتعة والمقهى على النيل كان رائعاً!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 7: أهرامات الجيزة + المتحف المصري + حديقة الأزهر + خان الخليلي ───
+  TransitTrip(
+    name: 'Pyramids, Egyptian Museum, Azhar Park & Khan',
+    shortDescription:
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى أهرامات الجيزة لزيارة هضبة الأهرامات والتجول بالمنطقة ومشاهدة أبو الهول وقضاء نحو ثلاث ساعات، ثم الانتقال إلى المتحف المصري بالتحرير للتعرف على كنوز الحضارة المصرية القديمة ومشاهدة أهم القطع الأثرية لمدة ساعتين، يلي ذلك التوجه إلى حديقة الأزهر للاستمتاع بالمشي وإطلالة بانورامية على القاهرة التاريخية لمدة ساعة ونصف، ثم زيارة خان الخليلي للتسوق وقضاء وقت حر لمدة ساعة ونصف قبل العودة إلى مطار القاهرة الدولي.',
+    durationHours: 9,
+    durationHoursExact: 9.0,
+    priceUsd: 250,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/1280px-Kheops-Pyramid.jpg',
+    accentColor: const Color(0xFFD4A843),
+    routeLabel:
+        'المطار → الأهرامات → المتحف المصري → حديقة الأزهر → خان الخليلي → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Light Meal'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '30 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'أهرامات الجيزة وأبو الهول',
+        subtitle: 'زيارة هضبة الأهرامات والتجول بالمنطقة ومشاهدة أبو الهول',
+        duration: '3 hours',
+        icon: Icons.landscape_rounded,
+        color: Color(0xFFD4A843),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/1280px-Kheops-Pyramid.jpg',
+      ),
+      TransitStop(
+        title: 'المتحف المصري بالتحرير',
+        subtitle:
+            'التعرف على كنوز الحضارة المصرية القديمة ومشاهدة أهم القطع الأثرية',
+        duration: '2 hours',
+        icon: Icons.museum_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/The_Egyptian_Museum.jpg/1280px-The_Egyptian_Museum.jpg',
+      ),
+      TransitStop(
+        title: 'حديقة الأزهر',
+        subtitle: 'الاستمتاع بالمشي وإطلالة بانورامية على القاهرة التاريخية',
+        duration: '1.5 hours',
+        icon: Icons.park_rounded,
+        color: Color(0xFF4CAF50),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Al-Azhar_Park_Kairo_04.jpg/1280px-Al-Azhar_Park_Kairo_04.jpg',
+      ),
+      TransitStop(
+        title: 'خان الخليلي',
+        subtitle: 'التسوق وقضاء وقت حر في السوق التاريخي',
+        duration: '1.5 hours',
+        icon: Icons.shopping_bag_rounded,
+        color: Color(0xFFE87832),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Khan_el-Khalili_2019.jpg/1280px-Khan_el-Khalili_2019.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '30 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'محمد علي',
+        rating: 5,
+        date: 'منذ يوم',
+        comment: 'الأهرامات مذهلة والمتحف رائع! رحلة شاملة وممتازة.',
+      ),
+      Review(
+        name: 'Emily Clark',
+        rating: 5,
+        date: '3 days ago',
+        comment:
+            'Best day trip in Cairo! The pyramids and Khan El-Khalili were amazing.',
+      ),
+      Review(
+        name: 'نور الدين',
+        rating: 5,
+        date: 'منذ أسبوع',
+        comment: 'حديقة الأزهر جميلة جداً وخان الخليلي تجربة لا تنسى!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 8: قصر البارون + المتحف القومي + حديقة الأزهر ───
+  TransitTrip(
+    name: 'Baron Palace, NMEC & Azhar Park',
+    shortDescription:
+        'ينطلق المسافر من مطار القاهرة الدولي متوجهاً إلى قصر البارون إمبان للاستمتاع بزيارة قصيرة والتعرف على طرازه المعماري المميز لمدة ساعة تقريبًا، ثم الانتقال إلى المتحف القومي للحضارة المصرية للتعرف على تاريخ الحضارة المصرية ومشاهدة أبرز المعروضات لمدة ساعة ونصف، يلي ذلك التوجه إلى حديقة الأزهر للاستمتاع بالمشي وسط المساحات الخضراء وإطلالة مميزة على القاهرة مع وقت لتناول مشروب أو وجبة خفيفة لمدة ساعة، ثم العودة إلى مطار القاهرة الدولي.',
+    durationHours: 5,
+    durationHoursExact: 5.0,
+    priceUsd: 155,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
+    accentColor: const Color(0xFF4CAF50),
+    routeLabel: 'المطار → قصر البارون → المتحف القومي → حديقة الأزهر → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Drink'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '20 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'قصر البارون إمبان',
+        subtitle: 'زيارة قصيرة والتعرف على طرازه المعماري المميز والتقاط الصور',
+        duration: '1 hour',
+        icon: Icons.castle_rounded,
+        color: Color(0xFFD4A843),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Baron_Empain_Palace_in_Heliopolis.jpg/1280px-Baron_Empain_Palace_in_Heliopolis.jpg',
+      ),
+      TransitStop(
+        title: 'المتحف القومي للحضارة المصرية',
+        subtitle: 'التعرف على تاريخ الحضارة المصرية ومشاهدة أبرز المعروضات',
+        duration: '1.5 hours',
+        icon: Icons.museum_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/NMEC-MainEntrance.jpg/1280px-NMEC-MainEntrance.jpg',
+      ),
+      TransitStop(
+        title: 'حديقة الأزهر',
+        subtitle:
+            'الاستمتاع بالمشي وسط المساحات الخضراء وإطلالة مميزة مع تناول مشروب أو وجبة خفيفة',
+        duration: '1 hour',
+        icon: Icons.park_rounded,
+        color: Color(0xFF4CAF50),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Al-Azhar_Park_Kairo_04.jpg/1280px-Al-Azhar_Park_Kairo_04.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '25 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'منى عبدالله',
+        rating: 5,
+        date: 'منذ 3 أيام',
+        comment: 'قصر البارون قريب من المطار والحديقة مكان مثالي للتصوير!',
+      ),
+      Review(
+        name: 'Robert Lee',
+        rating: 5,
+        date: '1 week ago',
+        comment: 'A great mix of history, culture and nature in 5 hours!',
+      ),
+      Review(
+        name: 'سلمى حسين',
+        rating: 4,
+        date: 'منذ أسبوعين',
+        comment: 'المتحف القومي رائع والأزهر بارك مكان هادئ وجميل!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 9: المتحف المصري الكبير + سقارة + برج القاهرة ───
+  TransitTrip(
+    name: 'Grand Museum, Saqqara & Cairo Tower',
+    shortDescription:
+        'مطار القاهرة الدولي — يتم استقبال المسافر داخل مطار القاهرة الدولي ثم الانطلاق بسيارة سياحية مريحة بصحبة مرشد سياحي. تبدأ الجولة بزيارة المتحف المصري الكبير للتعرف على أبرز كنوز الحضارة المصرية وقضاء نحو ثلاث ساعات، ثم الانتقال إلى سقارة لزيارة هرم زوسر المدرج والتجول في المنطقة الأثرية لمدة ساعة ونصف. يلي ذلك التوجه إلى برج القاهرة للاستمتاع بإطلالة بانورامية على المدينة مع وقت لالتقاط الصور أو تناول مشروب لمدة ساعة، ثم العودة إلى مطار القاهرة الدولي.',
+    durationHours: 8,
+    durationHoursExact: 8.0,
+    priceUsd: 230,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Grand_Egyptian_Museum_-_EGWUG_Trip_%281%29.jpg/1280px-Grand_Egyptian_Museum_-_EGWUG_Trip_%281%29.jpg',
+    accentColor: const Color(0xFF8B6F47),
+    routeLabel: 'المطار → المتحف الكبير → سقارة → برج القاهرة → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Drink'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانطلاق بسيارة سياحية بصحبة مرشد سياحي',
+        duration: '30 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'المتحف المصري الكبير',
+        subtitle: 'التعرف على أبرز كنوز الحضارة المصرية',
+        duration: '3 hours',
+        icon: Icons.museum_rounded,
+        color: Color(0xFF8B6F47),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Grand_Egyptian_Museum_-_EGWUG_Trip_%281%29.jpg/1280px-Grand_Egyptian_Museum_-_EGWUG_Trip_%281%29.jpg',
+      ),
+      TransitStop(
+        title: 'سقارة – هرم زوسر المدرج',
+        subtitle: 'زيارة أقدم هرم في مصر والتجول في المنطقة الأثرية',
+        duration: '1.5 hours',
+        icon: Icons.landscape_rounded,
+        color: Color(0xFFD4A843),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Saqqara_BW_5.jpg/1280px-Saqqara_BW_5.jpg',
+      ),
+      TransitStop(
+        title: 'برج القاهرة',
+        subtitle:
+            'إطلالة بانورامية على المدينة مع وقت لالتقاط الصور أو تناول مشروب',
+        duration: '1 hour',
+        icon: Icons.cell_tower_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Cairo_Tower%2C_Egypt.jpg/1280px-Cairo_Tower%2C_Egypt.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '30 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'أحمد سامي',
+        rating: 5,
+        date: 'منذ يومين',
+        comment: 'المتحف الكبير تجربة لا مثيل لها وسقارة مكان ساحر!',
+      ),
+      Review(
+        name: 'Sophie Martin',
+        rating: 5,
+        date: '5 days ago',
+        comment:
+            'The Grand Museum is world-class! Cairo Tower sunset was perfect.',
+      ),
+      Review(
+        name: 'كريم حسن',
+        rating: 5,
+        date: 'منذ أسبوع',
+        comment: 'برج القاهرة منظر خيالي وهرم زوسر عظيم!',
+      ),
+    ],
+  ),
+
+  // ─── Trip 10: المتحف القومي + قصر عابدين + ممشى أهل مصر ───
+  TransitTrip(
+    name: 'NMEC, Abdeen Palace & Ahl Masr Walk',
+    shortDescription:
+        'مطار القاهرة الدولي — يتم استقبال المسافر داخل مطار القاهرة الدولي ثم الانتقال بسيارة سياحية مريحة إلى أولى محطات الزيارة. خلال البرنامج يتم التوجه إلى المتحف القومي للحضارة المصرية في الفسطاط للتعرف على تطور الحضارة المصرية عبر العصور ومشاهدة قاعة المومياوات الملكية في زيارة تستغرق نحو ساعة ونصف. بعد ذلك يتم الانتقال إلى قصر عابدين لاستكشاف القاعات الملكية والتعرف على تاريخ الأسرة العلوية لمدة ساعة تقريبًا. يلي ذلك التوجه إلى ممشى أهل مصر على كورنيش النيل للاستمتاع بالمشهد العام والتقاط الصور وتناول مشروب أو وجبة خفيفة لمدة نحو 45 دقيقة.',
+    durationHours: 4,
+    durationHoursExact: 4.0,
+    priceUsd: 150,
+    imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/NMEC-MainEntrance.jpg/1280px-NMEC-MainEntrance.jpg',
+    accentColor: const Color(0xFF0D7377),
+    routeLabel: 'المطار → المتحف القومي → قصر عابدين → ممشى أهل مصر → المطار',
+    included: ['Airport Transfer', 'Tour Guide', 'Entry Tickets', 'Drink'],
+    itinerary: [
+      TransitStop(
+        title: 'استقبال – مطار القاهرة الدولي',
+        subtitle: 'استقبال المسافر والانتقال بسيارة سياحية مريحة',
+        duration: '25 min',
+        icon: Icons.flight_land_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+      TransitStop(
+        title: 'المتحف القومي للحضارة المصرية – الفسطاط',
+        subtitle:
+            'التعرف على تطور الحضارة المصرية عبر العصور ومشاهدة قاعة المومياوات الملكية',
+        duration: '1.5 hours',
+        icon: Icons.museum_rounded,
+        color: Color(0xFFE02850),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/NMEC-MainEntrance.jpg/1280px-NMEC-MainEntrance.jpg',
+      ),
+      TransitStop(
+        title: 'قصر عابدين',
+        subtitle: 'استكشاف القاعات الملكية والتعرف على تاريخ الأسرة العلوية',
+        duration: '1 hour',
+        icon: Icons.castle_rounded,
+        color: Color(0xFF4A44AA),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Abdeen_Palace.jpg/1280px-Abdeen_Palace.jpg',
+      ),
+      TransitStop(
+        title: 'ممشى أهل مصر – كورنيش النيل',
+        subtitle:
+            'الاستمتاع بالمشهد العام والتقاط الصور وتناول مشروب أو وجبة خفيفة',
+        duration: '45 min',
+        icon: Icons.water_rounded,
+        color: Color(0xFF0D7377),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Cairo_Nile_River.jpg/1280px-Cairo_Nile_River.jpg',
+      ),
+      TransitStop(
+        title: 'العودة إلى مطار القاهرة الدولي',
+        subtitle: 'التوصيل المباشر إلى صالة المغادرة',
+        duration: '25 min',
+        icon: Icons.flight_takeoff_rounded,
+        color: Color(0xFF187BCD),
+        imageUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/By_ovedc_-_Cairo_International_Airport_1.jpg/1280px-By_ovedc_-_Cairo_International_Airport_1.jpg',
+      ),
+    ],
+    reviews: [
+      Review(
+        name: 'خالد إبراهيم',
+        rating: 5,
+        date: 'منذ يوم',
+        comment: 'المتحف القومي رائع وقاعة المومياوات تجربة لا تنسى!',
+      ),
+      Review(
+        name: 'Anna Schmidt',
+        rating: 5,
+        date: '4 days ago',
+        comment: 'NMEC mummies hall is incredible! Abdeen Palace was a bonus.',
+      ),
+      Review(
+        name: 'هدى سامي',
+        rating: 4,
+        date: 'منذ أسبوع',
+        comment: 'ممشى أهل مصر مكان جميل للاسترخاء على النيل!',
       ),
     ],
   ),
@@ -448,15 +970,15 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   List<TransitTrip> get _filtered {
     switch (_filterIndex) {
       case 1:
-        return _transitTrips.where((t) => t.durationHours <= 4).toList();
+        return transitTrips.where((t) => t.durationHours <= 4).toList();
       case 2:
-        return _transitTrips
+        return transitTrips
             .where((t) => t.durationHours > 4 && t.durationHours <= 8)
             .toList();
       case 3:
-        return _transitTrips.where((t) => t.durationHours > 8).toList();
+        return transitTrips.where((t) => t.durationHours > 8).toList();
       default:
-        return _transitTrips;
+        return transitTrips;
     }
   }
 

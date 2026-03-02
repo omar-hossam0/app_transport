@@ -1,12 +1,17 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
 import 'transit_trips_page.dart';
+import 'transit_trip_detail_page.dart';
+import 'trip_detail_page.dart';
 import 'my_bookings_page.dart';
 import 'chatbot_page.dart';
 import 'profile_page.dart';
+import '../services/auth_service.dart';
+import '../services/favorites_service.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -28,21 +33,70 @@ class _Category {
   const _Category(this.label, this.icon, this.color);
 }
 
-class _Trip {
+// ── Unified trip card model for home page ────────────────────────────────
+class _HomeTrip {
+  final String id; // Unique identifier for the trip
   final String name;
   final String location;
   final String duration;
   final String price;
-  final String imageTag; // placeholder colour key
+  final String imageUrl;
   final Color overlayColor;
-  const _Trip(
-    this.name,
-    this.location,
-    this.duration,
-    this.price,
-    this.imageTag,
-    this.overlayColor,
-  );
+  final bool isFlying;
+  final dynamic trip; // TransitTrip or FlyingTaxiTrip
+  const _HomeTrip({
+    required this.id,
+    required this.name,
+    required this.location,
+    required this.duration,
+    required this.price,
+    required this.imageUrl,
+    required this.overlayColor,
+    required this.isFlying,
+    required this.trip,
+  });
+}
+
+/// Lazily builds the last 4 trips (2 transit + 2 flying) to show on home.
+List<_HomeTrip> get _popularTrips {
+  final result = <_HomeTrip>[];
+  // Last 2 transit trips
+  final tStart = transitTrips.length >= 2 ? transitTrips.length - 2 : 0;
+  for (int i = tStart; i < transitTrips.length; i++) {
+    final t = transitTrips[i];
+    result.add(
+      _HomeTrip(
+        id: 'transit_${t.name.hashCode}',
+        name: t.name,
+        location: 'Cairo, Egypt',
+        duration: t.durationLabel,
+        price: t.priceLabel,
+        imageUrl: t.imageUrl,
+        overlayColor: t.accentColor,
+        isFlying: false,
+        trip: t,
+      ),
+    );
+  }
+  // Last 2 flying trips
+  final fStart = flyingTrips.length >= 2 ? flyingTrips.length - 2 : 0;
+  for (int i = fStart; i < flyingTrips.length; i++) {
+    final f = flyingTrips[i];
+    result.add(
+      _HomeTrip(
+        id: 'flying_${f.name.hashCode}',
+        name: f.name,
+        location: 'Cairo Airport',
+        duration: f.durationLabel,
+        price: f.priceLabel,
+        imageUrl: f.imageUrl,
+        overlayColor: f.cardColor,
+        isFlying: true,
+        trip: f,
+      ),
+    );
+  }
+  return result;
 }
 
 // ── Sample data ──────────────────────────────────────────────────────────────
@@ -72,40 +126,7 @@ const _categories = [
   _Category('Places', Icons.place_rounded, Color(0xFF5BC0EB)),
 ];
 
-const _trips = [
-  _Trip(
-    'Pyramids of Giza',
-    'Cairo, Egypt',
-    '8 hours',
-    '\$90',
-    'giza',
-    Color(0xFF2A6FBB),
-  ),
-  _Trip(
-    'Nile River Cruise',
-    'Luxor, Egypt',
-    '5 hours',
-    '\$120',
-    'nile',
-    Color(0xFF0D7377),
-  ),
-  _Trip(
-    'Khan el-Khalili',
-    'Old Cairo',
-    '3 hours',
-    '\$45',
-    'khan',
-    Color(0xFF4A44AA),
-  ),
-  _Trip(
-    'Valley of Kings',
-    'Luxor, Egypt',
-    '6 hours',
-    '\$110',
-    'valley',
-    Color(0xFFE02850),
-  ),
-];
+// (trip cards now built dynamically from transitTrips + flyingTrips as _popularTrips)
 
 // ─────────────────────────────────────────────────────────────────────────────
 class HomePage extends StatefulWidget {
@@ -126,6 +147,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Load favorites when first entering home page
+    Future.delayed(const Duration(milliseconds: 100), () {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final favorites = Provider.of<FavoritesService>(context, listen: false);
+      if (auth.currentUser != null) {
+        favorites.loadFavorites(auth.currentUser!.uid);
+      }
+    });
+
     _entranceCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -224,16 +255,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Header
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildHeader() {
+    final screenW = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo row
+          // Logo — centred, responsive width, proper contain
           Center(
             child: Image.asset(
-              'img/logo2.png',
-              height: 72,
+              'img/logo_new.png',
+              width: screenW * 0.42,
               fit: BoxFit.contain,
             ),
           ),
@@ -584,7 +616,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               const Spacer(),
               GestureDetector(
-                onTap: () {},
+                onTap: () => _openTransitTrips(),
                 child: Text(
                   'See All',
                   style: roboto(
@@ -610,8 +642,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               crossAxisSpacing: 16,
               childAspectRatio: 0.78,
             ),
-            itemCount: _trips.length,
-            itemBuilder: (context, i) => _TripCard(trip: _trips[i]),
+            itemCount: _popularTrips.length,
+            itemBuilder: (context, i) => _TripCard(trip: _popularTrips[i]),
           ),
         ),
       ],
@@ -619,172 +651,163 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  //  Bottom nav
+  //  Bottom nav — frosted glass floating pill
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBottomNav() {
-    // items: (icon, action-index)
-    // action-index: -1=setState home, 1=flyingTaxi, 2=transit, 3=bookings, 4=chatbot, 5=profile
     const items = [
-      (Icons.home_rounded, -1),
-      (Icons.flight_rounded, 1),
-      (Icons.directions_bus_rounded, 2),
-      (Icons.calendar_today_rounded, 3),
-      (Icons.smart_toy_rounded, 4),
-      (Icons.person_outline_rounded, 5),
+      (Icons.home_rounded, 'Home', -1),
+      (Icons.flight_rounded, 'Flying', 1),
+      (Icons.directions_bus_rounded, 'Transit', 2),
+      (Icons.calendar_today_rounded, 'Bookings', 3),
+      (Icons.smart_toy_rounded, 'AI Chat', 4),
+      (Icons.person_outline_rounded, 'Profile', 5),
     ];
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 0, 28, 12),
-        child: Container(
-          height: 62,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF3AADE0), Color(0xFF6BCFF0)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            borderRadius: BorderRadius.circular(31),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF3AADE0).withValues(alpha: 0.40),
-                blurRadius: 22,
-                spreadRadius: 0,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(items.length, (i) {
-              final active = i == _navIndex;
-              final icon = items[i].$1;
-              final action = items[i].$2;
-
-              return GestureDetector(
-                onTap: () {
-                  if (action == 1) {
-                    _openFlyingTaxi();
-                  } else if (action == 2) {
-                    _openTransitTrips();
-                  } else if (action == 3) {
-                    _openMyBookings();
-                  } else if (action == 4) {
-                    openChatBotFullPage(context);
-                  } else if (action == 5) {
-                    _openProfile();
-                  } else {
-                    setState(() => _navIndex = i);
-                  }
-                },
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut,
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: active
-                        ? Colors.white.withValues(alpha: 0.28)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: active
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.60),
-                  ),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(40),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+            child: Container(
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1226).withValues(alpha: 0.58),
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.13),
+                  width: 1.2,
                 ),
-              );
-            }),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.22),
+                    blurRadius: 28,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(items.length, (i) {
+                    final active = i == _navIndex;
+                    final icon = items[i].$1;
+                    final label = items[i].$2;
+                    final action = items[i].$3;
+                    return _NavItem(
+                      icon: icon,
+                      label: label,
+                      active: active,
+                      onTap: () {
+                        if (action == 1) {
+                          _openFlyingTaxi();
+                        } else if (action == 2) {
+                          _openTransitTrips();
+                        } else if (action == 3) {
+                          _openMyBookings();
+                        } else if (action == 4) {
+                          openChatBotFullPage(context);
+                        } else if (action == 5) {
+                          _openProfile();
+                        } else {
+                          setState(() => _navIndex = i);
+                        }
+                      },
+                    );
+                  }),
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  // ═══════════════════════════════════════════════════════════════════
-  //  "Search with AI" button (wave shape)
-  // ═══════════════════════════════════════════════════════════════════
-  Widget _buildAiSearchButton() {
+// ═════════════════════════════════════════════════════════════════════════════
+//  Nav item — animated label pill
+// ═════════════════════════════════════════════════════════════════════════════
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => openChatBotFullPage(context),
-      child: SizedBox(
-        width: 250,
-        height: 68,
-        child: Stack(
-          alignment: Alignment.center,
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeInOutCubic,
+        height: 44,
+        padding: EdgeInsets.symmetric(horizontal: active ? 15 : 10),
+        decoration: BoxDecoration(
+          gradient: active
+              ? const LinearGradient(
+                  colors: [Color(0xFF187BCD), Color(0xFF5BC0EB)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF187BCD).withValues(alpha: 0.45),
+                    blurRadius: 16,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : null,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Wave / organic blob background
-            CustomPaint(
-              size: const Size(250, 68),
-              painter: const _AiWavePainter(),
+            Icon(
+              icon,
+              size: 22,
+              color: active
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.52),
             ),
-            // Content
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.30),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.smart_toy_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Search with AI',
+            // ── Animated label slide-in ──────────────────────────────
+            ClipRect(
+              child: AnimatedAlign(
+                alignment: Alignment.centerLeft,
+                widthFactor: active ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeInOutCubic,
+                child: AnimatedOpacity(
+                  opacity: active ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 220),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 7),
+                    child: Text(
+                      label,
                       style: roboto(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
+                        letterSpacing: 0.2,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                // "NEW" badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFB800),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFB800).withValues(alpha: 0.4),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'NEW',
-                    style: roboto(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -794,214 +817,241 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Wave / organic blob painter for the AI search button
-// ═════════════════════════════════════════════════════════════════════════════
-class _AiWavePainter extends CustomPainter {
-  const _AiWavePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    final path = Path();
-    path.moveTo(0, h * 0.50);
-    // Top curve (dome)
-    path.cubicTo(w * 0.12, -h * 0.12, w * 0.88, -h * 0.12, w, h * 0.50);
-    // Bottom curve
-    path.cubicTo(w * 0.88, h * 1.12, w * 0.12, h * 1.12, 0, h * 0.50);
-    path.close();
-
-    // Shadow
-    final shadowPaint = Paint()
-      ..color = const Color(0xFF4A44AA).withValues(alpha: 0.30)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-    canvas.save();
-    canvas.translate(0, 4);
-    canvas.drawPath(path, shadowPaint);
-    canvas.restore();
-
-    // Gradient fill
-    final rect = Rect.fromLTWH(0, 0, w, h);
-    final gradient = const LinearGradient(
-      colors: [Color(0xFF4A44AA), Color(0xFF187BCD)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-    final paint = Paint()..shader = gradient.createShader(rect);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
 //  Trip card widget
 // ═════════════════════════════════════════════════════════════════════════════
 class _TripCard extends StatelessWidget {
-  final _Trip trip;
+  final _HomeTrip trip;
   const _TripCard({required this.trip});
+
+  void _open(BuildContext context) {
+    if (trip.isFlying) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TripDetailPage(trip: trip.trip as FlyingTaxiTrip),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TransitTripDetailPage(trip: trip.trip as TransitTrip),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image area placeholder
-          Expanded(
-            flex: 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        trip.overlayColor,
-                        trip.overlayColor.withValues(alpha: 0.65),
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.photo_rounded,
-                      color: Colors.white.withValues(alpha: 0.35),
-                      size: 40,
-                    ),
-                  ),
-                ),
-                // Gradient overlay at bottom
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 46,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.55),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Name + location overlay
-                Positioned(
-                  left: 12,
-                  bottom: 8,
-                  right: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        trip.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: roboto(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+    return GestureDetector(
+      onTap: () => _open(context),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image area
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    trip.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            trip.overlayColor,
+                            trip.overlayColor.withValues(alpha: 0.65),
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.place_rounded,
-                            color: Colors.white.withValues(alpha: 0.80),
-                            size: 12,
-                          ),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              trip.location,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: roboto(
-                                fontSize: 10,
-                                color: Colors.white.withValues(alpha: 0.80),
+                      child: Center(
+                        child: Icon(
+                          Icons.photo_rounded,
+                          color: Colors.white.withValues(alpha: 0.35),
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                    loadingBuilder: (_, child, progress) => progress == null
+                        ? child
+                        : Container(
+                            color: trip.overlayColor.withValues(alpha: 0.3),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        ],
+                  ),
+                  // Gradient overlay at bottom
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 46,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.55),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                // Heart icon
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.favorite_border_rounded,
-                      color: _kRed,
-                      size: 16,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Info area
-          Expanded(
-            flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  // Duration
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 13,
-                    color: Colors.grey.shade500,
+                  // Name + location overlay
+                  Positioned(
+                    left: 12,
+                    bottom: 8,
+                    right: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trip.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: roboto(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.place_rounded,
+                              color: Colors.white.withValues(alpha: 0.80),
+                              size: 12,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                trip.location,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: roboto(
+                                  fontSize: 10,
+                                  color: Colors.white.withValues(alpha: 0.80),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    trip.duration,
-                    style: roboto(fontSize: 11, color: Colors.grey.shade600),
-                  ),
-                  const Spacer(),
-                  // Price
-                  Text(
-                    trip.price,
-                    style: roboto(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: kBlue,
+                  // Heart icon
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer2<AuthService, FavoritesService>(
+                      builder: (context, auth, favorites, _) {
+                        final uid = auth.currentUser?.uid ?? '';
+                        final isFav =
+                            uid.isNotEmpty && favorites.isFavorite(trip.id);
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: uid.isEmpty
+                                ? null
+                                : () async {
+                                    try {
+                                      await favorites.toggleFavorite(
+                                        uid,
+                                        trip.id,
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text('Error: $e')),
+                                      );
+                                    }
+                                  },
+                            borderRadius: BorderRadius.circular(15),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isFav
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: _kRed,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            // Info area
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    // Duration
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 13,
+                      color: Colors.grey.shade500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      trip.duration,
+                      style: roboto(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                    const Spacer(),
+                    // Price
+                    Text(
+                      trip.price,
+                      style: roboto(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: kBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

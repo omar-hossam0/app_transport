@@ -244,6 +244,13 @@ class AuthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final screenH = MediaQuery.of(context).size.height;
+    final screenW = MediaQuery.of(context).size.width;
+    // Responsive header: 36% of screen height on small phones, 32% on large
+    final headerH = screenH * (screenH < 700 ? 0.38 : 0.34) + topPad;
+    // Logo takes ~55% of the available area width, centered
+    final logoW = screenW * 0.55;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -252,18 +259,17 @@ class AuthHeader extends StatelessWidget {
           colors: [kBlue, kLightBlue],
         ),
       ),
-      // Fixed header height proportional to screen
-      height: MediaQuery.of(context).size.height * 0.26 + topPad,
+      height: headerH,
       padding: EdgeInsets.only(
-        top: topPad + 12,
+        top: topPad + 8,
         left: 20,
         right: 20,
-        bottom: 24,
+        bottom: 20,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Top bar
+          // ── Top bar ────────────────────────────────────────────────
           Row(
             children: [
               InkWell(
@@ -313,10 +319,10 @@ class AuthHeader extends StatelessWidget {
               ),
             ],
           ),
+          // ── Logo centred ───────────────────────────────────────────
           const Spacer(),
-          // App logo
-          Image.asset('img/logo2.png', height: 80, fit: BoxFit.contain),
-          const SizedBox(height: 6),
+          Image.asset('img/logo_new.png', width: logoW, fit: BoxFit.contain),
+          const Spacer(),
         ],
       ),
     );

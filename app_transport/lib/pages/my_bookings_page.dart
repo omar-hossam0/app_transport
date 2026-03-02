@@ -1,50 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/booking_model.dart';
+import '../services/auth_service.dart';
+import '../services/booking_service.dart';
 import 'auth_widgets.dart';
-
-// ── Booking Status ────────────────────────────────────────────────────────────
-enum BookingStatus { upcoming, completed, cancelled }
-
-// ── Booking Model ─────────────────────────────────────────────────────────────
-class Booking {
-  final String id;
-  final String tripName;
-  final String tripImage;
-  final DateTime date;
-  final String time;
-  int travelers;
-  final double pricePerPerson;
-  final String paymentMethod;
-  final String pickupLocation;
-  final String dropoffLocation;
-  final String routeLabel;
-  final Color accentColor;
-  BookingStatus status;
-  double userRating;
-  String userReview;
-
-  Booking({
-    required this.id,
-    required this.tripName,
-    required this.tripImage,
-    required this.date,
-    required this.time,
-    required this.travelers,
-    required this.pricePerPerson,
-    required this.paymentMethod,
-    required this.pickupLocation,
-    required this.dropoffLocation,
-    required this.routeLabel,
-    required this.accentColor,
-    this.status = BookingStatus.upcoming,
-    this.userRating = 0,
-    this.userReview = '',
-  });
-
-  double get totalPrice => pricePerPerson * travelers;
-  String get totalPriceLabel => '\$${totalPrice.toInt()}';
-  String get priceLabel => '\$${pricePerPerson.toInt()}';
-}
 
 // ── Sample data ───────────────────────────────────────────────────────────────
 final _sampleBookings = <Booking>[
@@ -52,7 +12,7 @@ final _sampleBookings = <Booking>[
     id: 'TRX-45821',
     tripName: 'Giza Pyramids, NMEC & Nile Corniche',
     tripImage:
-        'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Pyramids_of_the_Giza_Necropolis.jpg/1280px-Pyramids_of_the_Giza_Necropolis.jpg',
     date: DateTime.now().add(const Duration(days: 5)),
     time: '10:00 AM',
     travelers: 2,
@@ -67,7 +27,7 @@ final _sampleBookings = <Booking>[
     id: 'TRX-38204',
     tripName: 'Old Cairo & Khan El-Khalili Bazaar',
     tripImage:
-        'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&q=80',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Khan_el-Khalili_2019.jpg/1280px-Khan_el-Khalili_2019.jpg',
     date: DateTime.now().add(const Duration(days: 12)),
     time: '09:00 AM',
     travelers: 1,
@@ -82,7 +42,7 @@ final _sampleBookings = <Booking>[
     id: 'TRX-29174',
     tripName: 'Luxor Temples & Valley of Kings',
     tripImage:
-        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Luxor_Temple_R03.jpg/1280px-Luxor_Temple_R03.jpg',
     date: DateTime.now().subtract(const Duration(days: 18)),
     time: '07:00 AM',
     travelers: 3,
@@ -100,7 +60,7 @@ final _sampleBookings = <Booking>[
     id: 'TRX-11053',
     tripName: 'Cairo Tower & Nile Felucca Cruise',
     tripImage:
-        'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg/1280px-Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg',
     date: DateTime.now().subtract(const Duration(days: 40)),
     time: '02:00 PM',
     travelers: 2,
@@ -127,13 +87,30 @@ class MyBookingsPage extends StatefulWidget {
 class _MyBookingsPageState extends State<MyBookingsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
-  late final List<Booking> _bookings;
+  List<Booking> _bookings = [];
+  bool _didLoad = false;
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
-    _bookings = List.from(_sampleBookings);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didLoad) {
+      _didLoad = true;
+      _loadBookings();
+    }
+  }
+
+  Future<void> _loadBookings() async {
+    final auth = context.read<AuthService>();
+    final svc = context.read<BookingService>();
+    if (!auth.isLoggedIn) return;
+    await svc.loadBookings(auth.currentUser!.uid);
+    if (mounted) setState(() => _bookings = List.from(svc.bookings));
   }
 
   @override
@@ -259,6 +236,15 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             onPressed: () {
               Navigator.pop(ctx);
               setState(() => b.status = BookingStatus.cancelled);
+              // persist cancel to Firebase
+              final auth = context.read<AuthService>();
+              if (auth.isLoggedIn) {
+                context.read<BookingService>().updateStatus(
+                  auth.currentUser!.uid,
+                  b.id,
+                  BookingStatus.cancelled,
+                );
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -614,10 +600,21 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
+                final review = ctrl.text.trim();
                 setState(() {
-                  b.userRating = star;
-                  b.userReview = ctrl.text.trim();
+                  b.userRating = star.toDouble();
+                  b.userReview = review;
                 });
+                // persist rating to Firebase
+                final auth = context.read<AuthService>();
+                if (auth.isLoggedIn) {
+                  context.read<BookingService>().submitRating(
+                    auth.currentUser!.uid,
+                    b.id,
+                    star.toDouble(),
+                    review,
+                  );
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
