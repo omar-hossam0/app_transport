@@ -1,5 +1,83 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'auth_widgets.dart';
+import '../config.dart';
+// ── ChatBot external controller ───────────────────────────────────────────────
+class ChatBotController {
+  void Function(String)? _sendFn;
+  void send(String text) {
+    _sendFn?.call(text);
+  }
+}
+// ── Groq AI service ────────────────────────────────────────────────────────
+const _kGroqApiKey = kGroqApiKey;
+const _kGroqModel = 'llama-3.3-70b-versatile';
+
+const _kSystemPrompt = '''
+You are a friendly specialized digital assistant for App Transport, a tourism application dedicated to Egypt.
+Your function is to help travelers explore and book tours in Egypt.
+
+ALLOWED interactions:
+1. Greetings and farewells (hello, hi, اهلا, مرحبا, bye, etc.) — respond warmly and invite the user to ask about Egypt tourism
+2. Tour packages and trips within Egypt
+3. Booking transportation and travel between Egyptian cities
+4. Information about landmarks and tourist sites in Egypt
+5. The app's Flying Taxi aerial tours and Transit day trips
+6. General travel tips for visiting Egypt
+
+App Transport offers:
+- Flying Taxi aerial tours departing from Cairo Airport (Giza Pyramids, Alexandria, Luxor, Siwa, Aswan, Hurghada, etc.) starting from \$75
+- Transit day trips: Giza Pyramids + NMEC (8h/\$90), Old Cairo + Khan El-Khalili (5h/\$65), Cairo Tower + Felucca (4h/\$55), Saladin Citadel (5h/\$70), Memphis + Saqqara + Dahshur (8h/\$100)
+- All trips include airport pickup, certified English-speaking guide, and entry tickets
+- Free cancellation up to 2 hours before departure
+
+MANDATORY RULES:
+- For greetings, respond warmly and briefly mention you are the Egypt travel assistant, then ask how you can help with their trip
+- You are STRICTLY FORBIDDEN from answering anything unrelated to tourism or travel within Egypt
+- For ANY off-topic question (politics, sports, technology, weather, coding, etc.), respond ONLY with: "I specialize only in tourism and travel within Egypt. I cannot answer that. Do you have a tourism-related question?"
+- Do NOT apologize. Do NOT explain further for off-topic refusals.
+- Give accurate, concise, and helpful answers for travelers in Egypt
+- Always respond in the SAME LANGUAGE the user writes in (Arabic or English)
+''';
+
+class _GeminiChat {
+  final List<Map<String, String>> _history = [];
+
+  Future<String> send(String message) async {
+    _history.add({'role': 'user', 'content': message});
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $_kGroqApiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': _kGroqModel,
+          'messages': [
+            {'role': 'system', 'content': _kSystemPrompt},
+            ..._history,
+          ],
+          'temperature': 0.7,
+          'max_tokens': 1024,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final reply = data['choices'][0]['message']['content'] as String;
+        _history.add({'role': 'assistant', 'content': reply});
+        return reply.trim();
+      } else {
+        _history.removeLast();
+        return 'Error ${response.statusCode}. Please try again. 🔌';
+      }
+    } catch (e) {
+      _history.removeLast();
+      return 'Connection error. Please check your internet and try again. 🔌';
+    }
+  }
+}
 
 // ── Quick suggestion chips ─────────────────────────────────────────────────
 const _kChips = [
@@ -10,8 +88,8 @@ const _kChips = [
   (Icons.attach_money_rounded, 'Prices'),
 ];
 
-// ── Keyword → response map ────────────────────────────────────────────────
-const _kResponses = {
+// ── (Keyword responses replaced by Gemini AI) ───────────────────────────────
+const _kResponses_unused = {
   'flying taxi':
       'We offer flying taxi aerial tours departing from Cairo Airport! Choose from 10 breathtaking destinations including the Giza Pyramids, Alexandria, Luxor, Siwa Oasis, Aswan, Hurghada and more. Prices start from \$75. Tap "Flying Taxi" in the bottom nav to explore all trips! ✈️',
   'flying':
@@ -52,16 +130,7 @@ const _kResponses = {
       'We accept all major credit/debit cards (Visa, Mastercard, Amex) as well as cash on pickup. Payment is captured at time of booking. For cancellations, refunds return to your original payment method within 3-5 business days. 💳',
 };
 
-String _getResponse(String text) {
-  final lower = text.toLowerCase();
-  // longest-match first
-  for (final entry
-      in _kResponses.entries.toList()
-        ..sort((a, b) => b.key.length.compareTo(a.key.length))) {
-    if (lower.contains(entry.key)) return entry.value;
-  }
-  return 'Great question! 🌟 I\'m here to help you plan the perfect layover experience.\n\nYou can ask me about our Flying Taxi aerial tours, Transit day trips, booking management, prices, or Egyptian destinations. What would you like to explore?';
-}
+// _getResponse replaced by _GeminiChat
 
 // ── Public entry-point ─────────────────────────────────────────────────────
 void showChatBot(BuildContext context) {
@@ -106,7 +175,9 @@ void openChatBotFullPage(BuildContext context) {
 //  Full-page ChatBot
 // ═════════════════════════════════════════════════════════════════════════════
 class ChatBotPage extends StatefulWidget {
-  const ChatBotPage({super.key});
+  final ChatBotController? controller;
+  final VoidCallback? onBack;
+  const ChatBotPage({super.key, this.controller, this.onBack});
 
   @override
   State<ChatBotPage> createState() => _ChatBotPageState();
@@ -116,17 +187,24 @@ class _ChatBotPageState extends State<ChatBotPage> {
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
   bool _typing = false;
+  final _gemini = _GeminiChat();
 
   final List<_ChatMsg> _msgs = [
     _ChatMsg(
-      text:
-          'Hello! \u{1F44B} Welcome to App Transport.\nHow can I help you plan your perfect layover experience today?',
+      text: 'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
       isUser: false,
     ),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    widget.controller?._sendFn = _send;
+  }
+
+  @override
   void dispose() {
+    widget.controller?._sendFn = null;
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
@@ -142,12 +220,12 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
     _scrollToBottom();
 
-    await Future.delayed(const Duration(milliseconds: 1100));
+    final reply = await _gemini.send(msg);
     if (!mounted) return;
 
     setState(() {
       _typing = false;
-      _msgs.add(_ChatMsg(text: _getResponse(msg), isUser: false));
+      _msgs.add(_ChatMsg(text: reply, isUser: false));
     });
     _scrollToBottom();
   }
@@ -171,7 +249,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
       body: Column(
         children: [
           // Header with status bar padding
-          _Header(onClose: () => Navigator.pop(context), fullPage: true),
+          _Header(onClose: widget.onBack ?? () => Navigator.pop(context), fullPage: true),
           // Chips
           _ChipsRow(onChip: _send),
           // Messages
@@ -220,11 +298,12 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
   bool _typing = false;
+  final _gemini = _GeminiChat();
 
   final List<_ChatMsg> _msgs = [
     _ChatMsg(
       text:
-          'Hello! 👋 Welcome to App Transport.\nHow can I help you plan your perfect layover experience today?',
+          'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
       isUser: false,
     ),
   ];
@@ -246,12 +325,12 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
     });
     _scrollToBottom();
 
-    await Future.delayed(const Duration(milliseconds: 1100));
+    final reply = await _gemini.send(msg);
     if (!mounted) return;
 
     setState(() {
       _typing = false;
-      _msgs.add(_ChatMsg(text: _getResponse(msg), isUser: false));
+      _msgs.add(_ChatMsg(text: reply, isUser: false));
     });
     _scrollToBottom();
   }

@@ -10,6 +10,8 @@ import 'trip_detail_page.dart';
 import 'my_bookings_page.dart';
 import 'chatbot_page.dart';
 import 'profile_page.dart';
+import 'services_page.dart';
+import 'places_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 
@@ -138,6 +140,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _navIndex = 0;
+  final _chatController = ChatBotController();
 
   // ── staggered entrance animations ────────────────────────────────
   late final AnimationController _entranceCtrl;
@@ -206,47 +209,73 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // ── build ──────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
-
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Scaffold(
-        extendBody: true,
-        body: Container(
-          color: const Color(0xFFE8F4F8),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: topPad + 12),
-
-                // ── 0  Header ────────────────────────────────────────
-                _stagger(0, _buildHeader()),
-                const SizedBox(height: 22),
-
-                // ── 1  Search bar ────────────────────────────────────
-                _stagger(1, _buildSearchBar()),
-                const SizedBox(height: 22),
-
-                // ── 2  AI Suggestions ───────────────────────────────
-                _stagger(2, _buildAiSuggestions()),
-                const SizedBox(height: 24),
-
-                // ── 3  Categories ───────────────────────────────────
-                _stagger(3, _buildCategories()),
-                const SizedBox(height: 26),
-
-                // ── 4  Popular Trips ────────────────────────────────
-                _stagger(4, _buildPopularTrips()),
-                const SizedBox(height: 96),
-              ],
-            ),
-          ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _navIndex != 0) {
+          setState(() => _navIndex = 0);
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
         ),
-        bottomNavigationBar: _buildBottomNav(),
+        child: Scaffold(
+          extendBody: true,
+          body: IndexedStack(
+            index: _navIndex,
+            children: [
+              _buildHomeContent(),       // 0
+              const FlyingTaxiPage(),    // 1
+              const TransitTripsPage(),  // 2
+              const MyBookingsPage(),    // 3
+              ChatBotPage(
+                controller: _chatController,
+                onBack: () => setState(() => _navIndex = 0),
+              ), // 4
+              ProfilePage(onLogout: () => setState(() => _navIndex = 0)), // 5
+              const ServicesPage(),      // 6
+              const PlacesPage(),        // 7
+            ],
+          ),
+          bottomNavigationBar: _buildBottomNav(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeContent() {
+    final topPad = MediaQuery.of(context).padding.top;
+    return Container(
+      color: const Color(0xFFE8F4F8),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: topPad + 12),
+
+            // ── 0  Header ────────────────────────────────────────
+            _stagger(0, _buildHeader()),
+            const SizedBox(height: 22),
+
+            // ── 1  Search bar ────────────────────────────────────
+            _stagger(1, _buildSearchBar()),
+            const SizedBox(height: 22),
+
+            // ── 2  AI Suggestions ───────────────────────────────
+            _stagger(2, _buildAiSuggestions()),
+            const SizedBox(height: 24),
+
+            // ── 3  Categories ───────────────────────────────────
+            _stagger(3, _buildCategories()),
+            const SizedBox(height: 26),
+
+            // ── 4  Popular Trips ────────────────────────────────
+            _stagger(4, _buildPopularTrips()),
+            const SizedBox(height: 96),
+          ],
+        ),
       ),
     );
   }
@@ -299,7 +328,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               // Profile avatar
               GestureDetector(
-                onTap: () {},
+                onTap: () => setState(() => _navIndex = 5),
                 child: Container(
                   width: 50,
                   height: 50,
@@ -405,52 +434,60 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             separatorBuilder: (context, index) => const SizedBox(width: 14),
             itemBuilder: (context, i) {
               final s = _suggestions[i];
-              return Container(
-                width: 170,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: s.gradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _navIndex = 4);
+                  Future.delayed(const Duration(milliseconds: 600), () {
+                    _chatController.send(s.title);
+                  });
+                },
+                child: Container(
+                  width: 170,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: s.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: s.gradient.first.withValues(alpha: 0.30),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: s.gradient.first.withValues(alpha: 0.30),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      s.icon,
-                      color: Colors.white.withValues(alpha: 0.85),
-                      size: 26,
-                    ),
-                    const Spacer(),
-                    Text(
-                      s.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: roboto(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        s.icon,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        size: 26,
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      s.duration,
-                      style: roboto(
-                        fontSize: 11,
-                        color: Colors.white.withValues(alpha: 0.78),
+                      const Spacer(),
+                      Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: roboto(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 3),
+                      Text(
+                        s.duration,
+                        style: roboto(
+                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -563,10 +600,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         children: _categories.map((c) {
           return GestureDetector(
             onTap: c.label == 'Flying Taxi'
-                ? _openFlyingTaxi
+                ? () => setState(() => _navIndex = 1)
                 : c.label == 'Transit Trips'
-                ? _openTransitTrips
-                : () {},
+                ? () => setState(() => _navIndex = 2)
+                : c.label == 'Services'
+                ? () => setState(() => _navIndex = 6)
+                : () => setState(() => _navIndex = 7),
             child: Column(
               children: [
                 Container(
@@ -700,21 +739,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       icon: icon,
                       label: label,
                       active: active,
-                      onTap: () {
-                        if (action == 1) {
-                          _openFlyingTaxi();
-                        } else if (action == 2) {
-                          _openTransitTrips();
-                        } else if (action == 3) {
-                          _openMyBookings();
-                        } else if (action == 4) {
-                          openChatBotFullPage(context);
-                        } else if (action == 5) {
-                          _openProfile();
-                        } else {
-                          setState(() => _navIndex = i);
-                        }
-                      },
+                      onTap: () => setState(() => _navIndex = i),
                     );
                   }),
                 ),

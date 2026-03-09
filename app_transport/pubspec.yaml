@@ -47,6 +47,8 @@ dependencies:
   crypto: ^3.0.3 # Password hashing (SHA-256)
   shared_preferences: ^2.3.2 # Persist login session locally
   uuid: ^4.5.1 # Generate unique user IDs
+  google_generative_ai: ^0.4.6 # Gemini AI chatbot
+  http: ^1.2.2 # HTTP client for Groq API
 
 dev_dependencies:
   flutter_test:
