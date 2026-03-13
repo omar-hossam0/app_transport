@@ -14,6 +14,9 @@ import 'services_page.dart';
 import 'places_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
+import '../services/trip_service.dart';
+import '../services/notification_service.dart';
+import '../models/trip_model.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -35,71 +38,7 @@ class _Category {
   const _Category(this.label, this.icon, this.color);
 }
 
-// ── Unified trip card model for home page ────────────────────────────────
-class _HomeTrip {
-  final String id; // Unique identifier for the trip
-  final String name;
-  final String location;
-  final String duration;
-  final String price;
-  final String imageUrl;
-  final Color overlayColor;
-  final bool isFlying;
-  final dynamic trip; // TransitTrip or FlyingTaxiTrip
-  const _HomeTrip({
-    required this.id,
-    required this.name,
-    required this.location,
-    required this.duration,
-    required this.price,
-    required this.imageUrl,
-    required this.overlayColor,
-    required this.isFlying,
-    required this.trip,
-  });
-}
-
-/// Lazily builds the last 4 trips (2 transit + 2 flying) to show on home.
-List<_HomeTrip> get _popularTrips {
-  final result = <_HomeTrip>[];
-  // Last 2 transit trips
-  final tStart = transitTrips.length >= 2 ? transitTrips.length - 2 : 0;
-  for (int i = tStart; i < transitTrips.length; i++) {
-    final t = transitTrips[i];
-    result.add(
-      _HomeTrip(
-        id: 'transit_${t.name.hashCode}',
-        name: t.name,
-        location: 'Cairo, Egypt',
-        duration: t.durationLabel,
-        price: t.priceLabel,
-        imageUrl: t.imageUrl,
-        overlayColor: t.accentColor,
-        isFlying: false,
-        trip: t,
-      ),
-    );
-  }
-  // Last 2 flying trips
-  final fStart = flyingTrips.length >= 2 ? flyingTrips.length - 2 : 0;
-  for (int i = fStart; i < flyingTrips.length; i++) {
-    final f = flyingTrips[i];
-    result.add(
-      _HomeTrip(
-        id: 'flying_${f.name.hashCode}',
-        name: f.name,
-        location: 'Cairo Airport',
-        duration: f.durationLabel,
-        price: f.priceLabel,
-        imageUrl: f.imageUrl,
-        overlayColor: f.cardColor,
-        isFlying: true,
-        trip: f,
-      ),
-    );
-  }
-  return result;
-}
+// (popular trips are derived from TripService data)
 
 // ── Sample data ──────────────────────────────────────────────────────────────
 const _suggestions = [
@@ -128,7 +67,7 @@ const _categories = [
   _Category('Places', Icons.place_rounded, Color(0xFF5BC0EB)),
 ];
 
-// (trip cards now built dynamically from transitTrips + flyingTrips as _popularTrips)
+// (trip cards now built dynamically from TripService data)
 
 // ─────────────────────────────────────────────────────────────────────────────
 class HomePage extends StatefulWidget {
@@ -155,9 +94,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     Future.delayed(const Duration(milliseconds: 100), () {
       final auth = Provider.of<AuthService>(context, listen: false);
       final favorites = Provider.of<FavoritesService>(context, listen: false);
+      final trips = Provider.of<TripService>(context, listen: false);
+      final notifier = Provider.of<NotificationService>(context, listen: false);
       if (auth.currentUser != null) {
         favorites.loadFavorites(auth.currentUser!.uid);
+        notifier.registerForUser(auth.currentUser!.uid);
       }
+      trips.loadTrips();
     });
 
     _entranceCtrl = AnimationController(
@@ -642,6 +585,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Popular Trips
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildPopularTrips() {
+    final tripService = context.watch<TripService>();
+    final popular = _selectPopularTrips(tripService.activeTrips);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -670,23 +615,41 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 16),
         // Grid two-column
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.78,
-            ),
-            itemCount: _popularTrips.length,
-            itemBuilder: (context, i) => _TripCard(trip: _popularTrips[i]),
-          ),
-        ),
+        popular.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: Text(
+                  'No trips available yet',
+                  style: roboto(color: Colors.grey.shade500),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: popular.length,
+                  itemBuilder: (context, i) => _TripCard(trip: popular[i]),
+                ),
+              ),
       ],
     );
+  }
+
+  List<TripModel> _selectPopularTrips(List<TripModel> trips) {
+    if (trips.isEmpty) return [];
+    final flying = trips.where((t) => t.isFlying).toList();
+    final transit = trips.where((t) => t.isTransit).toList();
+    final result = <TripModel>[];
+    result.addAll(transit.take(2));
+    result.addAll(flying.take(2));
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -845,7 +808,7 @@ class _NavItem extends StatelessWidget {
 //  Trip card widget
 // ═════════════════════════════════════════════════════════════════════════════
 class _TripCard extends StatelessWidget {
-  final _HomeTrip trip;
+  final TripModel trip;
   const _TripCard({required this.trip});
 
   void _open(BuildContext context) {
@@ -853,14 +816,14 @@ class _TripCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => TripDetailPage(trip: trip.trip as FlyingTaxiTrip),
+          builder: (_) => TripDetailPage(trip: trip),
         ),
       );
     } else {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => TransitTripDetailPage(trip: trip.trip as TransitTrip),
+          builder: (_) => TransitTripDetailPage(trip: trip),
         ),
       );
     }
@@ -899,8 +862,8 @@ class _TripCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            trip.overlayColor,
-                            trip.overlayColor.withValues(alpha: 0.65),
+                            trip.accentColor,
+                            trip.accentColor.withValues(alpha: 0.65),
                           ],
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
@@ -917,7 +880,7 @@ class _TripCard extends StatelessWidget {
                     loadingBuilder: (_, child, progress) => progress == null
                         ? child
                         : Container(
-                            color: trip.overlayColor.withValues(alpha: 0.3),
+                            color: trip.accentColor.withValues(alpha: 0.3),
                             child: const Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
@@ -974,7 +937,7 @@ class _TripCard extends StatelessWidget {
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
-                                trip.location,
+                                trip.locationLabel,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: roboto(
@@ -995,8 +958,8 @@ class _TripCard extends StatelessWidget {
                     child: Consumer2<AuthService, FavoritesService>(
                       builder: (context, auth, favorites, _) {
                         final uid = auth.currentUser?.uid ?? '';
-                        final isFav =
-                            uid.isNotEmpty && favorites.isFavorite(trip.id);
+                            final isFav =
+                              uid.isNotEmpty && favorites.isFavorite(trip.id);
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -1058,13 +1021,13 @@ class _TripCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      trip.duration,
+                      trip.durationLabel,
                       style: roboto(fontSize: 11, color: Colors.grey.shade600),
                     ),
                     const Spacer(),
                     // Price
                     Text(
-                      trip.price,
+                      trip.priceLabel,
                       style: roboto(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,

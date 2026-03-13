@@ -109,7 +109,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     final auth = context.read<AuthService>();
     final svc = context.read<BookingService>();
     if (!auth.isLoggedIn) return;
-    await svc.loadBookings(auth.currentUser!.uid);
+    await svc.loadBookings(auth.currentUser!.uid, force: true);
     if (mounted) setState(() => _bookings = List.from(svc.bookings));
   }
 
@@ -120,15 +120,22 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   }
 
   List<Booking> get _upcoming =>
-      _bookings.where((b) => b.status == BookingStatus.upcoming).toList()
+      _bookings
+          .where(
+            (b) =>
+                b.status == BookingStatus.pending ||
+                b.status == BookingStatus.accepted,
+          )
+          .toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 
   List<Booking> get _past =>
       _bookings
           .where(
             (b) =>
-                b.status == BookingStatus.completed ||
-                b.status == BookingStatus.cancelled,
+                    b.status == BookingStatus.completed ||
+                    b.status == BookingStatus.cancelled ||
+                    b.status == BookingStatus.rejected,
           )
           .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
@@ -1232,13 +1239,23 @@ class _PastCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = booking;
     final isCancelled = b.status == BookingStatus.cancelled;
+    final isRejected = b.status == BookingStatus.rejected;
+    final isInactive = isCancelled || isRejected;
     final statusColor = isCancelled
-        ? const Color(0xFFE02850)
-        : Colors.green.shade600;
-    final statusLabel = isCancelled ? 'Cancelled' : 'Completed';
+      ? const Color(0xFFE02850)
+      : isRejected
+      ? Colors.orange.shade700
+      : Colors.green.shade600;
+    final statusLabel = isCancelled
+      ? 'Cancelled'
+      : isRejected
+      ? 'Rejected'
+      : 'Completed';
     final statusIcon = isCancelled
-        ? Icons.cancel_rounded
-        : Icons.check_circle_rounded;
+      ? Icons.cancel_rounded
+      : isRejected
+      ? Icons.block_rounded
+      : Icons.check_circle_rounded;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1261,7 +1278,7 @@ class _PastCard extends StatelessWidget {
               left: Radius.circular(20),
             ),
             child: ColorFiltered(
-              colorFilter: isCancelled
+                colorFilter: isInactive
                   ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
                   : const ColorFilter.mode(
                       Colors.transparent,
@@ -1482,7 +1499,10 @@ class _BookingDetailPage extends StatelessWidget {
     final b = booking;
     final topPad = MediaQuery.of(context).padding.top;
     final btmPad = MediaQuery.of(context).padding.bottom;
-    final isUpcoming = b.status == BookingStatus.upcoming;
+    final isUpcoming =
+      b.status == BookingStatus.pending || b.status == BookingStatus.accepted;
+    final statusLabel = _statusLabel(b.status);
+    final statusColor = _statusColor(b.status);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -1616,21 +1636,15 @@ class _BookingDetailPage extends StatelessWidget {
                                 vertical: 7,
                               ),
                               decoration: BoxDecoration(
-                                color: isUpcoming
-                                    ? Colors.green.withValues(alpha: 0.10)
-                                    : const Color(
-                                        0xFFE02850,
-                                      ).withValues(alpha: 0.10),
+                                color: statusColor.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                isUpcoming ? 'Upcoming' : 'Completed',
+                                statusLabel,
                                 style: roboto(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: isUpcoming
-                                      ? Colors.green.shade700
-                                      : const Color(0xFFE02850),
+                                  color: statusColor,
                                 ),
                               ),
                             ),
@@ -1867,6 +1881,36 @@ class _BookingDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _statusLabel(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.accepted:
+        return 'Accepted';
+      case BookingStatus.rejected:
+        return 'Rejected';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
+  Color _statusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return Colors.orange.shade700;
+      case BookingStatus.accepted:
+        return Colors.green.shade700;
+      case BookingStatus.rejected:
+        return Colors.orange.shade700;
+      case BookingStatus.completed:
+        return kBlue;
+      case BookingStatus.cancelled:
+        return const Color(0xFFE02850);
+    }
   }
 }
 

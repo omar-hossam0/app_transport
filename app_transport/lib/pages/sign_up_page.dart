@@ -4,6 +4,7 @@ import 'auth_widgets.dart';
 import 'home_page.dart';
 import 'sign_in_page.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -119,6 +120,10 @@ class _SignUpPageState extends State<SignUpPage>
     if (!mounted) return;
 
     if (success) {
+      final user = authService.currentUser;
+      if (user != null) {
+        await context.read<NotificationService>().registerForUser(user.uid);
+      }
       _showSuccessSnackBar(
         '✅ تم إنشاء الحساب بنجاح (Account created successfully)',
       );

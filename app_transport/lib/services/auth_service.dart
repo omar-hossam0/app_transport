@@ -21,6 +21,7 @@ class AuthService extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   AuthService() {
+    _ensureAdminSeed();
     _loadSavedSession();
   }
 
@@ -66,6 +67,76 @@ class AuthService extends ChangeNotifier {
 
   String _encodeEmail(String email) {
     return email.toLowerCase().replaceAll('.', ',').replaceAll('@', '_at_');
+  }
+
+  // ─────────────────────────────────────────────────
+  // Admin Seed (one-time)
+  // ─────────────────────────────────────────────────
+
+  Future<void> _ensureAdminSeed() async {
+    try {
+      final seededSnap = await _database
+          .ref('system/admin_seeded')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (seededSnap.exists && seededSnap.value == true) return;
+
+      const adminEmail = 'admin@gmail.com';
+      const adminPassword = '12345678';
+      const adminName = 'Admin';
+
+      final emailKey = _encodeEmail(adminEmail);
+      final indexSnap = await _database
+          .ref('email_index/$emailKey')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (indexSnap.exists && indexSnap.value is Map) {
+        final uid = (indexSnap.value as Map)['uid'] as String?;
+        if (uid != null && uid.isNotEmpty) {
+          await _database
+              .ref('users/$uid')
+              .update({'isAdmin': true})
+              .timeout(const Duration(seconds: 8));
+          await _database
+              .ref('system/admin_seeded')
+              .set(true)
+              .timeout(const Duration(seconds: 8));
+          return;
+        }
+      }
+
+      final uid = const Uuid().v4();
+      final now = DateTime.now();
+      final passwordHash = _hashPassword(adminPassword);
+
+      final adminUser = UserModel(
+        uid: uid,
+        email: adminEmail,
+        name: adminName,
+        isAdmin: true,
+        createdAt: now,
+        lastLogin: now,
+      );
+
+      await _database
+          .ref('users/$uid')
+          .set({...adminUser.toMap(), 'passwordHash': passwordHash})
+          .timeout(const Duration(seconds: 8));
+
+      await _database
+          .ref('email_index/$emailKey')
+          .set({'uid': uid})
+          .timeout(const Duration(seconds: 8));
+
+      await _database
+          .ref('system/admin_seeded')
+          .set(true)
+          .timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('[Auth] Admin seed skipped: $e');
+    }
   }
 
   // ─────────────────────────────────────────────────
@@ -142,6 +213,7 @@ class AuthService extends ChangeNotifier {
         email: trimmedEmail,
         name: name.trim(),
         phoneNumber: phoneNumber.trim(),
+        isAdmin: false,
         createdAt: now,
         lastLogin: now,
       );

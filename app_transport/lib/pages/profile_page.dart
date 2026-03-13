@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
+import '../services/booking_service.dart';
 
 // ── Card brand SVG logos ────────────────────────────────────────────────────
 const _kVisaSvg = '''
@@ -40,6 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _email = 'omar.hossam@email.com';
   String _phone = '+20 101 234 5678';
   String _selectedLang = 'English';
+  bool _didLoadUser = false;
 
   // ── Payment cards ──────────────────────────────────────────────────────────
   final List<Map<String, String>> _cards = [
@@ -56,6 +58,21 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _notifyTrips = true;
   bool _notifyOffers = false;
   bool _notifyReminder = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadUser) return;
+    final user = context.read<AuthService>().currentUser;
+    if (user != null) {
+      setState(() {
+        _name = user.name;
+        _email = user.email;
+        _phone = user.phoneNumber;
+      });
+    }
+    _didLoadUser = true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -381,13 +398,23 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (ctx) => _EditProfileSheet(
         nameCtrl: nameCtrl,
         phoneCtrl: phoneCtrl,
-        onSave: (name, phone) {
-          setState(() {
-            _name = name;
-            _phone = phone;
-          });
-          Navigator.pop(ctx);
-          _snack('Profile updated successfully');
+        onSave: (name, phone) async {
+          final auth = context.read<AuthService>();
+          final ok = await auth.updateUserProfile(
+            name: name,
+            phoneNumber: phone,
+          );
+          if (!mounted) return;
+          if (ok) {
+            setState(() {
+              _name = name;
+              _phone = phone;
+            });
+            Navigator.pop(ctx);
+            _snack('Profile updated successfully');
+          } else {
+            _snack('Failed to update profile');
+          }
         },
       ),
     );
@@ -438,9 +465,11 @@ class _ProfilePageState extends State<ProfilePage> {
         onConfirm: () async {
           final auth = context.read<AuthService>();
           final favorites = context.read<FavoritesService>();
+          final bookings = context.read<BookingService>();
 
           // Clear favorites first
           favorites.clearFavorites();
+          bookings.clearBookings();
 
           // Then sign out
           await auth.signOut();

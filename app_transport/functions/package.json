@@ -1,0 +1,13 @@
+{
+  "name": "app-transport-functions",
+  "private": true,
+  "description": "Cloud Functions for App Transport",
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^4.9.0"
+  }
+}

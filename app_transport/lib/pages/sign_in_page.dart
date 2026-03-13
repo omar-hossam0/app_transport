@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'home_page.dart';
+import 'admin/admin_dashboard_page.dart';
 import 'sign_up_page.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -45,12 +47,13 @@ class _SignInPageState extends State<SignInPage>
     super.dispose();
   }
 
-  void _goToHome() {
+  void _goToHome({required bool isAdmin}) {
+    final target = isAdmin ? const AdminDashboardPage() : const HomePage();
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
         reverseTransitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (context, anim, secAnim) => const HomePage(),
+        pageBuilder: (context, anim, secAnim) => target,
         transitionsBuilder: (context, anim, secAnim, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
@@ -84,8 +87,15 @@ class _SignInPageState extends State<SignInPage>
     if (!mounted) return;
 
     if (success) {
+      final user = authService.currentUser;
+      if (user != null) {
+        await context.read<NotificationService>().registerForUser(user.uid);
+      }
       _showSuccessSnackBar('✅ تم تسجيل الدخول بنجاح (Sign in successful)');
-      Future.delayed(const Duration(milliseconds: 500), _goToHome);
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () => _goToHome(isAdmin: user?.isAdmin == true),
+      );
     } else {
       _showErrorSnackBar(
         authService.errorMessage ?? 'خطأ في تسجيل الدخول (Sign in failed)',

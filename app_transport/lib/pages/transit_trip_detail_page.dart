@@ -7,13 +7,13 @@ import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
 import 'auth_widgets.dart';
-import 'transit_trips_page.dart';
+import '../models/trip_model.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  TransitTripDetailPage
 // ═════════════════════════════════════════════════════════════════════════════
 class TransitTripDetailPage extends StatefulWidget {
-  final TransitTrip trip;
+  final TripModel trip;
   const TransitTripDetailPage({super.key, required this.trip});
 
   @override
@@ -41,7 +41,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
 
   // ── Booking sheet ─────────────────────────────────────────────────────────
 
-  void _showBookingSheet(TransitTrip trip) {
+  void _showBookingSheet(TripModel trip) {
     DateTime? selectedDate;
     int travelers = 1;
     int paymentIdx = 0;
@@ -231,155 +231,39 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   Wrap(
                     spacing: 8,
                     children: List.generate(methods.length, (i) {
-                      final sel = paymentIdx == i;
+                              '(0)',
                       return ChoiceChip(
                         label: Text(
                           methods[i],
                           style: roboto(
-                            fontSize: 11,
-                            color: sel ? kBlue : Colors.grey.shade700,
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F7FA),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            'No reviews yet. Be the first to share your experience.',
+                            style: roboto(fontSize: 12, color: Colors.grey.shade600),
                           ),
                         ),
-                        selected: sel,
-                        onSelected: (_) => setS(() => paymentIdx = i),
-                        selectedColor: kBlue.withValues(alpha: 0.12),
-                        backgroundColor: const Color(0xFFF5F7FA),
-                        side: BorderSide(
-                          color: sel ? kBlue : Colors.transparent,
-                          width: 1.5,
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _showAddReviewDialog,
+                            icon: const Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
+                            label: Text(
+                              'Write a Review',
+                              style: roboto(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: kBlue,
+                              ),
+                            ),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ── Confirm button ────────────────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: selectedDate == null
-                          ? null
-                          : () async {
-                              Navigator.pop(ctx);
-                              await _confirmBooking(
-                                trip,
-                                selectedDate!,
-                                travelers,
-                                methods[paymentIdx],
-                              );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBlue,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade200,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        selectedDate == null
-                            ? 'Select a date first'
-                            : 'Confirm Booking  \$${trip.priceUsd * travelers}',
-                        style: roboto(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: selectedDate == null
-                              ? Colors.grey.shade400
-                              : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _confirmBooking(
-    TransitTrip trip,
-    DateTime date,
-    int travelers,
-    String paymentMethod,
-  ) async {
-    final auth = context.read<AuthService>();
-    if (!auth.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please sign in to book a trip.',
-            style: roboto(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final uid = auth.currentUser!.uid;
-    final rand = math.Random();
-    final bookingId = 'TRX-${rand.nextInt(90000) + 10000}';
-
-    final booking = Booking(
-      id: bookingId,
-      tripName: trip.name,
-      tripImage: trip.imageUrl,
-      date: date,
-      time: '10:00 AM',
-      travelers: travelers,
-      pricePerPerson: trip.priceUsd.toDouble(),
-      paymentMethod: paymentMethod,
-      pickupLocation: 'Cairo International Airport',
-      dropoffLocation: 'Cairo International Airport',
-      routeLabel: trip.routeLabel,
-      accentColor: trip.accentColor,
-    );
-
-    try {
-      await context.read<BookingService>().saveBooking(uid, booking);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Booking confirmed! 🎉  Ref: $bookingId',
-            style: roboto(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to save booking. Check your connection.',
-            style: roboto(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Animation<double> _fade(double start, double end) =>
-      Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(
           parent: _ctrl,
           curve: Interval(start, end, curve: Curves.easeOut),
         ),
@@ -612,8 +496,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                 Consumer2<AuthService, FavoritesService>(
                                   builder: (context, auth, favorites, _) {
                                     final uid = auth.currentUser?.uid ?? '';
-                                    final tripId =
-                                        'transit_${widget.trip.name.hashCode}';
+                                    final tripId = widget.trip.id;
                                     final isFav =
                                         uid.isNotEmpty &&
                                         favorites.isFavorite(tripId);
@@ -705,7 +588,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    'Cairo International Airport',
+                                    t.locationLabel,
                                     style: roboto(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -764,8 +647,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                           builder: (ctx, auth, favorites, _) {
                                             final uid =
                                                 auth.currentUser?.uid ?? '';
-                                            final tripId =
-                                                'transit_${t.name.hashCode}';
+                                            final tripId = t.id;
                                             final isFav =
                                                 uid.isNotEmpty &&
                                                 favorites.isFavorite(tripId);
@@ -860,7 +742,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          '(${t.durationHours * 10 + 50} reviews)',
+                                          '(${(t.durationMinutes ~/ 10) + 50} reviews)',
                                           style: roboto(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -885,7 +767,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   children: [
                                     _InfoTag(
                                       Icons.access_time_rounded,
-                                      '${t.durationHours} Hours',
+                                      t.durationLabel,
                                       kBlue,
                                     ),
                                     _InfoTag(
@@ -1055,7 +937,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Itinerary ─────────────────────────────────────────────────────────────
-  Widget _buildItinerary(TransitTrip t) {
+  Widget _buildItinerary(TripModel t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1197,7 +1079,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Stop Image Carousel (GPS-style navigation) ────────────────────────────
-  Widget _buildStopImageCarousel(TransitTrip t) {
+  Widget _buildStopImageCarousel(TripModel t) {
     // Filter stops that have images
     final stopsWithImages = t.itinerary
         .where((s) => s.imageUrl.isNotEmpty)
@@ -1467,7 +1349,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Route Map ──────────────────────────────────────────────────────────────
-  Widget _buildRouteMap(TransitTrip t) {
+  Widget _buildRouteMap(TripModel t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1561,7 +1443,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Included Services ──────────────────────────────────────────────────────
-  Widget _buildIncluded(TransitTrip t) {
+  Widget _buildIncluded(TripModel t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1618,7 +1500,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Reviews ────────────────────────────────────────────────────────────────
-  Widget _buildReviews(TransitTrip t) {
+  Widget _buildReviews(TripModel t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1630,252 +1512,40 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             ),
             const SizedBox(width: 8),
             Text(
-              '(${t.reviews.length})',
+              '(0)',
               style: roboto(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 14),
-        // Display reviews from trip data
-        ...t.reviews.asMap().entries.map((e) {
-          final review = e.value;
-          final isFirst = e.key == 0;
-
-          if (isFirst) {
-            // Featured review
-            return Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [kBlue.withValues(alpha: 0.05), Colors.white],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kBlue.withValues(alpha: 0.12)),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            'No reviews yet. Be the first to share your experience.',
+            style: roboto(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: _showAddReviewDialog,
+            icon: const Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
+            label: Text(
+              'Write a Review',
+              style: roboto(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: kBlue,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ...List.generate(
-                        review.rating,
-                        (i) => Icon(
-                          Icons.star_rounded,
-                          color: const Color(0xFFFFC107),
-                          size: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${review.rating}/5',
-                        style: roboto(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '"${review.comment}"',
-                    style: roboto(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A1A2E),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '— ${review.name}  •  ${review.date}',
-                    style: roboto(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            // Standard review
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ReviewTile(
-                name: review.name,
-                rating: review.rating,
-                date: review.date,
-                comment: review.comment,
-              ),
-            );
-          }
-        }),
-        const SizedBox(height: 16),
-        // Write review button
-        GestureDetector(
-          onTap: _showAddReviewDialog,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: kBlue.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Write a Review',
-                  style: roboto(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: kBlue,
-                  ),
-                ),
-              ],
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// Info tag chip
-// ══════════════════════════════════════════════════════════
-class _InfoTag extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _InfoTag(this.icon, this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color.withValues(alpha: 0.20)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 14),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: roboto(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// Review Tile
-// ══════════════════════════════════════════════════════════
-class _ReviewTile extends StatelessWidget {
-  final String name;
-  final int rating;
-  final String date;
-  final String comment;
-  const _ReviewTile({
-    required this.name,
-    required this.rating,
-    required this.date,
-    required this.comment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: kBlue.withValues(alpha: 0.14),
-                child: Text(
-                  name[0],
-                  style: roboto(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: kBlue,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: roboto(fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                    Row(
-                      children: [
-                        ...List.generate(
-                          5,
-                          (i) => Icon(
-                            i < rating
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            color: const Color(0xFFFFC107),
-                            size: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          date,
-                          style: roboto(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            comment,
-            style: roboto(
-              fontSize: 13,
-              color: Colors.grey.shade700,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

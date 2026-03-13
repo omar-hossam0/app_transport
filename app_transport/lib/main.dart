@@ -9,6 +9,9 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/booking_service.dart';
 import 'services/favorites_service.dart';
+import 'services/trip_service.dart';
+import 'services/admin_service.dart';
+import 'services/notification_service.dart';
 import 'pages/sign_in_page.dart';
 
 Future<void> main() async {
@@ -147,6 +150,9 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (_) => AuthService()),
           ChangeNotifierProvider(create: (_) => BookingService()),
           ChangeNotifierProvider(create: (_) => FavoritesService()),
+          ChangeNotifierProvider(create: (_) => TripService()),
+          ChangeNotifierProvider(create: (_) => AdminService()),
+          Provider(create: (_) => NotificationService()),
         ],
         child: const MyApp(),
       ),
@@ -166,6 +172,9 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => BookingService()),
         ChangeNotifierProvider(create: (_) => FavoritesService()),
+        ChangeNotifierProvider(create: (_) => TripService()),
+        ChangeNotifierProvider(create: (_) => AdminService()),
+        Provider(create: (_) => NotificationService()),
       ],
       child: const MyApp(),
     ),
