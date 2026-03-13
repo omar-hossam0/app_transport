@@ -51,6 +51,7 @@ class TripModel {
   final int flightMinutes;
   final double priceUsd;
   final String imageUrl;
+  final List<String> galleryImageUrls;
   final int accentColorValue;
   final String routeLabel;
   final String mapHint;
@@ -71,6 +72,7 @@ class TripModel {
     this.flightMinutes = 0,
     this.priceUsd = 0,
     this.imageUrl = '',
+    this.galleryImageUrls = const [],
     this.accentColorValue = 0xFF187BCD,
     this.routeLabel = '',
     this.mapHint = '',
@@ -109,6 +111,7 @@ class TripModel {
     'flightMinutes': flightMinutes,
     'priceUsd': priceUsd,
     'imageUrl': imageUrl,
+    'galleryImageUrls': galleryImageUrls,
     'accentColorValue': accentColorValue,
     'routeLabel': routeLabel,
     'mapHint': mapHint,
@@ -133,6 +136,9 @@ class TripModel {
         .toList();
 
     final includedRaw = map['included'] as List? ?? const [];
+    final galleryRaw = map['galleryImageUrls'] as List? ?? const [];
+    final coverUrl =
+      map['imageUrl'] as String? ?? map['coverImageUrl'] as String? ?? '';
 
     return TripModel(
       id: map['id'] as String? ?? '',
@@ -143,7 +149,8 @@ class TripModel {
       durationMinutes: ((map['durationMinutes'] ?? 0) as num).toInt(),
       flightMinutes: ((map['flightMinutes'] ?? 0) as num).toInt(),
       priceUsd: ((map['priceUsd'] ?? 0) as num).toDouble(),
-      imageUrl: map['imageUrl'] as String? ?? '',
+      imageUrl: coverUrl,
+      galleryImageUrls: galleryRaw.map((e) => e.toString()).toList(),
         accentColorValue: ((map['accentColorValue'] ?? 0xFF187BCD) as num)
           .toInt(),
       routeLabel: map['routeLabel'] as String? ?? '',
@@ -171,6 +178,7 @@ class TripModel {
     int? flightMinutes,
     double? priceUsd,
     String? imageUrl,
+    List<String>? galleryImageUrls,
     int? accentColorValue,
     String? routeLabel,
     String? mapHint,
@@ -191,6 +199,7 @@ class TripModel {
       flightMinutes: flightMinutes ?? this.flightMinutes,
       priceUsd: priceUsd ?? this.priceUsd,
       imageUrl: imageUrl ?? this.imageUrl,
+      galleryImageUrls: galleryImageUrls ?? this.galleryImageUrls,
       accentColorValue: accentColorValue ?? this.accentColorValue,
       routeLabel: routeLabel ?? this.routeLabel,
       mapHint: mapHint ?? this.mapHint,

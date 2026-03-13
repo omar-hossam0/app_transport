@@ -249,13 +249,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Hi, Traveler',
-                      style: roboto(
-                        fontSize: 14,
-                        color: kLightBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Consumer<AuthService>(
+                      builder: (context, auth, _) {
+                        final name = auth.currentUser?.name ?? 'Traveler';
+                        return Text(
+                          'Hi, $name',
+                          style: roboto(
+                            fontSize: 14,
+                            color: kLightBlue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -697,7 +702,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     final active = i == _navIndex;
                     final icon = items[i].$1;
                     final label = items[i].$2;
-                    final action = items[i].$3;
                     return _NavItem(
                       icon: icon,
                       label: label,

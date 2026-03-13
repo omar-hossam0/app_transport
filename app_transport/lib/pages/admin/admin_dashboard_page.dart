@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/booking_model.dart';
 import '../../models/user_model.dart';
 import '../../models/trip_model.dart';
@@ -7,6 +12,7 @@ import '../../services/admin_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/booking_service.dart';
 import '../../services/favorites_service.dart';
+import '../../services/trip_media_service.dart';
 import '../../services/trip_service.dart';
 import '../auth_widgets.dart';
 import '../sign_in_page.dart';
@@ -18,9 +24,8 @@ class AdminDashboardPage extends StatefulWidget {
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends State<AdminDashboardPage>
-    with TickerProviderStateMixin {
-  late final TabController _tabCtrl;
+class _AdminDashboardPageState extends State<AdminDashboardPage> {
+  int _navIndex = 0;
   int _orderFilterIndex = 0;
   final _orderFilters = const [
     'All',
@@ -35,8 +40,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TripService>().loadTrips();
       context.read<BookingService>().loadAllBookings();
@@ -46,7 +49,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
   @override
   void dispose() {
-    _tabCtrl.dispose();
     super.dispose();
   }
 
@@ -58,37 +60,182 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       return _AccessDenied(onBack: () => _toSignIn(context));
     }
 
+    final isCompact = MediaQuery.of(context).size.width < 900;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: Text('Admin Dashboard', style: roboto(fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A2E),
-        elevation: 1,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () => _handleLogout(context),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabCtrl,
-          labelColor: kBlue,
-          unselectedLabelColor: Colors.grey.shade500,
-          indicatorColor: kBlue,
-          tabs: const [
-            Tab(text: 'Orders'),
-            Tab(text: 'Trips'),
-            Tab(text: 'Admins'),
+      backgroundColor: const Color(0xFFF3F5F8),
+      body: SafeArea(
+        child: Row(
+          children: [
+            _buildSidebar(isCompact, auth.currentUser!),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTopBar(_sectionTitle()),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _navIndex,
+                      children: [
+                        _buildOrdersTab(),
+                        _buildTripsTab(),
+                        _buildAdminsTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
+    );
+  }
+
+  String _sectionTitle() {
+    switch (_navIndex) {
+      case 0:
+        return 'Orders';
+      case 1:
+        return 'Trips';
+      case 2:
+        return 'Admins';
+      default:
+        return 'Dashboard';
+    }
+  }
+
+  Widget _buildTopBar(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+      child: Row(
         children: [
-          _buildOrdersTab(),
-          _buildTripsTab(),
-          _buildAdminsTab(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: roboto(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Manage everything in one place',
+                style: roboto(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.circle, size: 8, color: Colors.green.shade600),
+                const SizedBox(width: 6),
+                Text(
+                  'Online',
+                  style: roboto(fontSize: 11, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar(bool isCompact, UserModel user) {
+    final width = isCompact ? 80.0 : 240.0;
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      child: NavigationRail(
+        extended: !isCompact,
+        selectedIndex: _navIndex,
+        onDestinationSelected: (value) {
+          setState(() => _navIndex = value);
+        },
+        backgroundColor: Colors.white,
+        groupAlignment: -0.7,
+        indicatorColor: kBlue.withValues(alpha: 0.15),
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 20, bottom: 16),
+          child: Column(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: kBlue,
+                ),
+              ),
+              if (!isCompact) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Admin Panel',
+                  style: roboto(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user.email,
+                  style: roboto(fontSize: 10, color: Colors.grey.shade500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+        trailing: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: isCompact
+              ? IconButton(
+                  onPressed: () => _handleLogout(context),
+                  icon: const Icon(Icons.logout_rounded),
+                )
+              : OutlinedButton.icon(
+                  onPressed: () => _handleLogout(context),
+                  icon: const Icon(Icons.logout_rounded, size: 18),
+                  label: Text('Logout', style: roboto(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+        ),
+        destinations: const [
+          NavigationRailDestination(
+            icon: Icon(Icons.receipt_long_rounded),
+            label: Text('Orders'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.flight_takeoff_rounded),
+            label: Text('Trips'),
+          ),
+          NavigationRailDestination(
+            icon: Icon(Icons.group_rounded),
+            label: Text('Admins'),
+          ),
         ],
       ),
     );
@@ -98,6 +245,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     final bookingSvc = context.watch<BookingService>();
     final all = bookingSvc.allBookings;
     final filtered = _filterBookings(all);
+    final pending = all.where((b) => b.status == BookingStatus.pending).length;
+    final accepted = all.where((b) => b.status == BookingStatus.accepted).length;
+    final completed = all.where((b) => b.status == BookingStatus.completed).length;
 
     if (bookingSvc.isAllLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -105,7 +255,39 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
     return Column(
       children: [
-        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _StatCard(
+                title: 'Total Orders',
+                value: all.length.toString(),
+                icon: Icons.receipt_long_rounded,
+                color: kBlue,
+              ),
+              _StatCard(
+                title: 'Pending',
+                value: pending.toString(),
+                icon: Icons.timelapse_rounded,
+                color: Colors.orange,
+              ),
+              _StatCard(
+                title: 'Completed',
+                value: completed.toString(),
+                icon: Icons.check_circle_rounded,
+                color: Colors.green,
+              ),
+              _StatCard(
+                title: 'Accepted',
+                value: accepted.toString(),
+                icon: Icons.verified_rounded,
+                color: const Color(0xFF4A44AA),
+              ),
+            ],
+          ),
+        ),
         _buildOrderFilters(),
         const SizedBox(height: 8),
         Expanded(
@@ -136,11 +318,40 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   Widget _buildTripsTab() {
     final tripSvc = context.watch<TripService>();
     final trips = tripSvc.trips;
+    final active = trips.where((t) => t.isActive).length;
+    final inactive = trips.length - active;
 
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _StatCard(
+                title: 'Total Trips',
+                value: trips.length.toString(),
+                icon: Icons.flight_takeoff_rounded,
+                color: kBlue,
+              ),
+              _StatCard(
+                title: 'Active',
+                value: active.toString(),
+                icon: Icons.toggle_on_rounded,
+                color: Colors.green,
+              ),
+              _StatCard(
+                title: 'Inactive',
+                value: inactive.toString(),
+                icon: Icons.toggle_off_rounded,
+                color: Colors.grey,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
           child: Row(
             children: [
               Expanded(
@@ -189,6 +400,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
   Widget _buildAdminsTab() {
     final adminSvc = context.watch<AdminService>();
+    final adminCount =
+        adminSvc.users.where((user) => user.isAdmin).length;
     final filtered = adminSvc.users.where((u) {
       if (_userQuery.trim().isEmpty) return true;
       final q = _userQuery.toLowerCase();
@@ -199,7 +412,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _StatCard(
+                title: 'Total Users',
+                value: adminSvc.users.length.toString(),
+                icon: Icons.people_rounded,
+                color: const Color(0xFF1A1A2E),
+              ),
+              _StatCard(
+                title: 'Admins',
+                value: adminCount.toString(),
+                icon: Icons.security_rounded,
+                color: kBlue,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
           child: TextField(
             onChanged: (value) => setState(() => _userQuery = value),
             decoration: InputDecoration(
@@ -322,6 +556,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
       builder: (ctx) => _TripEditorSheet(
         trip: trip,
         onSave: (updated) async {
@@ -377,6 +612,69 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SignInPage()),
       (_) => false,
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 180,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: roboto(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  style: roboto(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -530,6 +828,7 @@ class _TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = trip.imageUrl.isNotEmpty;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -542,40 +841,87 @@ class _TripCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
-        title: Text(
-          trip.name,
-          style: roboto(fontSize: 14, fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '${trip.type.name.toUpperCase()}  •  ${trip.durationLabel}  •  ${trip.priceLabel}',
-          style: roboto(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        leading: CircleAvatar(
-          backgroundColor: trip.accentColor.withValues(alpha: 0.15),
-          child: Icon(
-            trip.isFlying ? Icons.flight_rounded : Icons.directions_bus_rounded,
-            color: trip.accentColor,
-          ),
-        ),
-        trailing: Wrap(
-          spacing: 6,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            Switch(
-              value: trip.isActive,
-              onChanged: onToggleActive,
-              activeColor: kBlue,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 84,
+                height: 84,
+                child: hasImage
+                    ? Image.network(
+                        trip.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _tripFallback(trip),
+                      )
+                    : _tripFallback(trip),
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.edit_rounded, size: 20),
-              onPressed: onEdit,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    trip.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: roboto(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${trip.type.name.toUpperCase()}  •  ${trip.durationLabel}',
+                    style: roboto(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    trip.priceLabel,
+                    style: roboto(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: trip.accentColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, size: 20),
-              onPressed: onDelete,
+            Column(
+              children: [
+                Switch(
+                  value: trip.isActive,
+                  onChanged: onToggleActive,
+                  activeColor: kBlue,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_rounded, size: 20),
+                      onPressed: onEdit,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tripFallback(TripModel trip) {
+    return Container(
+      color: trip.accentColor.withValues(alpha: 0.18),
+      child: Center(
+        child: Icon(
+          trip.isFlying ? Icons.flight_rounded : Icons.directions_bus_rounded,
+          color: trip.accentColor,
         ),
       ),
     );
@@ -616,7 +962,7 @@ class _AdminUserTile extends StatelessWidget {
 
 class _TripEditorSheet extends StatefulWidget {
   final TripModel? trip;
-  final ValueChanged<TripModel> onSave;
+  final Future<void> Function(TripModel) onSave;
 
   const _TripEditorSheet({required this.trip, required this.onSave});
 
@@ -625,6 +971,11 @@ class _TripEditorSheet extends StatefulWidget {
 }
 
 class _TripEditorSheetState extends State<_TripEditorSheet> {
+  final TripMediaService _media = TripMediaService();
+  final ImagePicker _picker = ImagePicker();
+
+  late final String _tripId;
+  late final String _initialCoverUrl;
   late TripType _type;
   late final TextEditingController _nameCtrl;
   late final TextEditingController _shortCtrl;
@@ -632,7 +983,6 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   late final TextEditingController _durationCtrl;
   late final TextEditingController _flightCtrl;
   late final TextEditingController _priceCtrl;
-  late final TextEditingController _imageCtrl;
   late final TextEditingController _colorCtrl;
   late final TextEditingController _routeCtrl;
   late final TextEditingController _mapCtrl;
@@ -640,10 +990,20 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   late final TextEditingController _includedCtrl;
   late final TextEditingController _itineraryCtrl;
 
+  XFile? _coverFile;
+  String _coverUrl = '';
+  final List<String> _galleryUrls = [];
+  final List<XFile> _newGalleryFiles = [];
+
+  bool _isSaving = false;
+  double _uploadProgress = 0;
+  String _uploadLabel = '';
+
   @override
   void initState() {
     super.initState();
     final trip = widget.trip;
+    _tripId = trip?.id ?? const Uuid().v4();
     _type = trip?.type ?? TripType.transit;
     _nameCtrl = TextEditingController(text: trip?.name ?? '');
     _shortCtrl = TextEditingController(text: trip?.shortDescription ?? '');
@@ -657,7 +1017,6 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     _priceCtrl = TextEditingController(
       text: trip?.priceUsd.toString() ?? '0',
     );
-    _imageCtrl = TextEditingController(text: trip?.imageUrl ?? '');
     _colorCtrl = TextEditingController(
       text: _toHex(trip?.accentColorValue ?? 0xFF187BCD),
     );
@@ -672,6 +1031,9 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     _itineraryCtrl = TextEditingController(
       text: _serializeStops(trip?.itinerary ?? []),
     );
+    _coverUrl = trip?.imageUrl ?? '';
+    _initialCoverUrl = _coverUrl;
+    _galleryUrls.addAll(trip?.galleryImageUrls ?? const []);
   }
 
   @override
@@ -682,7 +1044,6 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     _durationCtrl.dispose();
     _flightCtrl.dispose();
     _priceCtrl.dispose();
-    _imageCtrl.dispose();
     _colorCtrl.dispose();
     _routeCtrl.dispose();
     _mapCtrl.dispose();
@@ -695,197 +1056,579 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final height = MediaQuery.of(context).size.height;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        height: height * 0.94,
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                widget.trip == null ? 'Add Trip' : 'Edit Trip',
-                style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Trip Type'),
-              DropdownButtonFormField<TripType>(
-                value: _type,
-                items: TripType.values
-                    .map(
-                      (t) => DropdownMenuItem(
-                        value: t,
-                        child: Text(t.name.toUpperCase()),
+        child: Column(
+          children: [
+            _buildHeader(),
+            if (_isSaving) _buildUploadStatus(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionCard(
+                      title: 'Basics',
+                      child: Column(
+                        children: [
+                          _sectionLabel('Trip Type'),
+                          DropdownButtonFormField<TripType>(
+                            value: _type,
+                            items: TripType.values
+                                .map(
+                                  (t) => DropdownMenuItem(
+                                    value: t,
+                                    child: Text(t.name.toUpperCase()),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _type = value);
+                              }
+                            },
+                            decoration: _fieldDecoration(),
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Name'),
+                          TextField(
+                            controller: _nameCtrl,
+                            decoration: _fieldDecoration(),
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Short Description'),
+                          TextField(
+                            controller: _shortCtrl,
+                            decoration: _fieldDecoration(),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Full Description'),
+                          TextField(
+                            controller: _descCtrl,
+                            decoration: _fieldDecoration(),
+                            maxLines: 3,
+                          ),
+                        ],
                       ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) setState(() => _type = value);
-                },
-                decoration: _fieldDecoration(),
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Name'),
-              TextField(controller: _nameCtrl, decoration: _fieldDecoration()),
-              const SizedBox(height: 12),
-              _sectionLabel('Short Description'),
-              TextField(
-                controller: _shortCtrl,
-                decoration: _fieldDecoration(),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Full Description'),
-              TextField(
-                controller: _descCtrl,
-                decoration: _fieldDecoration(),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Duration Minutes'),
-              TextField(
-                controller: _durationCtrl,
-                decoration: _fieldDecoration(hint: 'e.g. 120'),
-                keyboardType: TextInputType.number,
-              ),
-              if (_type == TripType.flying) ...[
-                const SizedBox(height: 12),
-                _sectionLabel('Flight Minutes'),
-                TextField(
-                  controller: _flightCtrl,
-                  decoration: _fieldDecoration(hint: 'e.g. 20'),
-                  keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    _sectionCard(
+                      title: 'Media',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionLabel('Cover Image'),
+                          _buildCoverPicker(),
+                          const SizedBox(height: 16),
+                          _sectionLabel('Gallery Images'),
+                          _buildGalleryPicker(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _sectionCard(
+                      title: 'Pricing & Timing',
+                      child: Column(
+                        children: [
+                          _sectionLabel('Duration Minutes'),
+                          TextField(
+                            controller: _durationCtrl,
+                            decoration: _fieldDecoration(hint: 'e.g. 120'),
+                            keyboardType: TextInputType.number,
+                          ),
+                          if (_type == TripType.flying) ...[
+                            const SizedBox(height: 12),
+                            _sectionLabel('Flight Minutes'),
+                            TextField(
+                              controller: _flightCtrl,
+                              decoration: _fieldDecoration(hint: 'e.g. 20'),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          _sectionLabel('Price (USD)'),
+                          TextField(
+                            controller: _priceCtrl,
+                            decoration: _fieldDecoration(hint: 'e.g. 150'),
+                            keyboardType: TextInputType.number,
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Accent Color (Hex)'),
+                          TextField(
+                            controller: _colorCtrl,
+                            decoration: _fieldDecoration(hint: 'e.g. FF187BCD'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _sectionCard(
+                      title: 'Routing',
+                      child: Column(
+                        children: [
+                          _sectionLabel('Route Label'),
+                          TextField(
+                            controller: _routeCtrl,
+                            decoration: _fieldDecoration(hint: 'Airport -> ...'),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Map Hint'),
+                          TextField(
+                            controller: _mapCtrl,
+                            decoration:
+                                _fieldDecoration(hint: 'Route outline for map'),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Location Label'),
+                          TextField(
+                            controller: _locationCtrl,
+                            decoration: _fieldDecoration(
+                              hint: 'Cairo International Airport',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _sectionCard(
+                      title: 'Included & Itinerary',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionLabel('Included (comma separated)'),
+                          TextField(
+                            controller: _includedCtrl,
+                            decoration:
+                                _fieldDecoration(hint: 'Transfer, Guide, Tickets'),
+                          ),
+                          const SizedBox(height: 12),
+                          _sectionLabel('Itinerary (one stop per line)'),
+                          TextField(
+                            controller: _itineraryCtrl,
+                            decoration: _fieldDecoration(
+                              hint:
+                                  'Title|Subtitle|Duration|iconName|colorHex|imageUrl',
+                            ),
+                            maxLines: 4,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Icons: ${TripIconHelper.iconNames().join(', ')}',
+                            style: roboto(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kBlue,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade200,
+                        ),
+                        child: Text('Save Trip', style: roboto()),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 12),
-              _sectionLabel('Price (USD)'),
-              TextField(
-                controller: _priceCtrl,
-                decoration: _fieldDecoration(hint: 'e.g. 150'),
-                keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 12),
-              _sectionLabel('Image URL'),
-              TextField(controller: _imageCtrl, decoration: _fieldDecoration()),
-              const SizedBox(height: 12),
-              _sectionLabel('Accent Color (Hex)'),
-              TextField(
-                controller: _colorCtrl,
-                decoration: _fieldDecoration(hint: 'e.g. FF187BCD'),
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Route Label'),
-              TextField(
-                controller: _routeCtrl,
-                decoration: _fieldDecoration(hint: 'Airport -> ...'),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Map Hint'),
-              TextField(
-                controller: _mapCtrl,
-                decoration: _fieldDecoration(hint: 'Route outline for map'),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Location Label'),
-              TextField(
-                controller: _locationCtrl,
-                decoration: _fieldDecoration(hint: 'Cairo International Airport'),
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Included (comma separated)'),
-              TextField(
-                controller: _includedCtrl,
-                decoration: _fieldDecoration(hint: 'Transfer, Guide, Tickets'),
-              ),
-              const SizedBox(height: 12),
-              _sectionLabel('Itinerary (one stop per line)'),
-              TextField(
-                controller: _itineraryCtrl,
-                decoration: _fieldDecoration(
-                  hint: 'Title|Subtitle|Duration|iconName|colorHex|imageUrl',
-                ),
-                maxLines: 4,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Icons: ${TripIconHelper.iconNames().join(', ')}',
-                style: roboto(fontSize: 10, color: Colors.grey.shade500),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(backgroundColor: kBlue),
-                  child: Text('Save Trip', style: roboto(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _save() {
-    final duration = int.tryParse(_durationCtrl.text.trim()) ?? 0;
-    final flight = int.tryParse(_flightCtrl.text.trim()) ?? 0;
-    final price = double.tryParse(_priceCtrl.text.trim()) ?? 0;
-    final color = _parseColor(_colorCtrl.text.trim(), 0xFF187BCD);
-    final included = _includedCtrl.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final itinerary = _parseStops(_itineraryCtrl.text.trim());
-
-    final trip = TripModel(
-      id: widget.trip?.id ?? '',
-      type: _type,
-      name: _nameCtrl.text.trim(),
-      shortDescription: _shortCtrl.text.trim(),
-      description: _descCtrl.text.trim(),
-      durationMinutes: duration,
-      flightMinutes: flight,
-      priceUsd: price,
-      imageUrl: _imageCtrl.text.trim(),
-      accentColorValue: color,
-      routeLabel: _routeCtrl.text.trim(),
-      mapHint: _mapCtrl.text.trim(),
-      locationLabel: _locationCtrl.text.trim(),
-      included: included,
-      itinerary: itinerary,
-      isActive: widget.trip?.isActive ?? true,
-      createdAt: widget.trip?.createdAt,
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 12, 6),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              widget.trip == null ? 'Create Trip' : 'Edit Trip',
+              style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(
+            _type == TripType.flying ? 'Flying' : 'Transit',
+            style: roboto(fontSize: 12, color: Colors.grey.shade500),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
     );
+  }
 
-    widget.onSave(trip);
-    Navigator.of(context).pop();
+  Widget _buildUploadStatus() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _uploadLabel,
+            style: roboto(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: _uploadProgress > 0 ? _uploadProgress : null,
+            backgroundColor: Colors.grey.shade200,
+            color: kBlue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: roboto(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoverPicker() {
+    final hasFile = _coverFile != null;
+    final hasUrl = _coverUrl.isNotEmpty;
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            width: 120,
+            height: 86,
+            child: hasFile
+                ? Image.file(File(_coverFile!.path), fit: BoxFit.cover)
+                : hasUrl
+                    ? Image.network(
+                        _coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _coverFallback(),
+                      )
+                    : _coverFallback(),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                hasFile || hasUrl
+                    ? 'Cover selected'
+                    : 'No cover selected',
+                style: roboto(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickCover,
+                    icon: const Icon(Icons.photo_rounded, size: 16),
+                    label: Text('Select', style: roboto(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBlue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton(
+                    onPressed: (hasFile || hasUrl) ? _removeCover : null,
+                    child: Text('Remove', style: roboto(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryPicker() {
+    final tiles = <Widget>[];
+    for (final url in _galleryUrls) {
+      tiles.add(_buildGalleryTile(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _galleryFallback(),
+        ),
+        onRemove: () => _removeGalleryUrl(url),
+      ));
+    }
+    for (final file in _newGalleryFiles) {
+      tiles.add(_buildGalleryTile(
+        child: Image.file(File(file.path), fit: BoxFit.cover),
+        onRemove: () => _removeGalleryFile(file),
+      ));
+    }
+    tiles.add(_buildGalleryAddTile());
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: tiles,
+    );
+  }
+
+  Widget _buildGalleryTile({required Widget child, required VoidCallback onRemove}) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(width: 84, height: 84, child: child),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryAddTile() {
+    return InkWell(
+      onTap: _pickGallery,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_photo_alternate_rounded, size: 22),
+            const SizedBox(height: 4),
+            Text('Add', style: roboto(fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _coverFallback() {
+    return Container(
+      color: const Color(0xFFEFF2F6),
+      child: const Icon(Icons.photo_rounded, color: Colors.grey),
+    );
+  }
+
+  Widget _galleryFallback() {
+    return Container(
+      color: const Color(0xFFEFF2F6),
+      child: const Icon(Icons.photo_rounded, color: Colors.grey),
+    );
+  }
+
+  Future<void> _pickCover() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    setState(() {
+      _coverFile = picked;
+    });
+  }
+
+  void _removeCover() {
+    setState(() {
+      _coverFile = null;
+      _coverUrl = '';
+    });
+  }
+
+  Future<void> _pickGallery() async {
+    final picked = await _picker.pickMultiImage();
+    if (picked.isEmpty) return;
+    setState(() {
+      _newGalleryFiles.addAll(picked);
+    });
+  }
+
+  Future<void> _removeGalleryUrl(String url) async {
+    setState(() {
+      _galleryUrls.remove(url);
+    });
+    await _media.deleteByUrl(url);
+  }
+
+  void _removeGalleryFile(XFile file) {
+    setState(() {
+      _newGalleryFiles.remove(file);
+    });
+  }
+
+  Future<void> _save() async {
+    if (_isSaving) return;
+    setState(() {
+      _isSaving = true;
+      _uploadProgress = 0;
+      _uploadLabel = 'Preparing uploads...';
+    });
+
+    try {
+      final duration = int.tryParse(_durationCtrl.text.trim()) ?? 0;
+      final flight = int.tryParse(_flightCtrl.text.trim()) ?? 0;
+      final price = double.tryParse(_priceCtrl.text.trim()) ?? 0;
+      final color = _parseColor(_colorCtrl.text.trim(), 0xFF187BCD);
+      final included = _includedCtrl.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      final itinerary = _parseStops(_itineraryCtrl.text.trim());
+
+      var coverUrl = _coverUrl;
+      if (_coverFile != null) {
+        final task = _media.uploadCover(tripId: _tripId, file: _coverFile!);
+        coverUrl = await _uploadWithProgress(task, 'Uploading cover');
+        if (_initialCoverUrl.isNotEmpty && _initialCoverUrl != coverUrl) {
+          await _media.deleteByUrl(_initialCoverUrl);
+        }
+      } else if (_coverUrl.isEmpty && _initialCoverUrl.isNotEmpty) {
+        await _media.deleteByUrl(_initialCoverUrl);
+      }
+
+      final galleryUrls = List<String>.from(_galleryUrls);
+      for (var i = 0; i < _newGalleryFiles.length; i++) {
+        final task = _media.uploadGallery(
+          tripId: _tripId,
+          file: _newGalleryFiles[i],
+        );
+        final url = await _uploadWithProgress(
+          task,
+          'Uploading gallery ${i + 1}/${_newGalleryFiles.length}',
+        );
+        galleryUrls.add(url);
+      }
+
+      final trip = TripModel(
+        id: _tripId,
+        type: _type,
+        name: _nameCtrl.text.trim(),
+        shortDescription: _shortCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        durationMinutes: duration,
+        flightMinutes: flight,
+        priceUsd: price,
+        imageUrl: coverUrl,
+        galleryImageUrls: galleryUrls,
+        accentColorValue: color,
+        routeLabel: _routeCtrl.text.trim(),
+        mapHint: _mapCtrl.text.trim(),
+        locationLabel: _locationCtrl.text.trim(),
+        included: included,
+        itinerary: itinerary,
+        isActive: widget.trip?.isActive ?? true,
+        createdAt: widget.trip?.createdAt,
+      );
+
+      await widget.onSave(trip);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to save trip. Check your connection.',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _uploadProgress = 0;
+          _uploadLabel = '';
+        });
+      }
+    }
+  }
+
+  Future<String> _uploadWithProgress(UploadTask task, String label) async {
+    if (mounted) {
+      setState(() {
+        _uploadLabel = label;
+        _uploadProgress = 0;
+      });
+    }
+
+    final sub = task.snapshotEvents.listen((snapshot) {
+      final total = snapshot.totalBytes;
+      if (total <= 0 || !mounted) return;
+      setState(() {
+        _uploadProgress = snapshot.bytesTransferred / total;
+      });
+    });
+
+    final result = await task;
+    await sub.cancel();
+    return result.ref.getDownloadURL();
   }
 
   InputDecoration _fieldDecoration({String? hint}) {
     return InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: const Color(0xFFF7F9FB),
+      fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: Colors.grey.shade200),

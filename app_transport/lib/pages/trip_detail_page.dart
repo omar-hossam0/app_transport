@@ -220,14 +220,13 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.08, 0.38),
                             child: SlideTransition(
                               position: _slide(0.08, 0.38),
-                                                          FadeTransition(
-                                                            opacity: _fade(0.46, 0.76),
-                                                            child: SlideTransition(
-                                                              position: _slide(0.46, 0.76),
-                                                              child: _buildReviewsSection(t),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(height: 30),
+                              child: Text(
+                                t.name,
+                                style: roboto(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
                           ),
@@ -244,54 +243,40 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   fontSize: 13,
                                   color: Colors.grey.shade500,
                                 ),
-                              Widget _buildReviewsSection(TripModel t) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Reviews',
-                                          style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '(0)',
-                                          style: roboto(fontSize: 12, color: Colors.grey.shade500),
-                                        ),
-                                      ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Pricing tags row
+                          FadeTransition(
+                            opacity: _fade(0.18, 0.48),
+                            child: SlideTransition(
+                              position: _slide(0.18, 0.48),
+                              child: Row(
+                                children: [
+                                  _InfoTag(
+                                    icon: Icons.schedule_rounded,
+                                    label: t.durationLabel,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  if (t.flightMinutes > 0)
+                                    _InfoTag(
+                                      icon: Icons.flight_rounded,
+                                      label: '${t.flightMinutes} min flight',
                                     ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF5F7FA),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Text(
-                                        'No reviews yet. Be the first to share your experience.',
-                                        style: roboto(fontSize: 12, color: Colors.grey.shade600),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Center(
-                                      child: TextButton.icon(
-                                        onPressed: _showAddReviewDialog,
-                                        icon: const Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
-                                        label: Text(
-                                          'Write a Review',
-                                          style: roboto(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: kBlue,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
+                                  if (t.flightMinutes > 0)
+                                    const SizedBox(width: 10),
+                                  _InfoTag(
+                                    icon: Icons.attach_money_rounded,
+                                    label: t.priceLabel,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+
                           // Description
                           FadeTransition(
                             opacity: _fade(0.28, 0.58),
@@ -329,6 +314,17 @@ class _TripDetailPageState extends State<TripDetailPage>
                             ),
                           ),
                           const SizedBox(height: 30),
+
+                          if (t.galleryImageUrls.isNotEmpty) ...[
+                            FadeTransition(
+                              opacity: _fade(0.44, 0.74),
+                              child: SlideTransition(
+                                position: _slide(0.44, 0.74),
+                                child: _buildGallery(t),
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                          ],
 
                           // Reviews Section
                           FadeTransition(
@@ -890,6 +886,64 @@ class _TripDetailPageState extends State<TripDetailPage>
               ),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGallery(TripModel t) {
+    final images = t.galleryImageUrls;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Gallery',
+          style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: images.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final url = images[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: SizedBox(
+                  width: 220,
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (ctx, child, prog) {
+                      if (prog == null) return child;
+                      return Container(
+                        color: t.accentColor.withValues(alpha: 0.12),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: t.accentColor,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (ctx, err, st) => Container(
+                      color: t.accentColor.withValues(alpha: 0.12),
+                      child: Center(
+                        child: Icon(
+                          Icons.photo_rounded,
+                          color: t.accentColor.withValues(alpha: 0.5),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

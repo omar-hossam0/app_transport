@@ -21,7 +21,7 @@ class FavoritesService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      print('Error loading favorites: $e');
+      debugPrint('Error loading favorites: $e');
     }
   }
 
@@ -42,7 +42,7 @@ class FavoritesService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      print('Error toggling favorite: $e');
+      debugPrint('Error toggling favorite: $e');
       rethrow;
     }
   }

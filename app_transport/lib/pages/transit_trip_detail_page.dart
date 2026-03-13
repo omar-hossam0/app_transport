@@ -231,39 +231,164 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   Wrap(
                     spacing: 8,
                     children: List.generate(methods.length, (i) {
-                              '(0)',
+                      final sel = paymentIdx == i;
                       return ChoiceChip(
                         label: Text(
                           methods[i],
                           style: roboto(
-                        const SizedBox(height: 14),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F7FA),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            'No reviews yet. Be the first to share your experience.',
-                            style: roboto(fontSize: 12, color: Colors.grey.shade600),
+                            fontSize: 11,
+                            color: sel ? kBlue : Colors.grey.shade700,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _showAddReviewDialog,
-                            icon: const Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
-                            label: Text(
-                              'Write a Review',
-                              style: roboto(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: kBlue,
-                              ),
-                            ),
-                          ),
+                        selected: sel,
+                        onSelected: (_) => setS(() => paymentIdx = i),
+                        selectedColor: kBlue.withValues(alpha: 0.12),
+                        backgroundColor: const Color(0xFFF5F7FA),
+                        side: BorderSide(
+                          color: sel ? kBlue : Colors.transparent,
+                          width: 1.5,
                         ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Confirm ─────────────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: selectedDate == null
+                          ? null
+                          : () async {
+                              Navigator.pop(ctx);
+                              await _confirmBooking(
+                                trip,
+                                selectedDate!,
+                                travelers,
+                                methods[paymentIdx],
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBlue,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade200,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        selectedDate == null
+                            ? 'Select a date first'
+                            : 'Confirm Booking  \$${trip.priceUsd * travelers}',
+                        style: roboto(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: selectedDate == null
+                              ? Colors.grey.shade400
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmBooking(
+    TripModel trip,
+    DateTime date,
+    int travelers,
+    String paymentMethod,
+  ) async {
+    final auth = context.read<AuthService>();
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please sign in to book a trip.',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final user = auth.currentUser!;
+    final uid = user.uid;
+    final rand = math.Random();
+    final bookingId = 'TRP-${rand.nextInt(90000) + 10000}';
+
+    final booking = Booking(
+      id: bookingId,
+      tripId: trip.id,
+      tripType: trip.type.name,
+      tripName: trip.name,
+      tripImage: trip.imageUrl,
+      date: date,
+      time: '10:00 AM',
+      travelers: travelers,
+      pricePerPerson: trip.priceUsd.toDouble(),
+      paymentMethod: paymentMethod,
+      pickupLocation: trip.locationLabel,
+      dropoffLocation: trip.locationLabel,
+      routeLabel: trip.mapHint.isNotEmpty ? trip.mapHint : trip.routeLabel,
+      accentColor: trip.accentColor,
+      userId: uid,
+      userEmail: user.email,
+      userName: user.name,
+      status: BookingStatus.pending,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await context.read<BookingService>().saveBooking(uid, booking);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Booking submitted! 🎉  Ref: $bookingId',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to save booking. Check your connection.',
+            style: roboto(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Animation<double> _fade(double start, double end) =>
+      Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(
           parent: _ctrl,
           curve: Interval(start, end, curve: Curves.easeOut),
         ),
@@ -800,6 +925,17 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               ),
                             ),
                             const SizedBox(height: 24),
+
+                            if (t.galleryImageUrls.isNotEmpty) ...[
+                              FadeTransition(
+                                opacity: _fade(0.18, 0.48),
+                                child: SlideTransition(
+                                  position: _slide(0.18, 0.48),
+                                  child: _buildTripGallery(t),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
 
                             // ── Stop Image Carousel ─────────────────────
                             FadeTransition(
@@ -1348,6 +1484,94 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
     );
   }
 
+  Widget _buildTripGallery(TripModel t) {
+    final images = t.galleryImageUrls;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: kBlue.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.photo_library_rounded, size: 17, color: kBlue),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Trip Gallery',
+              style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${images.length} photos',
+                style: roboto(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: images.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final url = images[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: SizedBox(
+                  width: 240,
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (ctx, child, prog) {
+                      if (prog == null) return child;
+                      return Container(
+                        color: kBlue.withValues(alpha: 0.12),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: kBlue,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (ctx, err, st) => Container(
+                      color: kBlue.withValues(alpha: 0.12),
+                      child: Center(
+                        child: Icon(
+                          Icons.photo_rounded,
+                          color: kBlue.withValues(alpha: 0.4),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Route Map ──────────────────────────────────────────────────────────────
   Widget _buildRouteMap(TripModel t) {
     return Column(
@@ -1677,4 +1901,37 @@ class _RoutePathPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_) => false;
+}
+
+class _InfoTag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _InfoTag(this.icon, this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: roboto(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

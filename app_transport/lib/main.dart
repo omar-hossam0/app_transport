@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -21,32 +21,32 @@ Future<void> main() async {
   // Initialize Firebase using the generated options entrypoint.
   // This uses `DefaultFirebaseOptions.currentPlatform` directly.
   try {
-    print('\n═══════════════════════════════════════════════════════════');
-    print('🔥 FIREBASE INITIALIZATION STARTED');
-    print('═══════════════════════════════════════════════════════════');
+    debugPrint('\n═══════════════════════════════════════════════════════════');
+    debugPrint('🔥 FIREBASE INITIALIZATION STARTED');
+    debugPrint('═══════════════════════════════════════════════════════════');
 
     final options = DefaultFirebaseOptions.currentPlatform;
-    print(
+    debugPrint(
       '[Firebase Init] Options received - Project ID: ${options.projectId}',
     );
-    print('[Firebase Init] API Key: ${options.apiKey.substring(0, 10)}...');
-    print('[Firebase Init] App ID: ${options.appId}');
+    debugPrint('[Firebase Init] API Key: ${options.apiKey.substring(0, 10)}...');
+    debugPrint('[Firebase Init] App ID: ${options.appId}');
 
     await Firebase.initializeApp(options: options);
 
-    print('✅ Firebase Initialized Successfully!');
-    print('   Project: ${options.projectId}');
-    print('   Database URL: ${options.databaseURL}');
+    debugPrint('✅ Firebase Initialized Successfully!');
+    debugPrint('   Project: ${options.projectId}');
+    debugPrint('   Database URL: ${options.databaseURL}');
 
     // Quick Realtime Database connectivity check
     bool dbConnected = false;
     String dbError = '';
 
     try {
-      print('\n[DB Connection Test] Starting...');
+      debugPrint('\n[DB Connection Test] Starting...');
       final db = FirebaseDatabase.instance;
-      print('[DB Connection Test] FirebaseDatabase instance created');
-      print('[DB Connection Test] Attempting to read from .info/connected...');
+      debugPrint('[DB Connection Test] FirebaseDatabase instance created');
+      debugPrint('[DB Connection Test] Attempting to read from .info/connected...');
 
       // Try reading .info/connected with timeout
       final connectedFuture = db
@@ -55,7 +55,7 @@ Future<void> main() async {
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
-              print('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
+              debugPrint('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
               throw TimeoutException(
                 'Database read timeout - check internet and Realtime DB status',
               );
@@ -63,10 +63,10 @@ Future<void> main() async {
           );
 
       final infoSnap = await connectedFuture;
-      print('[DB Connection Test] Response received');
-      print('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
-      print('[DB Connection Test] Snapshot value: ${infoSnap.value}');
-      print(
+      debugPrint('[DB Connection Test] Response received');
+      debugPrint('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
+      debugPrint('[DB Connection Test] Snapshot value: ${infoSnap.value}');
+      debugPrint(
         '[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}',
       );
 
@@ -74,15 +74,15 @@ Future<void> main() async {
       final value = infoSnap.value;
       if (value == true || value == 'true' || value == 1) {
         dbConnected = true;
-        print('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
+        debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
       } else if (infoSnap.exists && (value as dynamic) == true) {
         dbConnected = true;
-        print('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
+        debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
       } else {
         // Handle different or unexpected values
         dbError =
             '.info/connected returned: $value (type: ${value.runtimeType})';
-        print(
+        debugPrint(
           '[DB Connection Test] ⚠️ Unexpected value, but trying root check...',
         );
 
@@ -91,30 +91,30 @@ Future<void> main() async {
               .ref('/')
               .get()
               .timeout(const Duration(seconds: 5));
-          print(
+          debugPrint(
             '[DB Connection Test] Root read result: exists=${rootSnap.exists}',
           );
           if (rootSnap.exists) {
             dbConnected = true; // At least we can connect
             dbError =
                 '✅ Database is accessible! (.info/connected returned: $value)';
-            print('[DB Connection Test] ✅ Partial connection: $dbError');
+            debugPrint('[DB Connection Test] ✅ Partial connection: $dbError');
           }
         } catch (altErr) {
           dbError = 'Both checks failed: $altErr';
-          print('[DB Connection Test] Alternative read also failed: $altErr');
+          debugPrint('[DB Connection Test] Alternative read also failed: $altErr');
         }
 
         if (!dbConnected) {
           dbError =
               'Cannot determine connection status - Check Firebase Console Realtime DB is enabled';
-          print('[DB Connection Test] ❌ Connection check failed: $dbError');
+          debugPrint('[DB Connection Test] ❌ Connection check failed: $dbError');
         }
       }
     } catch (e) {
       dbConnected = false;
-      print('[DB Connection Test] ❌ EXCEPTION: $e');
-      print('[DB Connection Test] Exception type: ${e.runtimeType}');
+      debugPrint('[DB Connection Test] ❌ EXCEPTION: $e');
+      debugPrint('[DB Connection Test] Exception type: ${e.runtimeType}');
 
       if (e.toString().contains('TimeoutException')) {
         dbError =
@@ -129,7 +129,7 @@ Future<void> main() async {
         dbConnected = true;
         dbError =
             '✅ Database is accessible! (data format note - this is normal)';
-        print(
+        debugPrint(
           '[DB Connection Test] 📝 Database is accessible - data format is working!',
         );
       } else {
@@ -137,11 +137,11 @@ Future<void> main() async {
       }
     }
 
-    print('\n═══════════════════════════════════════════════════════════');
-    print('FINAL RESULT:');
-    print('Database Connected: $dbConnected');
-    print('Error Message: $dbError');
-    print('═══════════════════════════════════════════════════════════\n');
+    debugPrint('\n═══════════════════════════════════════════════════════════');
+    debugPrint('FINAL RESULT:');
+    debugPrint('Database Connected: $dbConnected');
+    debugPrint('Error Message: $dbError');
+    debugPrint('═══════════════════════════════════════════════════════════\n');
 
     // Pass the DB state into the app so UI can show a message
     runApp(
@@ -160,9 +160,9 @@ Future<void> main() async {
     return;
   } catch (e) {
     // Print error so we can see failure on the console
-    print('\n❌❌❌ FIREBASE INITIALIZATION FAILED');
-    print('Error: $e');
-    print('Error type: ${e.runtimeType}');
+    debugPrint('\n❌❌❌ FIREBASE INITIALIZATION FAILED');
+    debugPrint('Error: $e');
+    debugPrint('Error type: ${e.runtimeType}');
   }
 
   // If initialization failed we still run the app (will show not-connected)
