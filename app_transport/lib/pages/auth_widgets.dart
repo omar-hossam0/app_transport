@@ -266,64 +266,79 @@ class AuthHeader extends StatelessWidget {
         right: 20,
         bottom: 20,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ── Top bar ────────────────────────────────────────────────
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 320;
+          final effectiveLogoW = (logoW).clamp(140.0, constraints.maxWidth * 0.72);
+          final logoH = constraints.maxHeight * (compact ? 0.34 : 0.44);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.chevron_left,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  trailingText,
-                  overflow: TextOverflow.ellipsis,
-                  style: roboto(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.88),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: onActionTap,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.22),
+              // ── Top bar ────────────────────────────────────────────────
+              Row(
+                children: [
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
                     borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    actionLabel,
-                    style: roboto(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      trailingText,
+                      overflow: TextOverflow.ellipsis,
+                      style: roboto(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.88),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onActionTap,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        actionLabel,
+                        style: roboto(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: compact ? 8 : 12),
+              Expanded(
+                child: Center(
+                  child: Image.asset(
+                    'img/logo_new.png',
+                    width: effectiveLogoW,
+                    height: logoH,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
             ],
-          ),
-          // ── Logo centred ───────────────────────────────────────────
-          const Spacer(),
-          Image.asset('img/logo_new.png', width: logoW, fit: BoxFit.contain),
-          const Spacer(),
-        ],
+          );
+        },
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -110,21 +111,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: roboto(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Manage everything in one place',
-                style: roboto(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: roboto(fontSize: 22, fontWeight: FontWeight.w800),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Manage everything in one place',
+                  style: roboto(fontSize: 12, color: Colors.grey.shade600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
@@ -1337,7 +1342,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
             width: 120,
             height: 86,
             child: hasFile
-                ? Image.file(File(_coverFile!.path), fit: BoxFit.cover)
+              ? _buildPickedImage(_coverFile!, fallback: _coverFallback)
                 : hasUrl
                     ? Image.network(
                         _coverUrl,
@@ -1359,7 +1364,9 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                 style: roboto(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   ElevatedButton.icon(
                     onPressed: _pickCover,
@@ -1370,7 +1377,6 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                       foregroundColor: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 10),
                   TextButton(
                     onPressed: (hasFile || hasUrl) ? _removeCover : null,
                     child: Text('Remove', style: roboto(fontSize: 12)),
@@ -1398,7 +1404,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     }
     for (final file in _newGalleryFiles) {
       tiles.add(_buildGalleryTile(
-        child: Image.file(File(file.path), fit: BoxFit.cover),
+        child: _buildPickedImage(file, fallback: _galleryFallback),
         onRemove: () => _removeGalleryFile(file),
       ));
     }
@@ -1476,6 +1482,38 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     );
   }
 
+  Widget _buildPickedImage(XFile file, {required Widget Function() fallback}) {
+    if (kIsWeb) {
+      return FutureBuilder<Uint8List>(
+        future: file.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData) {
+            return Image.memory(snapshot.data!, fit: BoxFit.cover);
+          }
+          if (snapshot.hasError) {
+            return fallback();
+          }
+          return Container(
+            color: const Color(0xFFEFF2F6),
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+      );
+    }
+
+    return Image.file(
+      File(file.path),
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback(),
+    );
+  }
+
   Future<void> _pickCover() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
@@ -1521,6 +1559,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     });
 
     try {
+      var hadMediaUploadFailure = false;
       final duration = int.tryParse(_durationCtrl.text.trim()) ?? 0;
       final flight = int.tryParse(_flightCtrl.text.trim()) ?? 0;
       final price = double.tryParse(_priceCtrl.text.trim()) ?? 0;
@@ -1534,10 +1573,18 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
 
       var coverUrl = _coverUrl;
       if (_coverFile != null) {
-        final task = _media.uploadCover(tripId: _tripId, file: _coverFile!);
-        coverUrl = await _uploadWithProgress(task, 'Uploading cover');
-        if (_initialCoverUrl.isNotEmpty && _initialCoverUrl != coverUrl) {
-          await _media.deleteByUrl(_initialCoverUrl);
+        try {
+          final task = await _media.uploadCover(
+            tripId: _tripId,
+            file: _coverFile!,
+          );
+          coverUrl = await _uploadWithProgress(task, 'Uploading cover');
+          if (_initialCoverUrl.isNotEmpty && _initialCoverUrl != coverUrl) {
+            await _media.deleteByUrl(_initialCoverUrl);
+          }
+        } catch (e) {
+          hadMediaUploadFailure = true;
+          debugPrint('[TripEditor] Cover upload failed, continuing save: $e');
         }
       } else if (_coverUrl.isEmpty && _initialCoverUrl.isNotEmpty) {
         await _media.deleteByUrl(_initialCoverUrl);
@@ -1545,15 +1592,20 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
 
       final galleryUrls = List<String>.from(_galleryUrls);
       for (var i = 0; i < _newGalleryFiles.length; i++) {
-        final task = _media.uploadGallery(
-          tripId: _tripId,
-          file: _newGalleryFiles[i],
-        );
-        final url = await _uploadWithProgress(
-          task,
-          'Uploading gallery ${i + 1}/${_newGalleryFiles.length}',
-        );
-        galleryUrls.add(url);
+        try {
+          final task = await _media.uploadGallery(
+            tripId: _tripId,
+            file: _newGalleryFiles[i],
+          );
+          final url = await _uploadWithProgress(
+            task,
+            'Uploading gallery ${i + 1}/${_newGalleryFiles.length}',
+          );
+          galleryUrls.add(url);
+        } catch (e) {
+          hadMediaUploadFailure = true;
+          debugPrint('[TripEditor] Gallery upload failed, continuing save: $e');
+        }
       }
 
       final trip = TripModel(
@@ -1579,13 +1631,41 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
 
       await widget.onSave(trip);
       if (!mounted) return;
+
+      if (hadMediaUploadFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Trip saved, but one or more images failed to upload.',
+              style: roboto(color: Colors.white),
+            ),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
       Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[TripEditor] Save failed: $e');
+      final msg = e.toString();
+      String userMessage;
+      if (msg.contains('CORS') || msg.contains('preflight')) {
+        userMessage =
+            'Save failed: Firebase Storage CORS is blocking uploads on web.';
+      } else if (msg.contains('permission-denied') ||
+          msg.contains('Permission denied') ||
+          msg.contains('unauthorized')) {
+        userMessage =
+            'Save failed: Firebase permissions are blocking write access.';
+      } else {
+        userMessage = 'Failed to save trip: ${msg.split('\n').first}';
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to save trip. Check your connection.',
+            userMessage,
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,

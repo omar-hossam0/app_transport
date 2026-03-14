@@ -135,4 +135,5 @@ class TripService extends ChangeNotifier {
       debugPrint('[TripService] Seed skipped: $e');
     }
   }
+
 }

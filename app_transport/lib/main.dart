@@ -46,11 +46,12 @@ Future<void> main() async {
       debugPrint('\n[DB Connection Test] Starting...');
       final db = FirebaseDatabase.instance;
       debugPrint('[DB Connection Test] FirebaseDatabase instance created');
-      debugPrint('[DB Connection Test] Attempting to read from .info/connected...');
+        debugPrint('[DB Connection Test] Attempting a safe root read...');
 
-      // Try reading .info/connected with timeout
-      final connectedFuture = db
-          .ref('.info/connected')
+        // Use a safe root read for all platforms.
+        // (.info/connected and '/'' can throw invalid-path errors on web SDK wrappers)
+        final connectedFuture = db
+          .ref()
           .get()
           .timeout(
             const Duration(seconds: 10),
@@ -65,52 +66,10 @@ Future<void> main() async {
       final infoSnap = await connectedFuture;
       debugPrint('[DB Connection Test] Response received');
       debugPrint('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
-      debugPrint('[DB Connection Test] Snapshot value: ${infoSnap.value}');
-      debugPrint(
-        '[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}',
-      );
-
-      // Handle the response - value can come as different types
-      final value = infoSnap.value;
-      if (value == true || value == 'true' || value == 1) {
-        dbConnected = true;
-        debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
-      } else if (infoSnap.exists && (value as dynamic) == true) {
-        dbConnected = true;
-        debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
-      } else {
-        // Handle different or unexpected values
-        dbError =
-            '.info/connected returned: $value (type: ${value.runtimeType})';
-        debugPrint(
-          '[DB Connection Test] ⚠️ Unexpected value, but trying root check...',
-        );
-
-        try {
-          final rootSnap = await db
-              .ref('/')
-              .get()
-              .timeout(const Duration(seconds: 5));
-          debugPrint(
-            '[DB Connection Test] Root read result: exists=${rootSnap.exists}',
-          );
-          if (rootSnap.exists) {
-            dbConnected = true; // At least we can connect
-            dbError =
-                '✅ Database is accessible! (.info/connected returned: $value)';
-            debugPrint('[DB Connection Test] ✅ Partial connection: $dbError');
-          }
-        } catch (altErr) {
-          dbError = 'Both checks failed: $altErr';
-          debugPrint('[DB Connection Test] Alternative read also failed: $altErr');
-        }
-
-        if (!dbConnected) {
-          dbError =
-              'Cannot determine connection status - Check Firebase Console Realtime DB is enabled';
-          debugPrint('[DB Connection Test] ❌ Connection check failed: $dbError');
-        }
-      }
+      debugPrint('[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}');
+      dbConnected = true;
+      dbError = '✅ Database is reachable';
+      debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
     } catch (e) {
       dbConnected = false;
       debugPrint('[DB Connection Test] ❌ EXCEPTION: $e');
@@ -253,100 +212,105 @@ class SplashScreen extends StatelessWidget {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(height: size.height * 0.04),
-                    Center(
-                      child: Image.asset(
-                        'img/logo_new.png',
-                        height: size.height * 0.40,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Main heading — bold uppercase left-aligned
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'TURN YOUR\nTRANSIT TIME\nINTO A MINI\nADVENTURE',
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.playfairDisplay(
-                          color: Colors.white,
-                          fontSize: size.width * 0.082,
-                          fontWeight: FontWeight.w700,
-                          height: 1.18,
-                          letterSpacing: 0.5,
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: size.height - MediaQuery.of(context).padding.top),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: size.height * 0.04),
+                        Center(
+                          child: Image.asset(
+                            'img/logo_new.png',
+                            height: size.height * 0.40,
+                            fit: BoxFit.contain,
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    // Subtitle — smaller, lighter
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'PLAN YOUR JOURNEY WITH TRANSIT APPS\nAND GO ANYWHERE YOU DREAM OF',
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.playfairDisplay(
-                          color: Colors.white60,
-                          fontSize: size.width * 0.034,
-                          fontWeight: FontWeight.w300,
-                          height: 1.55,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            PageRouteBuilder(
-                              transitionDuration: const Duration(
-                                milliseconds: 550,
-                              ),
-                              pageBuilder: (context, anim, secAnim) =>
-                                  const SignInPage(),
-                              transitionsBuilder:
-                                  (context, anim, secAnim, child) =>
-                                      SlideTransition(
-                                        position:
-                                            Tween<Offset>(
-                                              begin: const Offset(0, 1),
-                                              end: Offset.zero,
-                                            ).animate(
-                                              CurvedAnimation(
-                                                parent: anim,
-                                                curve: Curves.easeOut,
-                                              ),
-                                            ),
-                                        child: child,
-                                      ),
+                        const SizedBox(height: 20),
+                        // Main heading — bold uppercase left-aligned
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'TURN YOUR\nTRANSIT TIME\nINTO A MINI\nADVENTURE',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.playfairDisplay(
+                              color: Colors.white,
+                              fontSize: size.width * 0.082,
+                              fontWeight: FontWeight.w700,
+                              height: 1.18,
+                              letterSpacing: 0.5,
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF187BCD),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: Text(
-                          'Explore',
-                          style: GoogleFonts.oswald(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 1.2,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 14),
+                        // Subtitle — smaller, lighter
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'PLAN YOUR JOURNEY WITH TRANSIT APPS\nAND GO ANYWHERE YOU DREAM OF',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.playfairDisplay(
+                              color: Colors.white60,
+                              fontSize: size.width * 0.034,
+                              fontWeight: FontWeight.w300,
+                              height: 1.55,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                PageRouteBuilder(
+                                  transitionDuration: const Duration(
+                                    milliseconds: 550,
+                                  ),
+                                  pageBuilder: (context, anim, secAnim) =>
+                                      const SignInPage(),
+                                  transitionsBuilder:
+                                      (context, anim, secAnim, child) =>
+                                          SlideTransition(
+                                            position:
+                                                Tween<Offset>(
+                                                  begin: const Offset(0, 1),
+                                                  end: Offset.zero,
+                                                ).animate(
+                                                  CurvedAnimation(
+                                                    parent: anim,
+                                                    curve: Curves.easeOut,
+                                                  ),
+                                                ),
+                                            child: child,
+                                          ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF187BCD),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 4,
+                            ),
+                            child: Text(
+                              'Explore',
+                              style: GoogleFonts.oswald(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 36),
+                      ],
                     ),
-                    const SizedBox(height: 36),
-                  ],
+                  ),
                 ),
               ),
             ),

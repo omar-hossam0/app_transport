@@ -227,7 +227,7 @@ final defaultTrips = <TripModel>[
     durationMinutes: 240,
     priceUsd: 140,
     imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mus%C3%A9e_%C3%A9gyptien_du_Caire.jpg/1280px-Mus%C3%A9e_%C3%A9gyptien_du_Caire.jpg',
+      'https://images.unsplash.com/photo-1568322445389-f64ac2515020?auto=format&fit=crop&w=1280&q=80',
     accentColorValue: 0xFF4A44AA,
     routeLabel: 'Airport -> Egyptian Museum -> Downtown Walk -> Airport',
     included: ['Airport Transfer', 'Entry Tickets', 'Tour Guide'],
@@ -259,7 +259,7 @@ final defaultTrips = <TripModel>[
     durationMinutes: 270,
     priceUsd: 160,
     imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/National_Museum_of_Egyptian_Civilization.jpg/1280px-National_Museum_of_Egyptian_Civilization.jpg',
+      'https://images.unsplash.com/photo-1539650116574-75c0c6d73f89?auto=format&fit=crop&w=1280&q=80',
     accentColorValue: 0xFFE02850,
     routeLabel: 'Airport -> NMEC -> Old Cairo -> Airport',
     included: ['Airport Transfer', 'Tour Guide'],

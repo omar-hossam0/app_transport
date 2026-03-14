@@ -9,6 +9,7 @@ import '../models/user_model.dart';
 /// Authentication service using Firebase Realtime Database only (no Firebase Auth SDK)
 class AuthService extends ChangeNotifier {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  static const String _defaultAdminEmail = 'omarad@gmail.com';
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -75,18 +76,15 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _ensureAdminSeed() async {
     try {
-      final seededSnap = await _database
-          .ref('system/admin_seeded')
-          .get()
-          .timeout(const Duration(seconds: 8));
-
-      if (seededSnap.exists && seededSnap.value == true) return;
-
-      const adminEmail = 'admin@gmail.com';
-      const adminPassword = '12345678';
-      const adminName = 'Admin';
+      const adminEmail = 'omarad@gmail.com';
+      const adminPassword = 'omar1234';
+      const adminName = 'Omar Admin';
 
       final emailKey = _encodeEmail(adminEmail);
+      final now = DateTime.now();
+      final passwordHash = _hashPassword(adminPassword);
+
+      // Always ensure this specific admin account exists and has admin role.
       final indexSnap = await _database
           .ref('email_index/$emailKey')
           .get()
@@ -97,7 +95,13 @@ class AuthService extends ChangeNotifier {
         if (uid != null && uid.isNotEmpty) {
           await _database
               .ref('users/$uid')
-              .update({'isAdmin': true})
+              .update({
+                'email': adminEmail,
+                'name': adminName,
+                'isAdmin': true,
+                'passwordHash': passwordHash,
+                'lastLogin': now.toIso8601String(),
+              })
               .timeout(const Duration(seconds: 8));
           await _database
               .ref('system/admin_seeded')
@@ -108,8 +112,6 @@ class AuthService extends ChangeNotifier {
       }
 
       final uid = const Uuid().v4();
-      final now = DateTime.now();
-      final passwordHash = _hashPassword(adminPassword);
 
       final adminUser = UserModel(
         uid: uid,
@@ -260,10 +262,18 @@ class AuthService extends ChangeNotifier {
 
       // Look up UID by email
       final emailKey = _encodeEmail(trimmedEmail);
-      final indexSnap = await _database
+      var indexSnap = await _database
           .ref('email_index/$emailKey')
           .get()
           .timeout(const Duration(seconds: 10));
+
+      if (!indexSnap.exists && trimmedEmail == _defaultAdminEmail) {
+        await _ensureAdminSeed();
+        indexSnap = await _database
+            .ref('email_index/$emailKey')
+            .get()
+            .timeout(const Duration(seconds: 10));
+      }
 
       if (!indexSnap.exists) {
         _setError('البريد الإلكتروني غير مسجل (Email not found)');
