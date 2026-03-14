@@ -23,7 +23,9 @@ class NotificationService {
     } catch (e) {
       final msg = e.toString();
       if (kIsWeb && msg.contains('permission-blocked')) {
-        debugPrint('[NotificationService] Web notification permission is blocked by browser settings.');
+        debugPrint(
+          '[NotificationService] Web notification permission is blocked by browser settings.',
+        );
         return;
       }
       debugPrint('[NotificationService] Token registration failed: $e');

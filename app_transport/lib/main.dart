@@ -29,7 +29,9 @@ Future<void> main() async {
     debugPrint(
       '[Firebase Init] Options received - Project ID: ${options.projectId}',
     );
-    debugPrint('[Firebase Init] API Key: ${options.apiKey.substring(0, 10)}...');
+    debugPrint(
+      '[Firebase Init] API Key: ${options.apiKey.substring(0, 10)}...',
+    );
     debugPrint('[Firebase Init] App ID: ${options.appId}');
 
     await Firebase.initializeApp(options: options);
@@ -46,27 +48,26 @@ Future<void> main() async {
       debugPrint('\n[DB Connection Test] Starting...');
       final db = FirebaseDatabase.instance;
       debugPrint('[DB Connection Test] FirebaseDatabase instance created');
-        debugPrint('[DB Connection Test] Attempting a safe root read...');
+      debugPrint('[DB Connection Test] Attempting a safe root read...');
 
-        // Use a safe root read for all platforms.
-        // (.info/connected and '/'' can throw invalid-path errors on web SDK wrappers)
-        final connectedFuture = db
-          .ref()
-          .get()
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              debugPrint('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
-              throw TimeoutException(
-                'Database read timeout - check internet and Realtime DB status',
-              );
-            },
+      // Use a safe root read for all platforms.
+      // (.info/connected and '/'' can throw invalid-path errors on web SDK wrappers)
+      final connectedFuture = db.ref().get().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
+          throw TimeoutException(
+            'Database read timeout - check internet and Realtime DB status',
           );
+        },
+      );
 
       final infoSnap = await connectedFuture;
       debugPrint('[DB Connection Test] Response received');
       debugPrint('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
-      debugPrint('[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}');
+      debugPrint(
+        '[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}',
+      );
       dbConnected = true;
       dbError = '✅ Database is reachable';
       debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
@@ -214,7 +215,10 @@ class SplashScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 28.0),
                 child: SingleChildScrollView(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: size.height - MediaQuery.of(context).padding.top),
+                    constraints: BoxConstraints(
+                      minHeight:
+                          size.height - MediaQuery.of(context).padding.top,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [

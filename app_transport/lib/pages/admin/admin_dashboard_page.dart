@@ -194,10 +194,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               if (!isCompact) ...[
                 const SizedBox(height: 10),
-                Text(
-                  'Admin Panel',
-                  style: roboto(fontWeight: FontWeight.w700),
-                ),
+                Text('Admin Panel', style: roboto(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
                   user.email,
@@ -251,8 +248,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final all = bookingSvc.allBookings;
     final filtered = _filterBookings(all);
     final pending = all.where((b) => b.status == BookingStatus.pending).length;
-    final accepted = all.where((b) => b.status == BookingStatus.accepted).length;
-    final completed = all.where((b) => b.status == BookingStatus.completed).length;
+    final accepted = all
+        .where((b) => b.status == BookingStatus.accepted)
+        .length;
+    final completed = all
+        .where((b) => b.status == BookingStatus.completed)
+        .length;
 
     if (bookingSvc.isAllLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -307,10 +308,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemBuilder: (context, i) => _OrderCard(
                     booking: filtered[i],
-                    onUpdateStatus: (status) => _updateBookingStatus(
-                      filtered[i],
-                      status,
-                    ),
+                    onUpdateStatus: (status) =>
+                        _updateBookingStatus(filtered[i], status),
                   ),
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemCount: filtered.length,
@@ -388,11 +387,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       trip: trip,
                       onEdit: () => _openTripEditor(context, trip: trip),
                       onDelete: () => _confirmDeleteTrip(context, trip),
-                      onToggleActive: (value) =>
-                          context.read<TripService>().setTripActive(
-                                trip.id,
-                                value,
-                              ),
+                      onToggleActive: (value) => context
+                          .read<TripService>()
+                          .setTripActive(trip.id, value),
                     );
                   },
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -405,8 +402,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildAdminsTab() {
     final adminSvc = context.watch<AdminService>();
-    final adminCount =
-        adminSvc.users.where((user) => user.isAdmin).length;
+    final adminCount = adminSvc.users.where((user) => user.isAdmin).length;
     final filtered = adminSvc.users.where((u) {
       if (_userQuery.trim().isEmpty) return true;
       final q = _userQuery.toLowerCase();
@@ -528,15 +524,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   List<Booking> _filterBookings(List<Booking> bookings) {
     switch (_orderFilterIndex) {
       case 1:
-        return bookings.where((b) => b.status == BookingStatus.pending).toList();
+        return bookings
+            .where((b) => b.status == BookingStatus.pending)
+            .toList();
       case 2:
-        return bookings.where((b) => b.status == BookingStatus.accepted).toList();
+        return bookings
+            .where((b) => b.status == BookingStatus.accepted)
+            .toList();
       case 3:
-        return bookings.where((b) => b.status == BookingStatus.rejected).toList();
+        return bookings
+            .where((b) => b.status == BookingStatus.rejected)
+            .toList();
       case 4:
-        return bookings.where((b) => b.status == BookingStatus.completed).toList();
+        return bookings
+            .where((b) => b.status == BookingStatus.completed)
+            .toList();
       case 5:
-        return bookings.where((b) => b.status == BookingStatus.cancelled).toList();
+        return bookings
+            .where((b) => b.status == BookingStatus.cancelled)
+            .toList();
       default:
         return bookings;
     }
@@ -547,16 +553,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     BookingStatus status,
   ) async {
     await context.read<BookingService>().updateStatus(
-          booking.userId,
-          booking.id,
-          status,
-        );
+      booking.userId,
+      booking.id,
+      status,
+    );
   }
 
-  Future<void> _openTripEditor(
-    BuildContext context, {
-    TripModel? trip,
-  }) async {
+  Future<void> _openTripEditor(BuildContext context, {TripModel? trip}) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -730,10 +733,7 @@ class _OrderCard extends StatelessWidget {
             style: roboto(fontSize: 12, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            children: _buildActions(status),
-          ),
+          Wrap(spacing: 8, children: _buildActions(status)),
         ],
       ),
     );
@@ -742,14 +742,30 @@ class _OrderCard extends StatelessWidget {
   List<Widget> _buildActions(BookingStatus status) {
     if (status == BookingStatus.pending) {
       return [
-        _actionBtn('Accept', Colors.green, () => onUpdateStatus(BookingStatus.accepted)),
-        _actionBtn('Reject', Colors.red, () => onUpdateStatus(BookingStatus.rejected)),
+        _actionBtn(
+          'Accept',
+          Colors.green,
+          () => onUpdateStatus(BookingStatus.accepted),
+        ),
+        _actionBtn(
+          'Reject',
+          Colors.red,
+          () => onUpdateStatus(BookingStatus.rejected),
+        ),
       ];
     }
     if (status == BookingStatus.accepted) {
       return [
-        _actionBtn('Complete', kBlue, () => onUpdateStatus(BookingStatus.completed)),
-        _actionBtn('Cancel', Colors.orange, () => onUpdateStatus(BookingStatus.cancelled)),
+        _actionBtn(
+          'Complete',
+          kBlue,
+          () => onUpdateStatus(BookingStatus.completed),
+        ),
+        _actionBtn(
+          'Cancel',
+          Colors.orange,
+          () => onUpdateStatus(BookingStatus.cancelled),
+        ),
       ];
     }
     return [];
@@ -1019,9 +1035,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     _flightCtrl = TextEditingController(
       text: trip?.flightMinutes.toString() ?? '0',
     );
-    _priceCtrl = TextEditingController(
-      text: trip?.priceUsd.toString() ?? '0',
-    );
+    _priceCtrl = TextEditingController(text: trip?.priceUsd.toString() ?? '0');
     _colorCtrl = TextEditingController(
       text: _toHex(trip?.accentColorValue ?? 0xFF187BCD),
     );
@@ -1183,15 +1197,18 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                           _sectionLabel('Route Label'),
                           TextField(
                             controller: _routeCtrl,
-                            decoration: _fieldDecoration(hint: 'Airport -> ...'),
+                            decoration: _fieldDecoration(
+                              hint: 'Airport -> ...',
+                            ),
                             maxLines: 2,
                           ),
                           const SizedBox(height: 12),
                           _sectionLabel('Map Hint'),
                           TextField(
                             controller: _mapCtrl,
-                            decoration:
-                                _fieldDecoration(hint: 'Route outline for map'),
+                            decoration: _fieldDecoration(
+                              hint: 'Route outline for map',
+                            ),
                             maxLines: 2,
                           ),
                           const SizedBox(height: 12),
@@ -1214,8 +1231,9 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                           _sectionLabel('Included (comma separated)'),
                           TextField(
                             controller: _includedCtrl,
-                            decoration:
-                                _fieldDecoration(hint: 'Transfer, Guide, Tickets'),
+                            decoration: _fieldDecoration(
+                              hint: 'Transfer, Guide, Tickets',
+                            ),
                           ),
                           const SizedBox(height: 12),
                           _sectionLabel('Itinerary (one stop per line)'),
@@ -1320,10 +1338,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: roboto(fontWeight: FontWeight.w700),
-          ),
+          Text(title, style: roboto(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           child,
         ],
@@ -1342,14 +1357,14 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
             width: 120,
             height: 86,
             child: hasFile
-              ? _buildPickedImage(_coverFile!, fallback: _coverFallback)
+                ? _buildPickedImage(_coverFile!, fallback: _coverFallback)
                 : hasUrl
-                    ? Image.network(
-                        _coverUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _coverFallback(),
-                      )
-                    : _coverFallback(),
+                ? Image.network(
+                    _coverUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _coverFallback(),
+                  )
+                : _coverFallback(),
           ),
         ),
         const SizedBox(width: 14),
@@ -1358,9 +1373,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                hasFile || hasUrl
-                    ? 'Cover selected'
-                    : 'No cover selected',
+                hasFile || hasUrl ? 'Cover selected' : 'No cover selected',
                 style: roboto(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 8),
@@ -1393,31 +1406,34 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   Widget _buildGalleryPicker() {
     final tiles = <Widget>[];
     for (final url in _galleryUrls) {
-      tiles.add(_buildGalleryTile(
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _galleryFallback(),
+      tiles.add(
+        _buildGalleryTile(
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _galleryFallback(),
+          ),
+          onRemove: () => _removeGalleryUrl(url),
         ),
-        onRemove: () => _removeGalleryUrl(url),
-      ));
+      );
     }
     for (final file in _newGalleryFiles) {
-      tiles.add(_buildGalleryTile(
-        child: _buildPickedImage(file, fallback: _galleryFallback),
-        onRemove: () => _removeGalleryFile(file),
-      ));
+      tiles.add(
+        _buildGalleryTile(
+          child: _buildPickedImage(file, fallback: _galleryFallback),
+          onRemove: () => _removeGalleryFile(file),
+        ),
+      );
     }
     tiles.add(_buildGalleryAddTile());
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: tiles,
-    );
+    return Wrap(spacing: 10, runSpacing: 10, children: tiles);
   }
 
-  Widget _buildGalleryTile({required Widget child, required VoidCallback onRemove}) {
+  Widget _buildGalleryTile({
+    required Widget child,
+    required VoidCallback onRemove,
+  }) {
     return Stack(
       children: [
         ClipRRect(
@@ -1436,7 +1452,11 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                 color: Colors.black.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -1664,10 +1684,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            userMessage,
-            style: roboto(color: Colors.white),
-          ),
+          content: Text(userMessage, style: roboto(color: Colors.white)),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1798,7 +1815,10 @@ class _AccessDenied extends StatelessWidget {
               ElevatedButton(
                 onPressed: onBack,
                 style: ElevatedButton.styleFrom(backgroundColor: kBlue),
-                child: Text('Back to Sign In', style: roboto(color: Colors.white)),
+                child: Text(
+                  'Back to Sign In',
+                  style: roboto(color: Colors.white),
+                ),
               ),
             ],
           ),

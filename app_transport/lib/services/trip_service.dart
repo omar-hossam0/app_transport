@@ -11,8 +11,7 @@ class TripService extends ChangeNotifier {
   StreamSubscription<DatabaseEvent>? _sub;
 
   List<TripModel> get trips => List.unmodifiable(_trips);
-  List<TripModel> get activeTrips =>
-      _trips.where((t) => t.isActive).toList();
+  List<TripModel> get activeTrips => _trips.where((t) => t.isActive).toList();
   bool get isLoading => _isLoading;
 
   Future<void> loadTrips() async {
@@ -49,24 +48,27 @@ class TripService extends ChangeNotifier {
         .copyWith(id: key, createdAt: now, updatedAt: now)
         .toMap();
 
-    await _db.ref('trips/$key').set(payload).timeout(
-          const Duration(seconds: 10),
-        );
+    await _db
+        .ref('trips/$key')
+        .set(payload)
+        .timeout(const Duration(seconds: 10));
 
     return key;
   }
 
   Future<void> updateTrip(TripModel trip) async {
     final payload = trip.copyWith(updatedAt: DateTime.now()).toMap();
-    await _db.ref('trips/${trip.id}').update(payload).timeout(
-          const Duration(seconds: 10),
-        );
+    await _db
+        .ref('trips/${trip.id}')
+        .update(payload)
+        .timeout(const Duration(seconds: 10));
   }
 
   Future<void> deleteTrip(String tripId) async {
-    await _db.ref('trips/$tripId').remove().timeout(
-          const Duration(seconds: 10),
-        );
+    await _db
+        .ref('trips/$tripId')
+        .remove()
+        .timeout(const Duration(seconds: 10));
   }
 
   Future<void> setTripActive(String tripId, bool isActive) async {
@@ -135,5 +137,4 @@ class TripService extends ChangeNotifier {
       debugPrint('[TripService] Seed skipped: $e');
     }
   }
-
 }

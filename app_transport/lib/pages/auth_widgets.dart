@@ -269,7 +269,10 @@ class AuthHeader extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 320;
-          final effectiveLogoW = (logoW).clamp(140.0, constraints.maxWidth * 0.72);
+          final effectiveLogoW = (logoW).clamp(
+            140.0,
+            constraints.maxWidth * 0.72,
+          );
           final logoH = constraints.maxHeight * (compact ? 0.34 : 0.44);
 
           return Column(

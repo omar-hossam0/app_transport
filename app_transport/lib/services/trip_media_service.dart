@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 
 class TripMediaService {
   TripMediaService({FirebaseStorage? storage})
-      : _storage = storage ?? FirebaseStorage.instance;
+    : _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseStorage _storage;
 
@@ -18,10 +18,7 @@ class TripMediaService {
     final ref = _storage.ref('trips/$tripId/cover.jpg');
     if (kIsWeb) {
       final bytes = await file.readAsBytes();
-      return ref.putData(
-        bytes,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
+      return ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
     }
     return ref.putFile(File(file.path));
   }
@@ -34,10 +31,7 @@ class TripMediaService {
     final ref = _storage.ref('trips/$tripId/gallery/$imageId.jpg');
     if (kIsWeb) {
       final bytes = await file.readAsBytes();
-      return ref.putData(
-        bytes,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
+      return ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
     }
     return ref.putFile(File(file.path));
   }

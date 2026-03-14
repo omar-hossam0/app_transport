@@ -227,7 +227,7 @@ final defaultTrips = <TripModel>[
     durationMinutes: 240,
     priceUsd: 140,
     imageUrl:
-      'https://images.unsplash.com/photo-1568322445389-f64ac2515020?auto=format&fit=crop&w=1280&q=80',
+        'https://images.unsplash.com/photo-1568322445389-f64ac2515020?auto=format&fit=crop&w=1280&q=80',
     accentColorValue: 0xFF4A44AA,
     routeLabel: 'Airport -> Egyptian Museum -> Downtown Walk -> Airport',
     included: ['Airport Transfer', 'Entry Tickets', 'Tour Guide'],
@@ -259,7 +259,7 @@ final defaultTrips = <TripModel>[
     durationMinutes: 270,
     priceUsd: 160,
     imageUrl:
-      'https://images.unsplash.com/photo-1539650116574-75c0c6d73f89?auto=format&fit=crop&w=1280&q=80',
+        'https://images.unsplash.com/photo-1539650116574-75c0c6d73f89?auto=format&fit=crop&w=1280&q=80',
     accentColorValue: 0xFFE02850,
     routeLabel: 'Airport -> NMEC -> Old Cairo -> Airport',
     included: ['Airport Transfer', 'Tour Guide'],
@@ -316,8 +316,7 @@ final defaultTrips = <TripModel>[
     id: 'transit_6',
     type: TripType.transit,
     name: 'Giza Pyramids Express',
-    shortDescription:
-        'A 5-hour express visit to the Pyramids and Sphinx.',
+    shortDescription: 'A 5-hour express visit to the Pyramids and Sphinx.',
     description:
         'Visit the Pyramids of Giza and the Sphinx with a quick return to the airport.',
     durationMinutes: 300,
