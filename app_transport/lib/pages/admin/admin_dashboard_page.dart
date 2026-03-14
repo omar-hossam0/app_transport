@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -960,6 +960,13 @@ class _AdminUserTile extends StatelessWidget {
   }
 }
 
+class _PickedImage {
+  final XFile file;
+  final Uint8List bytes;
+
+  const _PickedImage({required this.file, required this.bytes});
+}
+
 class _TripEditorSheet extends StatefulWidget {
   final TripModel? trip;
   final Future<void> Function(TripModel) onSave;
@@ -990,10 +997,10 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   late final TextEditingController _includedCtrl;
   late final TextEditingController _itineraryCtrl;
 
-  XFile? _coverFile;
+  _PickedImage? _coverPick;
   String _coverUrl = '';
   final List<String> _galleryUrls = [];
-  final List<XFile> _newGalleryFiles = [];
+  final List<_PickedImage> _newGalleryImages = [];
 
   bool _isSaving = false;
   double _uploadProgress = 0;
@@ -1327,7 +1334,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   }
 
   Widget _buildCoverPicker() {
-    final hasFile = _coverFile != null;
+    final hasFile = _coverPick != null;
     final hasUrl = _coverUrl.isNotEmpty;
     return Row(
       children: [
@@ -1337,7 +1344,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
             width: 120,
             height: 86,
             child: hasFile
-                ? Image.file(File(_coverFile!.path), fit: BoxFit.cover)
+                ? Image.memory(_coverPick!.bytes, fit: BoxFit.cover)
                 : hasUrl
                     ? Image.network(
                         _coverUrl,
@@ -1396,10 +1403,10 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
         onRemove: () => _removeGalleryUrl(url),
       ));
     }
-    for (final file in _newGalleryFiles) {
+    for (final pick in _newGalleryImages) {
       tiles.add(_buildGalleryTile(
-        child: Image.file(File(file.path), fit: BoxFit.cover),
-        onRemove: () => _removeGalleryFile(file),
+        child: Image.memory(pick.bytes, fit: BoxFit.cover),
+        onRemove: () => _removeGalleryPick(pick),
       ));
     }
     tiles.add(_buildGalleryAddTile());
@@ -1479,14 +1486,15 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   Future<void> _pickCover() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
+    final bytes = await picked.readAsBytes();
     setState(() {
-      _coverFile = picked;
+      _coverPick = _PickedImage(file: picked, bytes: bytes);
     });
   }
 
   void _removeCover() {
     setState(() {
-      _coverFile = null;
+      _coverPick = null;
       _coverUrl = '';
     });
   }
@@ -1494,8 +1502,13 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   Future<void> _pickGallery() async {
     final picked = await _picker.pickMultiImage();
     if (picked.isEmpty) return;
+    final picks = <_PickedImage>[];
+    for (final file in picked) {
+      final bytes = await file.readAsBytes();
+      picks.add(_PickedImage(file: file, bytes: bytes));
+    }
     setState(() {
-      _newGalleryFiles.addAll(picked);
+      _newGalleryImages.addAll(picks);
     });
   }
 
@@ -1506,9 +1519,9 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     await _media.deleteByUrl(url);
   }
 
-  void _removeGalleryFile(XFile file) {
+  void _removeGalleryPick(_PickedImage pick) {
     setState(() {
-      _newGalleryFiles.remove(file);
+      _newGalleryImages.remove(pick);
     });
   }
 
@@ -1533,8 +1546,11 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       final itinerary = _parseStops(_itineraryCtrl.text.trim());
 
       var coverUrl = _coverUrl;
-      if (_coverFile != null) {
-        final task = _media.uploadCover(tripId: _tripId, file: _coverFile!);
+      if (_coverPick != null) {
+        final task = await _media.uploadCover(
+          tripId: _tripId,
+          file: _coverPick!.file,
+        );
         coverUrl = await _uploadWithProgress(task, 'Uploading cover');
         if (_initialCoverUrl.isNotEmpty && _initialCoverUrl != coverUrl) {
           await _media.deleteByUrl(_initialCoverUrl);
@@ -1544,14 +1560,14 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       }
 
       final galleryUrls = List<String>.from(_galleryUrls);
-      for (var i = 0; i < _newGalleryFiles.length; i++) {
-        final task = _media.uploadGallery(
+      for (var i = 0; i < _newGalleryImages.length; i++) {
+        final task = await _media.uploadGallery(
           tripId: _tripId,
-          file: _newGalleryFiles[i],
+          file: _newGalleryImages[i].file,
         );
         final url = await _uploadWithProgress(
           task,
-          'Uploading gallery ${i + 1}/${_newGalleryFiles.length}',
+          'Uploading gallery ${i + 1}/${_newGalleryImages.length}',
         );
         galleryUrls.add(url);
       }

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -10,15 +8,17 @@ class TripMediaService {
 
   final FirebaseStorage _storage;
 
-  UploadTask uploadCover({required String tripId, required XFile file}) {
+  Future<UploadTask> uploadCover({required String tripId, required XFile file}) async {
     final ref = _storage.ref('trips/$tripId/cover.jpg');
-    return ref.putFile(File(file.path));
+    final bytes = await file.readAsBytes();
+    return ref.putData(bytes);
   }
 
-  UploadTask uploadGallery({required String tripId, required XFile file}) {
+  Future<UploadTask> uploadGallery({required String tripId, required XFile file}) async {
     final imageId = const Uuid().v4();
     final ref = _storage.ref('trips/$tripId/gallery/$imageId.jpg');
-    return ref.putFile(File(file.path));
+    final bytes = await file.readAsBytes();
+    return ref.putData(bytes);
   }
 
   Future<void> deleteByUrl(String url) async {
