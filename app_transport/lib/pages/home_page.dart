@@ -168,17 +168,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           body: IndexedStack(
             index: _navIndex,
             children: [
-              _buildHomeContent(),       // 0
-              const FlyingTaxiPage(),    // 1
-              const TransitTripsPage(),  // 2
-              const MyBookingsPage(),    // 3
+              _buildHomeContent(), // 0
+              const FlyingTaxiPage(), // 1
+              const TransitTripsPage(), // 2
+              const MyBookingsPage(), // 3
               ChatBotPage(
                 controller: _chatController,
                 onBack: () => setState(() => _navIndex = 0),
               ), // 4
               ProfilePage(onLogout: () => setState(() => _navIndex = 0)), // 5
-              const ServicesPage(),      // 6
-              const PlacesPage(),        // 7
+              const ServicesPage(), // 6
+              const PlacesPage(), // 7
             ],
           ),
           bottomNavigationBar: _buildBottomNav(),
@@ -749,16 +749,12 @@ class _TripCard extends StatelessWidget {
     if (trip.isFlying) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => TripDetailPage(trip: trip),
-        ),
+        MaterialPageRoute(builder: (_) => TripDetailPage(trip: trip)),
       );
     } else {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => TransitTripDetailPage(trip: trip),
-        ),
+        MaterialPageRoute(builder: (_) => TransitTripDetailPage(trip: trip)),
       );
     }
   }
@@ -892,8 +888,8 @@ class _TripCard extends StatelessWidget {
                     child: Consumer2<AuthService, FavoritesService>(
                       builder: (context, auth, favorites, _) {
                         final uid = auth.currentUser?.uid ?? '';
-                            final isFav =
-                              uid.isNotEmpty && favorites.isFavorite(trip.id);
+                        final isFav =
+                            uid.isNotEmpty && favorites.isFavorite(trip.id);
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(

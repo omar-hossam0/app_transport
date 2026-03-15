@@ -65,9 +65,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       _bookings
           .where(
             (b) =>
-                    b.status == BookingStatus.completed ||
-                    b.status == BookingStatus.cancelled ||
-                    b.status == BookingStatus.rejected,
+                b.status == BookingStatus.completed ||
+                b.status == BookingStatus.cancelled ||
+                b.status == BookingStatus.rejected,
           )
           .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
@@ -1174,20 +1174,20 @@ class _PastCard extends StatelessWidget {
     final isRejected = b.status == BookingStatus.rejected;
     final isInactive = isCancelled || isRejected;
     final statusColor = isCancelled
-      ? const Color(0xFFE02850)
-      : isRejected
-      ? Colors.orange.shade700
-      : Colors.green.shade600;
+        ? const Color(0xFFE02850)
+        : isRejected
+        ? Colors.orange.shade700
+        : Colors.green.shade600;
     final statusLabel = isCancelled
-      ? 'Cancelled'
-      : isRejected
-      ? 'Rejected'
-      : 'Completed';
+        ? 'Cancelled'
+        : isRejected
+        ? 'Rejected'
+        : 'Completed';
     final statusIcon = isCancelled
-      ? Icons.cancel_rounded
-      : isRejected
-      ? Icons.block_rounded
-      : Icons.check_circle_rounded;
+        ? Icons.cancel_rounded
+        : isRejected
+        ? Icons.block_rounded
+        : Icons.check_circle_rounded;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1210,7 +1210,7 @@ class _PastCard extends StatelessWidget {
               left: Radius.circular(20),
             ),
             child: ColorFiltered(
-                colorFilter: isInactive
+              colorFilter: isInactive
                   ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
                   : const ColorFilter.mode(
                       Colors.transparent,
@@ -1432,7 +1432,7 @@ class _BookingDetailPage extends StatelessWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final btmPad = MediaQuery.of(context).padding.bottom;
     final isUpcoming =
-      b.status == BookingStatus.pending || b.status == BookingStatus.accepted;
+        b.status == BookingStatus.pending || b.status == BookingStatus.accepted;
     final statusLabel = _statusLabel(b.status);
     final statusColor = _statusColor(b.status);
 

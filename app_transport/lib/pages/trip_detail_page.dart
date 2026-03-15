@@ -97,8 +97,8 @@ class _TripDetailPageState extends State<TripDetailPage>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                          t.accentColor,
-                                          t.accentColor.withValues(alpha: 0.55),
+                                      t.accentColor,
+                                      t.accentColor.withValues(alpha: 0.55),
                                     ],
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topRight,
@@ -117,8 +117,8 @@ class _TripDetailPageState extends State<TripDetailPage>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                          t.accentColor,
-                                          t.accentColor.withValues(alpha: 0.55),
+                                      t.accentColor,
+                                      t.accentColor.withValues(alpha: 0.55),
                                     ],
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topRight,
@@ -126,7 +126,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                 ),
                                 child: Center(
                                   child: Icon(
-                                        Icons.flight_rounded,
+                                    Icons.flight_rounded,
                                     color: Colors.white.withValues(alpha: 0.20),
                                     size: 90,
                                   ),

@@ -45,28 +45,28 @@ https://console.firebase.google.com/
         }
       }
     },
-    
+
     "users": {
       "$uid": {
         ".read": "$uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val === true",
         ".write": "$uid === auth.uid"
       }
     },
-    
+
     "bookings": {
       "$uid": {
         ".read": "$uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val === true",
         ".write": "$uid === auth.uid"
       }
     },
-    
+
     "favorites": {
       "$uid": {
         ".read": "$uid === auth.uid",
         ".write": "$uid === auth.uid"
       }
     },
-    
+
     "system": {
       ".read": true,
       ".write": "root.child('users').child(auth.uid).child('isAdmin').val === true"
@@ -94,7 +94,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && get(/databases/$(project_id)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
     }
-    
+
     // Fallback for development
     match /trips/{allPaths=**} {
       allow read: if true;
@@ -113,6 +113,7 @@ service firebase.storage {
 ### خطوة 1: امسح Browser Cache
 
 اضغط `Ctrl+Shift+Delete` واختر:
+
 - ✅ Cookies and other site data
 - ✅ Cached images and files
 - اختر "All time"
@@ -143,11 +144,13 @@ flutter run -d chrome
 ### في Firebase Console:
 
 **Realtime Database:**
+
 - اذهب إلى **Data** tab
 - تحقق من وجود مستند جديد تحت `trips/`
 - يجب أن تظهر جميع معلومات الرحلة
 
 **Storage:**
+
 - اذهب إلى **Files**
 - تحقق من وجود مجلد جديد باسم `trips/`
 - داخله يجب أن يكون `cover.jpg`
@@ -155,6 +158,7 @@ flutter run -d chrome
 ### في Browser Console:
 
 اضغط `F12` وادهب إلى **Console**:
+
 - إذا رأيت أي أخطاء حمراء، شيرها معي
 - يجب أن ترى رسائل نجاح (green checkmarks)
 
@@ -187,6 +191,7 @@ gsutil cors set cors.json gs://transitapp-7717f.appspot.com
 ```
 
 أو على Google Cloud Shell:
+
 1. اذهب إلى: https://console.cloud.google.com/
 2. افتح Cloud Shell (الأيقونة في الأعلى)
 3. نسّخ الأمر أعلاه وألصقه
@@ -195,18 +200,19 @@ gsutil cors set cors.json gs://transitapp-7717f.appspot.com
 
 ## 📝 ملخص سريع
 
-| الخطوة | ماذا نعمل | متى ينجح |
-|--------|---------|---------|
-| 1 | تحديث Realtime DB Rules | الرحلات بتظهر في database |
-| 2 | تحديث Storage Rules | الصور تترفع بنجاح |
-| 3 | مسح Browser Cache | التطبيق يشتغل صح |
-| 4 | اختبار | الرحلات والصور موجودة! ✅ |
+| الخطوة | ماذا نعمل               | متى ينجح                  |
+| ------ | ----------------------- | ------------------------- |
+| 1      | تحديث Realtime DB Rules | الرحلات بتظهر في database |
+| 2      | تحديث Storage Rules     | الصور تترفع بنجاح         |
+| 3      | مسح Browser Cache       | التطبيق يشتغل صح          |
+| 4      | اختبار                  | الرحلات والصور موجودة! ✅ |
 
 ---
 
 ## 🚀 بعد النجاح
 
 بعد ما تعمل الرحلات والصور، الخطوة الجاية هي:
+
 - عرض الرحلات للمستخدمين العاديين
 - السماح بـ Booking (الحجز)
 - تصفية الرحلات حسب النوع
@@ -216,6 +222,7 @@ gsutil cors set cors.json gs://transitapp-7717f.appspot.com
 ## 📞 للمساعدة
 
 إذا استمرت المشكلة بعد كل هذا:
+
 1. انسخ رسائل الخطأ من Console
 2. شاهد ما إذا كانت في Storage أو Database
 3. قل لي الرسالة الدقيقة

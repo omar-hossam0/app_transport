@@ -59,8 +59,10 @@ class TripService extends ChangeNotifier {
     } catch (e) {
       debugPrint('[TripService] ❌ Create trip failed: $e');
       if (e.toString().contains('PERMISSION_DENIED')) {
-        throw Exception('PERMISSION_DENIED: Database rules blocking write.\n'
-            'Fix: Update Firebase Realtime Database Rules');
+        throw Exception(
+          'PERMISSION_DENIED: Database rules blocking write.\n'
+          'Fix: Update Firebase Realtime Database Rules',
+        );
       }
       rethrow;
     }

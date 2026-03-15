@@ -17,7 +17,7 @@
         }
       }
     },
-    
+
     // User data - private
     "users": {
       "$uid": {
@@ -25,7 +25,7 @@
         ".write": "$uid === auth.uid"
       }
     },
-    
+
     // Bookings
     "bookings": {
       "$uid": {
@@ -33,7 +33,7 @@
         ".write": "$uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val === true"
       }
     },
-    
+
     // Favorites
     "favorites": {
       "$uid": {
@@ -41,7 +41,7 @@
         ".write": "$uid === auth.uid"
       }
     },
-    
+
     // System settings
     "system": {
       ".read": true,
@@ -66,7 +66,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && get(/databases/$(project_id)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-    
+
     // User uploads
     match /users/{userId}/{allPaths=**} {
       allow read: if request.auth.uid == userId || get(/databases/$(project_id)/documents/users/$(request.auth.uid)).data.isAdmin == true;

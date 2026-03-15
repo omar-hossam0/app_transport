@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'auth_widgets.dart';
 import '../config.dart';
+
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
   void Function(String)? _sendFn;
@@ -10,6 +11,7 @@ class ChatBotController {
     _sendFn?.call(text);
   }
 }
+
 // ── Groq AI service ────────────────────────────────────────────────────────
 const _kGroqApiKey = kGroqApiKey;
 const _kGroqModel = 'llama-3.3-70b-versatile';
@@ -191,7 +193,8 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   final List<_ChatMsg> _msgs = [
     _ChatMsg(
-      text: 'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
+      text:
+          'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
       isUser: false,
     ),
   ];
@@ -249,7 +252,10 @@ class _ChatBotPageState extends State<ChatBotPage> {
       body: Column(
         children: [
           // Header with status bar padding
-          _Header(onClose: widget.onBack ?? () => Navigator.pop(context), fullPage: true),
+          _Header(
+            onClose: widget.onBack ?? () => Navigator.pop(context),
+            fullPage: true,
+          ),
           // Chips
           _ChipsRow(onChip: _send),
           // Messages

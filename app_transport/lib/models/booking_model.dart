@@ -95,7 +95,9 @@ class Booking {
       tripType: map['tripType'] as String? ?? '',
       tripName: map['tripName'] as String? ?? '',
       tripImage: map['tripImage'] as String? ?? '',
-      date: DateTime.fromMillisecondsSinceEpoch((map['dateEpoch'] as int?) ?? 0),
+      date: DateTime.fromMillisecondsSinceEpoch(
+        (map['dateEpoch'] as int?) ?? 0,
+      ),
       time: map['time'] as String? ?? '10:00 AM',
       travelers: (map['travelers'] as int?) ?? 1,
       pricePerPerson: ((map['pricePerPerson'] ?? 0) as num).toDouble(),
