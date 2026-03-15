@@ -188,9 +188,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 SnackBar(
                   content: Text(
                     'Booking #${b.id} cancelled.',
-                    style: roboto(color: Colors.white),
+                    style: roboto(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  backgroundColor: const Color(0xFFE02850),
+                  backgroundColor: const Color(0xFFEF4444),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

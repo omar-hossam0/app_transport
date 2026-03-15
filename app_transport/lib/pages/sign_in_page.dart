@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'home_page.dart';
 import 'admin/admin_dashboard_page.dart';
+import 'email_verification_pending_page.dart';
 import 'sign_up_page.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -73,7 +74,7 @@ class _SignInPageState extends State<SignInPage>
 
   Future<void> _handleSignIn() async {
     if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
-      _showErrorSnackBar('البريد والكلمة مطلوبة (Email and password required)');
+      _showErrorSnackBar('Email and password are required');
       return;
     }
 
@@ -91,26 +92,39 @@ class _SignInPageState extends State<SignInPage>
       if (user != null) {
         await context.read<NotificationService>().registerForUser(user.uid);
       }
-      _showSuccessSnackBar('✅ تم تسجيل الدخول بنجاح (Sign in successful)');
+      _showSuccessSnackBar('Welcome back! 🎉');
       Future.delayed(
         const Duration(milliseconds: 500),
         () => _goToHome(isAdmin: user?.isAdmin == true),
       );
     } else {
-      _showErrorSnackBar(
-        authService.errorMessage ?? 'خطأ في تسجيل الدخول (Sign in failed)',
-      );
+      if (authService.needsEmailVerification) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const EmailVerificationPendingPage(),
+          ),
+        );
+        return;
+      }
+      _showErrorSnackBar(authService.errorMessage ?? 'Sign in failed');
     }
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red[700],
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFFEF4444),
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -118,11 +132,18 @@ class _SignInPageState extends State<SignInPage>
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green[700],
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -225,7 +246,7 @@ class _SignInPageState extends State<SignInPage>
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
                                       label: authService.isLoading
-                                          ? 'جاري التسجيل...'
+                                          ? 'Signing in...'
                                           : 'Sign In',
                                       onTap: authService.isLoading
                                           ? () {}
@@ -236,7 +257,26 @@ class _SignInPageState extends State<SignInPage>
                                 const SizedBox(height: 14),
                                 Center(
                                   child: TextButton(
-                                    onPressed: () {},
+                                    onPressed: () async {
+                                      final authService = context
+                                          .read<AuthService>();
+                                      final ok = await authService
+                                          .sendPasswordResetEmail(
+                                            _emailCtrl.text,
+                                          );
+                                      if (!mounted) return;
+                                      if (ok) {
+                                        _showSuccessSnackBar(
+                                          authService.errorMessage ??
+                                              'Reset email sent successfully.',
+                                        );
+                                      } else {
+                                        _showErrorSnackBar(
+                                          authService.errorMessage ??
+                                              'Failed to send reset email.',
+                                        );
+                                      }
+                                    },
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                     ),

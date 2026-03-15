@@ -905,7 +905,24 @@ class _TripCard extends StatelessWidget {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        SnackBar(content: Text('Error: $e')),
+                                        SnackBar(
+                                          content: Text(
+                                            'Error: $e',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          backgroundColor: const Color(
+                                            0xFFEF4444,
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     }
                                   },

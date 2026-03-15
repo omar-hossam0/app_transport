@@ -1752,11 +1752,14 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Trip saved, but one or more images failed to upload.',
-              style: roboto(color: Colors.white),
+              'Trip saved, but some images failed to upload.',
+              style: roboto(color: Colors.white, fontWeight: FontWeight.w500),
             ),
-            backgroundColor: Colors.orange.shade700,
+            backgroundColor: const Color(0xFFF59E0B),
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -1773,32 +1776,38 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
           msg.contains('permission-denied') ||
           msg.contains('Permission denied')) {
         userMessage =
-            '❌ خطأ صلاحيات Firebase!\n\n'
-            'تحقق من:\n'
-            '✓ قواعس Firebase Database\n'
-            '✓ قواعس Firebase Storage\n'
-            '✓ هل حسابك Admin؟';
+            '❌ Firebase Permission Error\n\n'
+            'Check:\n'
+            '✓ Firebase Database Rules\n'
+            '✓ Firebase Storage Rules\n'
+            '✓ Your account is Admin?';
         debugPrint('[TripEditor] → Fix: Update Firebase Rules');
       } else if (msg.contains('CORS') || msg.contains('preflight')) {
         userMessage =
-            '❌ خطأ CORS\n\n'
-            'الحل: طبّق cors.json على Firebase';
+            '❌ CORS Error\n\n'
+            'Fix: Apply cors.json to Firebase';
         debugPrint('[TripEditor] → Fix: Run gsutil cors set');
       } else if (msg.contains('timeout') || msg.contains('Timeout')) {
         userMessage =
-            '❌ انقطاع الاتصال\n\n'
-            'تحقق من:\n'
-            '✓ الإنترنت مفعّل؟\n'
-            '✓ Firebase accessible?';
+            '❌ Connection timeout\n\n'
+            'Check:\n'
+            '✓ Internet is enabled?\n'
+            '✓ Firebase is accessible?';
       } else {
-        userMessage = '❌ خطأ: ${msg.split('\n').first}';
+        userMessage = '❌ Error: ${msg.split('\n').first}';
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(userMessage, style: roboto(color: Colors.white)),
-          backgroundColor: Colors.red,
+          content: Text(
+            userMessage,
+            style: roboto(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     } finally {

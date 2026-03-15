@@ -379,9 +379,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text(msg),
+      content: Text(
+        msg,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: kBlue,
+      backgroundColor: const Color(0xFF3B82F6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
   );
 
@@ -442,7 +449,17 @@ class _ProfilePageState extends State<ProfilePage> {
         body: 'You will be logged out of your current account. Continue?',
         confirmLabel: 'Switch',
         confirmColor: kBlue,
-        onConfirm: () {
+        onConfirm: () async {
+          final auth = context.read<AuthService>();
+          final favorites = context.read<FavoritesService>();
+          final bookings = context.read<BookingService>();
+
+          await auth.logAccountSwitch();
+          favorites.clearFavorites();
+          bookings.clearBookings();
+          await auth.signOut();
+
+          if (!mounted) return;
           Navigator.pop(ctx);
           if (widget.onLogout != null) widget.onLogout!();
         },
@@ -1260,6 +1277,91 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
   final _newCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _obscureCur = true, _obscureNew = true, _obscureConf = true;
+  bool _isSaving = false;
+
+  Future<void> _handleUpdatePassword() async {
+    if (_isSaving) return;
+
+    final current = _currentCtrl.text.trim();
+    final next = _newCtrl.text.trim();
+    final confirm = _confirmCtrl.text.trim();
+
+    if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all password fields'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (next != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('New password and confirmation do not match'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (next.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final auth = context.read<AuthService>();
+    final ok = await auth.changePassword(
+      currentPassword: current,
+      newPassword: next,
+    );
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (ok) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password updated and saved to database'),
+          backgroundColor: kBlue,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final err = auth.errorMessage ?? 'Failed to update password';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          err,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1336,17 +1438,8 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           ),
           const SizedBox(height: 20),
           _SheetPrimaryBtn(
-            label: 'Update Password',
-            onTap: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Password updated successfully'),
-                  backgroundColor: kBlue,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+            label: _isSaving ? 'Updating...' : 'Update Password',
+            onTap: _isSaving ? () {} : _handleUpdatePassword,
           ),
         ],
       ),
