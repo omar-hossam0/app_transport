@@ -74,7 +74,7 @@ class Booking {
     'pickupLocation': pickupLocation,
     'dropoffLocation': dropoffLocation,
     'routeLabel': routeLabel,
-    'accentColorValue': accentColor.value,
+    'accentColorValue': accentColor.toARGB32(),
     'userId': userId,
     'userEmail': userEmail,
     'userName': userName,

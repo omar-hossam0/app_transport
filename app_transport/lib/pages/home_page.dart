@@ -448,82 +448,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // ═══════════════════════════════════════════════════════════════════
   //  Categories
   // ═══════════════════════════════════════════════════════════════════
-  void _openFlyingTaxi() {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        reverseTransitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (context, anim, secAnim) => const FlyingTaxiPage(),
-        transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.06, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   void _openTransitTrips() {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, anim, secAnim) => const TransitTripsPage(),
-        transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.06, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _openMyBookings() {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        reverseTransitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (context, anim, secAnim) => const MyBookingsPage(),
-        transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.06, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _openProfile() {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        reverseTransitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (context, anim, secAnim) => ProfilePage(
-          onLogout: () {
-            Navigator.of(context).pop();
-          },
-        ),
         transitionsBuilder: (context, anim, secAnim, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),

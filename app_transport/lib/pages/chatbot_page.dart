@@ -89,7 +89,7 @@ const _kChips = [
 ];
 
 // ── (Keyword responses replaced by Gemini AI) ───────────────────────────────
-const _kResponses_unused = {
+const kResponses = {
   'flying taxi':
       'We offer flying taxi aerial tours departing from Cairo Airport! Choose from 10 breathtaking destinations including the Giza Pyramids, Alexandria, Luxor, Siwa Oasis, Aswan, Hurghada and more. Prices start from \$75. Tap "Flying Taxi" in the bottom nav to explore all trips! ✈️',
   'flying':

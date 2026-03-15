@@ -1119,13 +1119,13 @@ class _TripDetailPageState extends State<TripDetailPage>
 // ═════════════════════════════════════════════════════════════════════════════
 //  Review Card Widget
 // ═════════════════════════════════════════════════════════════════════════════
-class _ReviewCard extends StatelessWidget {
+class ReviewCard extends StatelessWidget {
   final String name;
   final int rating;
   final String date;
   final String comment;
 
-  const _ReviewCard({
+  const ReviewCard({
     required this.name,
     required this.rating,
     required this.date,

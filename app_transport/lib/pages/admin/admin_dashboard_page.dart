@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -872,10 +873,10 @@ class _TripCard extends StatelessWidget {
                 width: 84,
                 height: 84,
                 child: hasImage
-                    ? Image.network(
-                        trip.imageUrl,
+                    ? _UrlImage(
+                        url: trip.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _tripFallback(trip),
+                        fallback: () => _tripFallback(trip),
                       )
                     : _tripFallback(trip),
               ),
@@ -945,6 +946,46 @@ class _TripCard extends StatelessWidget {
           color: trip.accentColor,
         ),
       ),
+    );
+  }
+}
+
+class _UrlImage extends StatelessWidget {
+  final String url;
+  final BoxFit fit;
+  final Widget Function() fallback;
+
+  const _UrlImage({
+    required this.url,
+    required this.fallback,
+    this.fit = BoxFit.cover,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (url.isEmpty) return fallback();
+
+    if (url.startsWith('data:image')) {
+      final commaIndex = url.indexOf(',');
+      if (commaIndex <= 0 || commaIndex >= url.length - 1) {
+        return fallback();
+      }
+      try {
+        final bytes = base64Decode(url.substring(commaIndex + 1));
+        return Image.memory(
+          bytes,
+          fit: fit,
+          errorBuilder: (_, __, ___) => fallback(),
+        );
+      } catch (_) {
+        return fallback();
+      }
+    }
+
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (_, __, ___) => fallback(),
     );
   }
 }
@@ -1022,6 +1063,9 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
   String _coverUrl = '';
   final List<String> _galleryUrls = [];
   final List<_PickedImage> _newGalleryImages = [];
+
+  // Convenience getters
+  XFile? get _coverFile => _coverPick?.file;
 
   bool _isSaving = false;
   double _uploadProgress = 0;
@@ -1364,12 +1408,16 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
             width: 120,
             height: 86,
             child: hasFile
-                ? Image.file(File(_coverFile!.path), fit: BoxFit.cover)
+                ? _buildPickedImage(
+                    _coverFile!,
+                    fallback: _coverFallback,
+                    bytes: _coverPick!.bytes,
+                  )
                 : hasUrl
-                ? Image.network(
-                    _coverUrl,
+                ? _UrlImage(
+                    url: _coverUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _coverFallback(),
+                    fallback: _coverFallback,
                   )
                 : _coverFallback(),
           ),
@@ -1415,20 +1463,24 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     for (final url in _galleryUrls) {
       tiles.add(
         _buildGalleryTile(
-          child: Image.network(
-            url,
+          child: _UrlImage(
+            url: url,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _galleryFallback(),
+            fallback: _galleryFallback,
           ),
           onRemove: () => _removeGalleryUrl(url),
         ),
       );
     }
-    for (final file in _newGalleryFiles) {
+    for (final pick in _newGalleryImages) {
       tiles.add(
         _buildGalleryTile(
-          child: Image.file(File(file.path), fit: BoxFit.cover),
-          onRemove: () => _removeGalleryFile(file),
+          child: _buildPickedImage(
+            pick.file,
+            fallback: _galleryFallback,
+            bytes: pick.bytes,
+          ),
+          onRemove: () => _removeGalleryPick(pick),
         ),
       );
     }
@@ -1509,7 +1561,15 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     );
   }
 
-  Widget _buildPickedImage(XFile file, {required Widget Function() fallback}) {
+  Widget _buildPickedImage(
+    XFile file, {
+    required Widget Function() fallback,
+    Uint8List? bytes,
+  }) {
+    // If bytes are already loaded, use them directly — works on both web and mobile
+    if (bytes != null) {
+      return Image.memory(bytes, fit: BoxFit.cover);
+    }
     if (kIsWeb) {
       return FutureBuilder<Uint8List>(
         future: file.readAsBytes(),
@@ -1534,8 +1594,8 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       );
     }
 
-    return Image.file(
-      File(file.path),
+    return Image.memory(
+      bytes ?? Uint8List(0),
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => fallback(),
     );
@@ -1606,8 +1666,25 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
 
       var coverUrl = _coverUrl;
       if (_coverFile != null) {
-        final task = _media.uploadCover(tripId: _tripId, file: _coverFile!);
-        coverUrl = await _uploadWithProgress(task, 'Uploading cover');
+        try {
+          final task = _media.uploadCover(
+            tripId: _tripId,
+            file: _coverFile!,
+            bytes: _coverPick?.bytes,
+          );
+          coverUrl = await _uploadWithProgress(task, 'Uploading cover');
+        } catch (e) {
+          final canUseInlineImage =
+              kIsWeb &&
+              _coverPick?.bytes != null &&
+              _coverPick!.bytes.isNotEmpty;
+          if (!canUseInlineImage) rethrow;
+          hadMediaUploadFailure = true;
+          coverUrl = _asDataUrl(_coverPick!.bytes, _coverPick!.file.name);
+          debugPrint(
+            '[TripEditor] Cover upload failed, using inline image data: $e',
+          );
+        }
         if (_initialCoverUrl.isNotEmpty && _initialCoverUrl != coverUrl) {
           await _media.deleteByUrl(_initialCoverUrl);
         }
@@ -1616,16 +1693,35 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       }
 
       final galleryUrls = List<String>.from(_galleryUrls);
-      for (var i = 0; i < _newGalleryFiles.length; i++) {
-        final task = _media.uploadGallery(
-          tripId: _tripId,
-          file: _newGalleryFiles[i],
-        );
-        final url = await _uploadWithProgress(
-          task,
-          'Uploading gallery ${i + 1}/${_newGalleryFiles.length}',
-        );
-        galleryUrls.add(url);
+      for (var i = 0; i < _newGalleryImages.length; i++) {
+        try {
+          final pick = _newGalleryImages[i];
+          try {
+            final task = _media.uploadGallery(
+              tripId: _tripId,
+              file: pick.file,
+              bytes: pick.bytes,
+            );
+            final url = await _uploadWithProgress(
+              task,
+              'Uploading gallery ${i + 1}/${_newGalleryImages.length}',
+            );
+            galleryUrls.add(url);
+          } catch (e) {
+            final canUseInlineImage = kIsWeb && pick.bytes.isNotEmpty;
+            if (!canUseInlineImage) rethrow;
+            hadMediaUploadFailure = true;
+            galleryUrls.add(_asDataUrl(pick.bytes, pick.file.name));
+            debugPrint(
+              '[TripEditor] Gallery upload ${i + 1} failed, using inline image data: $e',
+            );
+          }
+        } catch (e) {
+          hadMediaUploadFailure = true;
+          debugPrint(
+            '[TripEditor] Gallery upload ${i + 1} failed, continuing save: $e',
+          );
+        }
       }
 
       final trip = TripModel(
@@ -1667,19 +1763,35 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
 
       Navigator.of(context).pop();
     } catch (e) {
-      debugPrint('[TripEditor] Save failed: $e');
       final msg = e.toString();
+      debugPrint('[TripEditor] ❌ Save FAILED!');
+      debugPrint('[TripEditor] Error Type: ${e.runtimeType}');
+      debugPrint('[TripEditor] Error Message: $msg');
+
       String userMessage;
-      if (msg.contains('CORS') || msg.contains('preflight')) {
+      if (msg.contains('PERMISSION_DENIED') ||
+          msg.contains('permission-denied') ||
+          msg.contains('Permission denied')) {
         userMessage =
-            'Save failed: Firebase Storage CORS is blocking uploads on web.';
-      } else if (msg.contains('permission-denied') ||
-          msg.contains('Permission denied') ||
-          msg.contains('unauthorized')) {
+            '❌ خطأ صلاحيات Firebase!\n\n'
+            'تحقق من:\n'
+            '✓ قواعس Firebase Database\n'
+            '✓ قواعس Firebase Storage\n'
+            '✓ هل حسابك Admin؟';
+        debugPrint('[TripEditor] → Fix: Update Firebase Rules');
+      } else if (msg.contains('CORS') || msg.contains('preflight')) {
         userMessage =
-            'Save failed: Firebase permissions are blocking write access.';
+            '❌ خطأ CORS\n\n'
+            'الحل: طبّق cors.json على Firebase';
+        debugPrint('[TripEditor] → Fix: Run gsutil cors set');
+      } else if (msg.contains('timeout') || msg.contains('Timeout')) {
+        userMessage =
+            '❌ انقطاع الاتصال\n\n'
+            'تحقق من:\n'
+            '✓ الإنترنت مفعّل؟\n'
+            '✓ Firebase accessible?';
       } else {
-        userMessage = 'Failed to save trip: ${msg.split('\n').first}';
+        userMessage = '❌ خطأ: ${msg.split('\n').first}';
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1700,7 +1812,11 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     }
   }
 
-  Future<String> _uploadWithProgress(UploadTask task, String label) async {
+  Future<String> _uploadWithProgress(
+    UploadTask task,
+    String label, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
     if (mounted) {
       setState(() {
         _uploadLabel = label;
@@ -1708,17 +1824,44 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
       });
     }
 
-    final sub = task.snapshotEvents.listen((snapshot) {
-      final total = snapshot.totalBytes;
-      if (total <= 0 || !mounted) return;
-      setState(() {
-        _uploadProgress = snapshot.bytesTransferred / total;
-      });
-    });
+    final sub = task.snapshotEvents.listen(
+      (snapshot) {
+        final total = snapshot.totalBytes;
+        if (total <= 0 || !mounted) return;
+        setState(() {
+          _uploadProgress = snapshot.bytesTransferred / total;
+        });
+      },
+      onError: (_) {
+        // Task completion is handled by await task; ignore stream noise here.
+      },
+      cancelOnError: false,
+    );
 
-    final result = await task;
-    await sub.cancel();
-    return result.ref.getDownloadURL();
+    try {
+      final result = await task.timeout(
+        timeout,
+        onTimeout: () async {
+          await task.cancel();
+          throw TimeoutException('Upload timed out');
+        },
+      );
+      return result.ref.getDownloadURL();
+    } finally {
+      await sub.cancel();
+    }
+  }
+
+  String _asDataUrl(Uint8List bytes, String fileName) {
+    final lower = fileName.toLowerCase();
+    final mime = lower.endsWith('.png')
+        ? 'image/png'
+        : lower.endsWith('.webp')
+        ? 'image/webp'
+        : lower.endsWith('.gif')
+        ? 'image/gif'
+        : 'image/jpeg';
+    return 'data:$mime;base64,${base64Encode(bytes)}';
   }
 
   InputDecoration _fieldDecoration({String? hint}) {

@@ -48,12 +48,22 @@ class TripService extends ChangeNotifier {
         .copyWith(id: key, createdAt: now, updatedAt: now)
         .toMap();
 
-    await _db
-        .ref('trips/$key')
-        .set(payload)
-        .timeout(const Duration(seconds: 10));
-
-    return key;
+    try {
+      debugPrint('[TripService] 📝 Creating trip: $key');
+      await _db
+          .ref('trips/$key')
+          .set(payload)
+          .timeout(const Duration(seconds: 10));
+      debugPrint('[TripService] ✅ Trip created successfully!');
+      return key;
+    } catch (e) {
+      debugPrint('[TripService] ❌ Create trip failed: $e');
+      if (e.toString().contains('PERMISSION_DENIED')) {
+        throw Exception('PERMISSION_DENIED: Database rules blocking write.\n'
+            'Fix: Update Firebase Realtime Database Rules');
+      }
+      rethrow;
+    }
   }
 
   Future<void> updateTrip(TripModel trip) async {
