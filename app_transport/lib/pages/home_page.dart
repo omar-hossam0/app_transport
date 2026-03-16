@@ -42,6 +42,12 @@ class _Category {
 
 // ── Sample data ──────────────────────────────────────────────────────────────
 const _suggestions = [
+  _AiSuggestion(
+    'Find the best trip for my time',
+    'Set hours',
+    Icons.schedule_rounded,
+    [Color(0xFF4A44AA), Color(0xFF7B6CF6)],
+  ),
   _AiSuggestion('3-hour Giza Tour', '3 hrs', Icons.landscape_rounded, [
     Color(0xFF187BCD),
     Color(0xFF5BC0EB),
@@ -50,11 +56,20 @@ const _suggestions = [
     Color(0xFF4A44AA),
     Color(0xFF7B6CF6),
   ]),
+  _AiSuggestion(
+    'Old Cairo Walking',
+    '1.5 hrs',
+    Icons.directions_walk_rounded,
+    [
+      Color(0xFF0D7377),
+      Color(0xFF14BFAB),
+    ],
+  ),
   _AiSuggestion('Short Nile Cruise', '2 hrs', Icons.sailing_rounded, [
     Color(0xFFE02850),
     Color(0xFFFF6B81),
   ]),
-  _AiSuggestion('Old Cairo Walking', '1.5 hrs', Icons.directions_walk_rounded, [
+  _AiSuggestion('Transit day in Cairo', '5 hrs', Icons.directions_bus_rounded, [
     Color(0xFF0D7377),
     Color(0xFF14BFAB),
   ]),
@@ -80,6 +95,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _navIndex = 0;
   final _chatController = ChatBotController();
+  final _searchController = TextEditingController();
 
   // ── staggered entrance animations ────────────────────────────────
   late final AnimationController _entranceCtrl;
@@ -140,6 +156,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _entranceCtrl.dispose();
     super.dispose();
   }
@@ -148,6 +165,63 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     opacity: _fadeAnims[index],
     child: SlideTransition(position: _slideAnims[index], child: child),
   );
+
+  void _openChatWithMessage(String message) {
+    final text = message.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _navIndex = 4);
+    Future.delayed(const Duration(milliseconds: 350), () {
+      _chatController.send(text);
+    });
+  }
+
+  Future<void> _openHoursSuggestionFlow() async {
+    final hoursCtrl = TextEditingController();
+    final hours = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'How many hours do you have?',
+          style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        content: TextField(
+          controller: hoursCtrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            hintText: 'Example: 4',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final raw = hoursCtrl.text.trim();
+              final parsed = double.tryParse(raw);
+              if (parsed == null || parsed <= 0) return;
+              Navigator.pop(ctx, parsed);
+            },
+            child: const Text('Get Suggestion'),
+          ),
+        ],
+      ),
+    );
+    hoursCtrl.dispose();
+
+    if (!mounted || hours == null) return;
+    final hoursLabel = hours == hours.roundToDouble()
+        ? hours.toInt().toString()
+        : hours.toStringAsFixed(1);
+
+    _openChatWithMessage(
+      'عندي ترانزيت لمدة $hoursLabel ساعة في القاهرة. اقترح أفضل رحلة مناسبة للمدة دي مع السعر وخطة سريعة.',
+    );
+  }
 
   // ── build ──────────────────────────────────────────────────────────
   @override
@@ -330,20 +404,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             Icon(Icons.search_rounded, color: Colors.grey.shade400, size: 22),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                'Search for trips, landmarks or services...',
-                style: roboto(fontSize: 13, color: Colors.grey.shade400),
+              child: TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
+                onSubmitted: _openChatWithMessage,
+                style: roboto(fontSize: 13),
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  hintText: 'Search for trips, landmarks or services...',
+                  hintStyle: roboto(fontSize: 13, color: Colors.grey.shade400),
+                ),
               ),
             ),
-            Container(
-              width: 38,
-              height: 38,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: kBlue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(11),
+            GestureDetector(
+              onTap: () {
+                final q = _searchController.text.trim();
+                if (q.isNotEmpty) {
+                  _openChatWithMessage(q);
+                } else {
+                  _openChatWithMessage(
+                    'Suggest a great trip for Cairo transit and ask me for my available hours.',
+                  );
+                }
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.tune_rounded, color: kBlue, size: 18),
               ),
-              child: const Icon(Icons.tune_rounded, color: kBlue, size: 18),
             ),
           ],
         ),
@@ -384,10 +478,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               final s = _suggestions[i];
               return GestureDetector(
                 onTap: () {
-                  setState(() => _navIndex = 4);
-                  Future.delayed(const Duration(milliseconds: 600), () {
-                    _chatController.send(s.title);
-                  });
+                  if (i == 0) {
+                    _openHoursSuggestionFlow();
+                    return;
+                  }
+                  _openChatWithMessage(s.title);
                 },
                 child: Container(
                   width: 170,

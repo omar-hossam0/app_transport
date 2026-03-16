@@ -133,29 +133,6 @@ class _SignInPageState extends State<SignInPage>
     _showErrorSnackBar(authService.errorMessage ?? 'Google sign in failed');
   }
 
-  Future<void> _handleFacebookSignIn() async {
-    final authService = context.read<AuthService>();
-    if (authService.isLoading) return;
-
-    final success = await authService.signInWithFacebook();
-    if (!mounted) return;
-
-    if (success) {
-      final user = authService.currentUser;
-      if (user != null) {
-        await context.read<NotificationService>().registerForUser(user.uid);
-      }
-      _showSuccessSnackBar('Signed in with Facebook successfully');
-      Future.delayed(
-        const Duration(milliseconds: 500),
-        () => _goToHome(isAdmin: user?.isAdmin == true),
-      );
-      return;
-    }
-
-    _showErrorSnackBar(authService.errorMessage ?? 'Facebook sign in failed');
-  }
-
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -348,7 +325,6 @@ class _SignInPageState extends State<SignInPage>
                             const SizedBox(height: 18),
                             AuthSocialRow(
                               onGoogleTap: _handleGoogleSignIn,
-                              onFacebookTap: _handleFacebookSignIn,
                             ),
                           ],
                         ),

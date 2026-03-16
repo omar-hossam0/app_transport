@@ -143,12 +143,10 @@ class AuthOrDivider extends StatelessWidget {
 // ── Social row ────────────────────────────────────────────────────────────────
 class AuthSocialRow extends StatelessWidget {
   final VoidCallback onGoogleTap;
-  final VoidCallback onFacebookTap;
 
   const AuthSocialRow({
     super.key,
     required this.onGoogleTap,
-    required this.onFacebookTap,
   });
 
   @override
@@ -164,18 +162,6 @@ class AuthSocialRow extends StatelessWidget {
               height: 22,
             ),
             label: 'Google',
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _SocialButton(
-            onTap: onFacebookTap,
-            logo: SvgPicture.asset(
-              'img/facebook_logo.svg',
-              width: 22,
-              height: 22,
-            ),
-            label: 'Facebook',
           ),
         ),
       ],

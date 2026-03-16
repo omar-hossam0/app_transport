@@ -783,17 +783,6 @@ class _InputBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // + button
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: kBlue.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: const Icon(Icons.add_rounded, color: kBlue, size: 22),
-          ),
-          const SizedBox(width: 10),
           // Text field
           Expanded(
             child: Container(
@@ -813,11 +802,6 @@ class _InputBar extends StatelessWidget {
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,
-                  ),
-                  suffixIcon: Icon(
-                    Icons.mic_rounded,
-                    color: Colors.grey.shade400,
-                    size: 20,
                   ),
                 ),
               ),
