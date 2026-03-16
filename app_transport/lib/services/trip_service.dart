@@ -39,6 +39,14 @@ class TripService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Force reload trips from Firebase (cancels existing subscription first).
+  Future<void> reloadTrips() async {
+    _sub?.cancel();
+    _sub = null;
+    await loadTrips();
+  }
+
+
   Future<String> createTrip(TripModel trip) async {
     final now = DateTime.now();
     final key = trip.id.isNotEmpty ? trip.id : _db.ref('trips').push().key;
@@ -109,6 +117,40 @@ class TripService extends ChangeNotifier {
       _trips.sort((a, b) => a.name.compareTo(b.name));
     }
     notifyListeners();
+  }
+
+  /// Resets the seed flag and re-seeds all default trips into Firebase.
+  /// Use this from the Admin Dashboard when trips have been accidentally deleted.
+  Future<void> reseedDefaultTrips() async {
+    try {
+      // Reset the seed flag so seeding runs again
+      await _db
+          .ref('system/trips_seeded')
+          .set(false)
+          .timeout(const Duration(seconds: 8));
+
+      // Write all default trips
+      for (final trip in defaultTrips) {
+        final id = trip.id.isEmpty ? _db.ref('trips').push().key : trip.id;
+        if (id == null) continue;
+        await _db
+            .ref('trips/$id')
+            .set(trip.copyWith(id: id).toMap())
+            .timeout(const Duration(seconds: 8));
+        debugPrint('[TripService] ✅ Reseeded trip: $id');
+      }
+
+      // Mark as seeded again
+      await _db
+          .ref('system/trips_seeded')
+          .set(true)
+          .timeout(const Duration(seconds: 8));
+
+      debugPrint('[TripService] 🌱 All default trips restored successfully!');
+    } catch (e) {
+      debugPrint('[TripService] ❌ Reseed failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> _ensureSeeded() async {
