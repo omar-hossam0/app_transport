@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'auth_widgets.dart';
+import 'chatbot_page.dart';
 import 'transit_trip_detail_page.dart';
 
 // ── Brand colours ─────────────────────────────────────────────────────────
@@ -1007,17 +1008,22 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   void _openDetail(TransitTrip trip) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 520),
+        transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (c, a, s) => TransitTripDetailPage(trip: trip),
-        transitionsBuilder: (c, a, s, child) => FadeTransition(
-          opacity: CurvedAnimation(parent: a, curve: Curves.easeOut),
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.06, 0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: a, curve: Curves.easeOut)),
-            child: child,
+        transitionsBuilder: (c, a, s, child) => ScaleTransition(
+          scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+            CurvedAnimation(parent: a, curve: Curves.easeOutCubic),
+          ),
+          child: FadeTransition(
+            opacity: CurvedAnimation(parent: a, curve: Curves.easeOutCubic),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.12, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+              child: child,
+            ),
           ),
         ),
       ),
@@ -1235,7 +1241,44 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              const ChatBotPage(),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                            return ScaleTransition(
+                              scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              ),
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0.12, 0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  ),
+                                  child: child,
+                                ),
+                              ),
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 500),
+                          reverseTransitionDuration:
+                              const Duration(milliseconds: 350),
+                        ),
+                      );
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,

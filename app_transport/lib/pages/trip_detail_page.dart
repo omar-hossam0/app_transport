@@ -153,19 +153,14 @@ class _TripDetailPageState extends State<TripDetailPage>
                               ),
                             ),
                           ),
-                          // Bottom curve overlay
+                          // Bottom straight line divider
                           Positioned(
-                            bottom: -1,
+                            bottom: 0,
                             left: 0,
                             right: 0,
                             child: Container(
-                              height: 30,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(30),
-                                ),
-                              ),
+                              height: 1,
+                              color: Colors.grey.shade200,
                             ),
                           ),
                         ],
@@ -375,7 +370,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                   children: [
                     _CircleBtn(
                       icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () => Navigator.of(context).maybePop(),
                     ),
                     Row(
                       children: [
@@ -409,8 +404,6 @@ class _TripDetailPageState extends State<TripDetailPage>
                             );
                           },
                         ),
-                        const SizedBox(width: 10),
-                        _CircleBtn(icon: Icons.share_rounded, onTap: () {}),
                       ],
                     ),
                   ],
@@ -432,17 +425,14 @@ class _TripDetailPageState extends State<TripDetailPage>
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.94),
+                      color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 20,
-                          offset: const Offset(0, -6),
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 12,
+                          offset: const Offset(0, -2),
                         ),
                       ],
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
                     ),
                     child: Row(
                       children: [

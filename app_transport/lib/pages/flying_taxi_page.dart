@@ -414,13 +414,26 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
   void _openDetail(FlyingTaxiTrip trip) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 550),
+        transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, anim, secAnim) => TripDetailPage(trip: trip),
         transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: child,
+          return ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+            ),
+            child: FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.12, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                ),
+                child: child,
+              ),
+            ),
           );
         },
       ),

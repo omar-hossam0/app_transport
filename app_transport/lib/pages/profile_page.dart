@@ -307,10 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
 
-                    const SizedBox(height: 22),
-
-                    // ── 8. Logout button ────────────────────────────────────
-                    _LogoutButton(onTap: () => _confirmLogout()),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),

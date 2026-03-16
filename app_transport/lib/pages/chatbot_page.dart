@@ -255,6 +255,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
           _Header(
             onClose: widget.onBack ?? () => Navigator.pop(context),
             fullPage: true,
+            useBackStyle: true,
           ),
           // Chips
           _ChipsRow(onChip: _send),
@@ -410,7 +411,12 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 class _Header extends StatelessWidget {
   final VoidCallback onClose;
   final bool fullPage;
-  const _Header({required this.onClose, this.fullPage = false});
+  final bool useBackStyle;
+  const _Header({
+    required this.onClose,
+    this.fullPage = false,
+    this.useBackStyle = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -501,19 +507,33 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Close
+          // Close / back
           GestureDetector(
             onTap: onClose,
             child: Container(
-              width: 36,
-              height: 36,
+              width: useBackStyle ? 44 : 36,
+              height: useBackStyle ? 44 : 36,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(10),
+                color: useBackStyle
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.18),
+                shape: useBackStyle ? BoxShape.circle : BoxShape.rectangle,
+                borderRadius: useBackStyle ? null : BorderRadius.circular(10),
+                boxShadow: useBackStyle
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
-              child: const Icon(
-                Icons.close_rounded,
-                color: Colors.white,
+              child: Icon(
+                useBackStyle
+                    ? Icons.arrow_back_ios_new_rounded
+                    : Icons.close_rounded,
+                color: useBackStyle ? const Color(0xFF1A1A2E) : Colors.white,
                 size: 18,
               ),
             ),

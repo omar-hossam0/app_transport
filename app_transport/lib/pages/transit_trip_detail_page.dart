@@ -23,10 +23,13 @@ class TransitTripDetailPage extends StatefulWidget {
 class _TransitTripDetailPageState extends State<TransitTripDetailPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  late final PageController _galleryController;
+  int _currentGalleryIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _galleryController = PageController(viewportFraction: 0.9);
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -35,6 +38,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
 
   @override
   void dispose() {
+    _galleryController.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -587,7 +591,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                             top: mq.padding.top + 12,
                             left: 18,
                             child: GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
+                              onTap: () => Navigator.of(context).maybePop(),
                               child: Container(
                                 width: 42,
                                 height: 42,
@@ -603,7 +607,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               ),
                             ),
                           ),
-                          // Heart + Share buttons
+                          // Favorite button
                           Positioned(
                             top: mq.padding.top + 12,
                             right: 18,
@@ -663,20 +667,6 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                     );
                                   },
                                 ),
-                                const SizedBox(width: 10),
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.40),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.share_rounded,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -726,9 +716,6 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       child: Container(
                         decoration: const BoxDecoration(
                           color: Color(0xFFF5F8FC),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(26),
-                          ),
                         ),
                         padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
                         child: Column(
@@ -1244,200 +1231,211 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
         const SizedBox(height: 14),
         SizedBox(
           height: 195,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
+          child: PageView.builder(
+            controller: _galleryController,
             physics: const BouncingScrollPhysics(),
+            onPageChanged: (index) {
+              if (index != _currentGalleryIndex) {
+                setState(() {
+                  _currentGalleryIndex = index;
+                });
+              }
+            },
             itemCount: stopsWithImages.length,
             itemBuilder: (context, index) {
               final stop = stopsWithImages[index];
               final isFirst = index == 0;
-              final isLast = index == stopsWithImages.length - 1;
-              return Container(
-                width: 260,
-                margin: EdgeInsets.only(right: isLast ? 0 : 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Image
-                      Image.network(
-                        stop.imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (ctx, child, prog) {
-                          if (prog == null) return child;
-                          return Container(
+              return Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Image
+                        Image.network(
+                          stop.imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, prog) {
+                            if (prog == null) return child;
+                            return Container(
+                              color: stop.color.withValues(alpha: 0.15),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: stop.color,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (c, e, s) => Container(
                             color: stop.color.withValues(alpha: 0.15),
                             child: Center(
-                              child: CircularProgressIndicator(
-                                color: stop.color,
-                                strokeWidth: 2,
+                              child: Icon(
+                                stop.icon,
+                                size: 42,
+                                color: stop.color.withValues(alpha: 0.4),
                               ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (c, e, s) => Container(
-                          color: stop.color.withValues(alpha: 0.15),
-                          child: Center(
-                            child: Icon(
-                              stop.icon,
-                              size: 42,
-                              color: stop.color.withValues(alpha: 0.4),
                             ),
                           ),
                         ),
-                      ),
-                      // Bottom gradient
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              stops: const [0.0, 0.55],
-                              colors: [
-                                Colors.black.withValues(alpha: 0.72),
-                                Colors.transparent,
+                        // Bottom gradient
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                stops: const [0.0, 0.55],
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.72),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Stop number badge
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: stop.color,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: stop.color.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: roboto(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Navigation arrows between stops
+                        if (!isFirst)
+                          Positioned(
+                            top: 10,
+                            left: 44,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.chevron_left_rounded,
+                                  size: 16,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                                Container(
+                                  width: 16,
+                                  height: 2,
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                      ),
-                      // Stop number badge
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: stop.color,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: stop.color.withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: roboto(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Navigation arrows between stops
-                      if (!isFirst)
+                        // Duration badge
                         Positioned(
                           top: 10,
-                          left: 44,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.chevron_left_rounded,
-                                size: 16,
-                                color: Colors.white.withValues(alpha: 0.5),
-                              ),
-                              Container(
-                                width: 16,
-                                height: 2,
-                                color: Colors.white.withValues(alpha: 0.3),
-                              ),
-                            ],
-                          ),
-                        ),
-                      // Duration badge
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.access_time_rounded,
-                                size: 11,
-                                color: Colors.white.withValues(alpha: 0.85),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                stop.duration,
-                                style: roboto(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Title + subtitle
-                      Positioned(
-                        bottom: 10,
-                        left: 12,
-                        right: 12,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(stop.icon, size: 14, color: Colors.white),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    stop.title,
-                                    style: roboto(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 11,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  stop.duration,
+                                  style: roboto(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.9),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              stop.subtitle,
-                              style: roboto(
-                                fontSize: 10.5,
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                        // Title + subtitle
+                        Positioned(
+                          bottom: 10,
+                          left: 12,
+                          right: 12,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    stop.icon,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      stop.title,
+                                      style: roboto(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                stop.subtitle,
+                                style: roboto(
+                                  fontSize: 10.5,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1456,7 +1454,9 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: i == 0 ? kBlue : Colors.grey.shade300,
+                  color: i == _currentGalleryIndex
+                      ? kBlue
+                      : Colors.grey.shade300,
                 ),
               );
             }),

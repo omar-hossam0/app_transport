@@ -240,29 +240,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         child: Scaffold(
           extendBody: true,
-          body: IndexedStack(
-            index: _navIndex,
-            children: [
-              _buildHomeContent(), // 0
-              const FlyingTaxiPage(), // 1
-              const TransitTripsPage(), // 2
-              const MyBookingsPage(), // 3
-              ChatBotPage(
-                controller: _chatController,
-                onBack: () => setState(() => _navIndex = 0),
-              ), // 4
-              ProfilePage(
-                onLogout: () {
-                  if (!mounted) return;
-                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SignInPage()),
-                    (_) => false,
-                  );
-                },
-              ), // 5
-              const ServicesPage(), // 6
-              const PlacesPage(), // 7
-            ],
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            reverseDuration: const Duration(milliseconds: 350),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              return ScaleTransition(
+                scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                ),
+                child: FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.08, 0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                    ),
+                    child: child,
+                  ),
+                ),
+              );
+            },
+            child: IndexedStack(
+              key: ValueKey<int>(_navIndex),
+              index: _navIndex,
+              children: [
+                _buildHomeContent(), // 0
+                const FlyingTaxiPage(), // 1
+                const TransitTripsPage(), // 2
+                const MyBookingsPage(), // 3
+                ChatBotPage(
+                  controller: _chatController,
+                  onBack: () => setState(() => _navIndex = 0),
+                ), // 4
+                ProfilePage(
+                  onLogout: () {
+                    if (!mounted) return;
+                    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const SignInPage()),
+                      (_) => false,
+                    );
+                  },
+                ), // 5
+                const ServicesPage(), // 6
+                const PlacesPage(), // 7
+              ],
+            ),
           ),
           bottomNavigationBar: _buildBottomNav(),
         ),
@@ -310,78 +336,72 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Header
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildHeader() {
-    final screenW = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Logo — centred, responsive width, proper contain
-          Center(
-            child: Image.asset(
-              'img/logo_new.png',
-              width: screenW * 0.42,
-              fit: BoxFit.contain,
+          // Greeting + title on the left
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Consumer<AuthService>(
+                  builder: (context, auth, _) {
+                    final name = auth.currentUser?.name ?? 'Traveler';
+                    return Text(
+                      'Hi, $name',
+                      style: roboto(
+                        fontSize: 12,
+                        color: kLightBlue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Let's Enjoy\nYour Vacation!",
+                  style: roboto(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              // Greeting + title
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Consumer<AuthService>(
-                      builder: (context, auth, _) {
-                        final name = auth.currentUser?.name ?? 'Traveler';
-                        return Text(
-                          'Hi, $name',
-                          style: roboto(
-                            fontSize: 14,
-                            color: kLightBlue,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Let's Enjoy\nYour Vacation!",
-                      style: roboto(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Profile avatar
-              GestureDetector(
-                onTap: () => setState(() => _navIndex = 5),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
-                    boxShadow: [
-                      BoxShadow(
-                        color: kBlue.withValues(alpha: 0.25),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+          const SizedBox(width: 14),
+          // Logo in the center
+          Image.asset(
+            'img/logo_new.png',
+            width: 100,
+            height: 100,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 14),
+          // Profile avatar on the right
+          GestureDetector(
+            onTap: () => setState(() => _navIndex = 5),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
+                boxShadow: [
+                  BoxShadow(
+                    color: kBlue.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
+                ],
               ),
-            ],
+              child: const Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
           ),
         ],
       ),
@@ -704,56 +724,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       (Icons.person_outline_rounded, 'Profile', 5),
     ];
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final availableWidth = screenWidth - 48; // horizontal outer padding
-    final slotWidth = (availableWidth - 20) / items.length; // inner nav padding
-    final showLabels = slotWidth >= 86;
-
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1226).withValues(alpha: 0.58),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.13),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 28,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F7),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(items.length, (i) {
-                    final active = i == _navIndex;
-                    final icon = items[i].$1;
-                    final label = items[i].$2;
-                    return Expanded(
-                      child: _NavItem(
-                        icon: icon,
-                        label: label,
-                        active: active,
-                        showLabel: active && showLabels,
-                        onTap: () => setState(() => _navIndex = i),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(items.length, (i) {
+              final active = i == _navIndex;
+              final icon = items[i].$1;
+              final label = items[i].$2;
+              return _NavItem(
+                icon: icon,
+                label: label,
+                active: active,
+                showLabel: true,
+                onTap: () => setState(() => _navIndex = i),
+              );
+            }),
           ),
         ),
       ),
@@ -784,70 +785,29 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 380),
-        curve: Curves.easeInOutCubic,
-        height: 44,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: EdgeInsets.symmetric(horizontal: showLabel ? 10 : 0),
-        decoration: BoxDecoration(
-          gradient: active
-              ? const LinearGradient(
-                  colors: [Color(0xFF187BCD), Color(0xFF5BC0EB)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                )
-              : null,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF187BCD).withValues(alpha: 0.45),
-                    blurRadius: 16,
-                    offset: const Offset(0, 5),
-                  ),
-                ]
-              : null,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 21,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 24,
+            color: active
+                ? kBlue
+                : Colors.grey.shade400,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: roboto(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
               color: active
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.52),
+                  ? kBlue
+                  : Colors.grey.shade500,
             ),
-            // ── Animated label slide-in ──────────────────────────────
-            ClipRect(
-              child: AnimatedAlign(
-                alignment: Alignment.centerLeft,
-                widthFactor: showLabel ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeInOutCubic,
-                child: AnimatedOpacity(
-                  opacity: showLabel ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 220),
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 7),
-                    child: Text(
-                      label,
-                      style: roboto(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -921,14 +881,60 @@ class _TripCard extends StatelessWidget {
       final flyingTrip = _toFlyingTaxiTrip(trip);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => TripDetailPage(trip: flyingTrip)),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              TripDetailPage(trip: flyingTrip),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+              scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              ),
+              child: FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.12, 0),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  ),
+                  child: child,
+                ),
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 500),
+          reverseTransitionDuration: const Duration(milliseconds: 350),
+        ),
       );
     } else {
       final transitTrip = _toTransitTrip(trip);
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => TransitTripDetailPage(trip: transitTrip),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              TransitTripDetailPage(trip: transitTrip),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+              scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              ),
+              child: FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.12, 0),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  ),
+                  child: child,
+                ),
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 500),
+          reverseTransitionDuration: const Duration(milliseconds: 350),
         ),
       );
     }
