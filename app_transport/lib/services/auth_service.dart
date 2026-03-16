@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -470,7 +472,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<bool> signInWithGoogle() async {
+  Future<bool> signInWithGoogle({bool requireNewAccount = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -505,6 +507,32 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
+      final isNewUser = cred.additionalUserInfo?.isNewUser ?? false;
+      final normalizedEmail = (firebaseUser.email ?? '').trim().toLowerCase();
+
+      if (requireNewAccount &&
+          (!isNewUser ||
+              (normalizedEmail.isNotEmpty &&
+                  await _emailExistsInDatabase(normalizedEmail)))) {
+        if (!kIsWeb) {
+          try {
+            await GoogleSignIn().signOut();
+          } catch (_) {}
+        }
+        await _auth.signOut();
+        _setError('This Google account is already registered. Please sign in');
+        return false;
+      }
+
+      String? successMessage;
+      if (requireNewAccount && isNewUser) {
+        await _sendFirstSocialConfirmationEmailIfPossible(firebaseUser);
+        if (normalizedEmail.isNotEmpty) {
+          successMessage =
+              'Account created. A confirmation email was sent to $normalizedEmail';
+        }
+      }
+
       var profile = await _ensureUserProfile(
         firebaseUser: firebaseUser,
         name: firebaseUser.displayName,
@@ -524,7 +552,7 @@ class AuthService extends ChangeNotifier {
       _isLoading = false;
       _needsEmailVerification = false;
       _pendingVerificationEmail = null;
-      _errorMessage = null;
+      _errorMessage = successMessage;
       notifyListeners();
       return true;
     } on fb_auth.FirebaseAuthException catch (e) {
@@ -533,17 +561,152 @@ class AuthService extends ChangeNotifier {
       } else if (e.code == 'operation-not-allowed' ||
           e.code == 'invalid-api-key' ||
           e.code == 'app-not-authorized') {
-        _setError(_authSetupMessage());
+        _setError(_googleAuthSetupMessage());
+      } else {
+        _setError('Google sign in failed: ${e.message ?? e.code}');
+      }
+      return false;
+    } on PlatformException catch (e) {
+      final raw = '${e.code} ${e.message ?? ''} ${e.details ?? ''}';
+      if (_looksLikeGoogleConfigError(raw)) {
+        _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: ${e.message ?? e.code}');
       }
       return false;
     } catch (e) {
       final raw = e.toString();
-      if (_looksLikeAuthConfigError(raw)) {
-        _setError(_authSetupMessage());
+      if (_looksLikeAuthConfigError(raw) || _looksLikeGoogleConfigError(raw)) {
+        _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: $e');
+      }
+      return false;
+    }
+  }
+
+  Future<bool> signInWithFacebook({bool requireNewAccount = false}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      if (!kIsWeb &&
+          defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS) {
+        _setError('Facebook sign in is supported on Android, iOS, and Web only');
+        return false;
+      }
+
+      late final fb_auth.UserCredential cred;
+
+      if (kIsWeb) {
+        final provider = fb_auth.FacebookAuthProvider()
+          ..addScope('email')
+          ..setCustomParameters({'display': 'popup'});
+        cred = await _auth.signInWithPopup(provider);
+      } else {
+        final result = await FacebookAuth.instance.login(
+          permissions: const ['email', 'public_profile'],
+        );
+
+        if (result.status == LoginStatus.cancelled) {
+          _setError('Facebook sign in was cancelled');
+          return false;
+        }
+
+        if (result.status != LoginStatus.success || result.accessToken == null) {
+          _setError(result.message ?? 'Facebook sign in failed');
+          return false;
+        }
+
+        final credential = fb_auth.FacebookAuthProvider.credential(
+          result.accessToken!.tokenString,
+        );
+        cred = await _auth.signInWithCredential(credential);
+      }
+
+      final firebaseUser = cred.user;
+      if (firebaseUser == null) {
+        _setError('Facebook sign in failed');
+        return false;
+      }
+
+      final isNewUser = cred.additionalUserInfo?.isNewUser ?? false;
+      final normalizedEmail = (firebaseUser.email ?? '').trim().toLowerCase();
+
+      if (requireNewAccount &&
+          (!isNewUser ||
+              (normalizedEmail.isNotEmpty &&
+                  await _emailExistsInDatabase(normalizedEmail)))) {
+        if (!kIsWeb) {
+          try {
+            await FacebookAuth.instance.logOut();
+          } catch (_) {}
+        }
+        await _auth.signOut();
+        _setError(
+          'This Facebook account is already registered. Please sign in',
+        );
+        return false;
+      }
+
+      String? successMessage;
+      if (requireNewAccount && isNewUser) {
+        await _sendFirstSocialConfirmationEmailIfPossible(firebaseUser);
+        if (normalizedEmail.isNotEmpty) {
+          successMessage =
+              'Account created. A confirmation email was sent to $normalizedEmail';
+        }
+      }
+
+      var profile = await _ensureUserProfile(
+        firebaseUser: firebaseUser,
+        name: firebaseUser.displayName,
+      );
+      profile = await _ensureSeededAdminRole(
+        firebaseUser: firebaseUser,
+        profile: profile,
+      );
+
+      final now = DateTime.now();
+      await _database.ref('users/${profile.uid}').update({
+        'lastLogin': now.toIso8601String(),
+      });
+
+      _currentUser = profile.copyWith(lastLogin: now);
+      await _saveSession(profile.uid);
+      _isLoading = false;
+      _needsEmailVerification = false;
+      _pendingVerificationEmail = null;
+      _errorMessage = successMessage;
+      notifyListeners();
+      return true;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential') {
+        _setError('This email is already linked to another sign in method');
+      } else if (e.code == 'operation-not-allowed' ||
+          e.code == 'invalid-api-key' ||
+          e.code == 'app-not-authorized') {
+        _setError(_facebookAuthSetupMessage());
+      } else {
+        _setError('Facebook sign in failed: ${e.message ?? e.code}');
+      }
+      return false;
+    } on PlatformException catch (e) {
+      final raw = '${e.code} ${e.message ?? ''} ${e.details ?? ''}';
+      if (_looksLikeFacebookConfigError(raw)) {
+        _setError(_facebookAuthSetupMessage());
+      } else {
+        _setError('Facebook sign in failed: ${e.message ?? e.code}');
+      }
+      return false;
+    } catch (e) {
+      final raw = e.toString();
+      if (_looksLikeAuthConfigError(raw) || _looksLikeFacebookConfigError(raw)) {
+        _setError(_facebookAuthSetupMessage());
+      } else {
+        _setError('Facebook sign in failed: $e');
       }
       return false;
     }
@@ -676,6 +839,11 @@ class AuthService extends ChangeNotifier {
           await GoogleSignIn().signOut();
         } catch (_) {
           // Best effort: keep Firebase sign out successful even if Google cache fails.
+        }
+        try {
+          await FacebookAuth.instance.logOut();
+        } catch (_) {
+          // Best effort: keep Firebase sign out successful even if Facebook cache fails.
         }
       }
       await _auth.signOut();
@@ -908,5 +1076,87 @@ class AuthService extends ChangeNotifier {
         'Enable Email/Password in:\n'
         'Firebase Console > Authentication > Sign-in method\n\n'
         'Also verify Authorized domains include localhost.';
+  }
+
+  bool _looksLikeGoogleConfigError(String raw) {
+    final txt = raw.toLowerCase();
+    return txt.contains('developer_error') ||
+        txt.contains('api exception: 10') ||
+        txt.contains('sign_in_failed') ||
+        txt.contains('12500') ||
+        txt.contains('12501') ||
+        txt.contains('oauth') ||
+        txt.contains('sha-1') ||
+        txt.contains('sha1') ||
+        txt.contains('google_sign_in');
+  }
+
+  String _googleAuthSetupMessage() {
+    return 'Google sign-in is not fully configured.\n\n'
+      'Required steps in Firebase:\n'
+      '1) Authentication > Sign-in method > Enable Google\n'
+      '2) Project settings > Your Android app > Add SHA-1 and SHA-256\n'
+      '3) Download the updated google-services.json and replace android/app/google-services.json\n\n'
+      'Then run: flutter clean ; flutter pub get ; flutter run';
+  }
+
+  Future<bool> _emailExistsInDatabase(String email) async {
+    try {
+      final emailKey = _encodeEmail(email);
+      final emailIndexSnap = await _database
+          .ref('email_index/$emailKey')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (!emailIndexSnap.exists || emailIndexSnap.value is! Map) {
+        return false;
+      }
+
+      final uid = (emailIndexSnap.value as Map)['uid'] as String?;
+      if (uid == null || uid.isEmpty) {
+        return false;
+      }
+
+      final userSnap = await _database
+          .ref('users/$uid')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      return userSnap.exists;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _sendFirstSocialConfirmationEmailIfPossible(
+    fb_auth.User firebaseUser,
+  ) async {
+    try {
+      await firebaseUser.sendEmailVerification();
+    } catch (_) {
+      // Some social providers already verify email and may reject this call.
+    }
+  }
+
+  bool _looksLikeFacebookConfigError(String raw) {
+    final txt = raw.toLowerCase();
+    return txt.contains('facebook') ||
+        txt.contains('invalid key hash') ||
+        txt.contains('keyhash') ||
+        txt.contains('app id') ||
+        txt.contains('oauth') ||
+        txt.contains('login_failed') ||
+        txt.contains('operation_not_supported') ||
+        txt.contains('missingpluginexception');
+  }
+
+  String _facebookAuthSetupMessage() {
+    return 'Facebook sign-in is not fully configured.\n\n'
+        'Required setup:\n'
+        '1) Firebase Authentication > Sign-in method > Enable Facebook\n'
+        '2) Add Facebook App ID and App Secret in Firebase\n'
+        '3) In Facebook Developers, add Android package name and key hashes\n'
+        '4) Make sure OAuth redirect URI from Firebase is added in Facebook app settings\n\n'
+        'Then run: flutter clean ; flutter pub get ; flutter run';
   }
 }

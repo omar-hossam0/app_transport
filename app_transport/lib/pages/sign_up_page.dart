@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'email_verification_pending_page.dart';
+import 'home_page.dart';
+import 'admin/admin_dashboard_page.dart';
 import 'sign_in_page.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -70,6 +73,30 @@ class _SignUpPageState extends State<SignUpPage>
     super.dispose();
   }
 
+  void _goToHome({required bool isAdmin}) {
+    final target = isAdmin ? const AdminDashboardPage() : const HomePage();
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 650),
+        reverseTransitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (context, anim, secAnim) => target,
+        transitionsBuilder: (context, anim, secAnim, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.08),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+          );
+        },
+      ),
+      (_) => false,
+    );
+  }
+
   Future<void> _handleSignUp() async {
     if (_emailCtrl.text.isEmpty ||
         _passCtrl.text.isEmpty ||
@@ -108,6 +135,58 @@ class _SignUpPageState extends State<SignUpPage>
         authService.errorMessage ?? 'Failed to create account',
       );
     }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    final authService = context.read<AuthService>();
+    if (authService.isLoading) return;
+
+    final success = await authService.signInWithGoogle(requireNewAccount: true);
+    if (!mounted) return;
+
+    if (success) {
+      final user = authService.currentUser;
+      if (user != null) {
+        await context.read<NotificationService>().registerForUser(user.uid);
+      }
+      _showSuccessSnackBar(
+        authService.errorMessage ?? 'Signed up with Google successfully',
+      );
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () => _goToHome(isAdmin: user?.isAdmin == true),
+      );
+      return;
+    }
+
+    _showErrorSnackBar(authService.errorMessage ?? 'Google sign up failed');
+  }
+
+  Future<void> _handleFacebookSignUp() async {
+    final authService = context.read<AuthService>();
+    if (authService.isLoading) return;
+
+    final success = await authService.signInWithFacebook(
+      requireNewAccount: true,
+    );
+    if (!mounted) return;
+
+    if (success) {
+      final user = authService.currentUser;
+      if (user != null) {
+        await context.read<NotificationService>().registerForUser(user.uid);
+      }
+      _showSuccessSnackBar(
+        authService.errorMessage ?? 'Signed up with Facebook successfully',
+      );
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () => _goToHome(isAdmin: user?.isAdmin == true),
+      );
+      return;
+    }
+
+    _showErrorSnackBar(authService.errorMessage ?? 'Facebook sign up failed');
   }
 
   void _showErrorSnackBar(String message) {
@@ -303,8 +382,8 @@ class _SignUpPageState extends State<SignUpPage>
                             const AuthOrDivider(label: 'Or sign up with'),
                             const SizedBox(height: 18),
                             AuthSocialRow(
-                              onGoogleTap: () {},
-                              onFacebookTap: () {},
+                              onGoogleTap: _handleGoogleSignUp,
+                              onFacebookTap: _handleFacebookSignUp,
                             ),
                           ],
                         ),
