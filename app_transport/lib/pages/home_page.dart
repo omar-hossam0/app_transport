@@ -57,15 +57,10 @@ const _suggestions = [
     Color(0xFF4A44AA),
     Color(0xFF7B6CF6),
   ]),
-  _AiSuggestion(
-    'Old Cairo Walking',
-    '1.5 hrs',
-    Icons.directions_walk_rounded,
-    [
-      Color(0xFF0D7377),
-      Color(0xFF14BFAB),
-    ],
-  ),
+  _AiSuggestion('Old Cairo Walking', '1.5 hrs', Icons.directions_walk_rounded, [
+    Color(0xFF0D7377),
+    Color(0xFF14BFAB),
+  ]),
   _AiSuggestion('Short Nile Cruise', '2 hrs', Icons.sailing_rounded, [
     Color(0xFFE02850),
     Color(0xFFFF6B81),
@@ -866,7 +861,9 @@ class _TripCard extends StatelessWidget {
   const _TripCard({required this.trip});
 
   FlyingTaxiTrip _toFlyingTaxiTrip(TripModel trip) {
-    final durationMinutes = trip.durationMinutes > 0 ? trip.durationMinutes : 45;
+    final durationMinutes = trip.durationMinutes > 0
+        ? trip.durationMinutes
+        : 45;
     final flightMinutes = trip.flightMinutes > 0
         ? trip.flightMinutes
         : (durationMinutes / 3).round().clamp(10, 40);
@@ -887,8 +884,9 @@ class _TripCard extends StatelessWidget {
   }
 
   TransitTrip _toTransitTrip(TripModel trip) {
-    final durationHoursExact =
-        trip.durationMinutes > 0 ? trip.durationMinutes / 60.0 : 2.0;
+    final durationHoursExact = trip.durationMinutes > 0
+        ? trip.durationMinutes / 60.0
+        : 2.0;
     final itinerary = trip.itinerary
         .map(
           (s) => TransitStop(
@@ -929,7 +927,9 @@ class _TripCard extends StatelessWidget {
       final transitTrip = _toTransitTrip(trip);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => TransitTripDetailPage(trip: transitTrip)),
+        MaterialPageRoute(
+          builder: (_) => TransitTripDetailPage(trip: transitTrip),
+        ),
       );
     }
   }

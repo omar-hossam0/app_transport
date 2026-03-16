@@ -869,7 +869,9 @@ class AuthService extends ChangeNotifier {
       if (firebaseSignOutOk) {
         debugPrint('[Auth] 👋 Signed out');
       } else {
-        debugPrint('[Auth] 👋 Signed out locally (Firebase signOut had an issue)');
+        debugPrint(
+          '[Auth] 👋 Signed out locally (Firebase signOut had an issue)',
+        );
       }
 
       return firebaseSignOutOk;
