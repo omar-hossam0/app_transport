@@ -7,13 +7,13 @@ import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
 import 'auth_widgets.dart';
-import '../models/trip_model.dart';
+import 'transit_trips_page.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  TransitTripDetailPage
 // ═════════════════════════════════════════════════════════════════════════════
 class TransitTripDetailPage extends StatefulWidget {
-  final TripModel trip;
+  final TransitTrip trip;
   const TransitTripDetailPage({super.key, required this.trip});
 
   @override
@@ -41,7 +41,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
 
   // ── Booking sheet ─────────────────────────────────────────────────────────
 
-  void _showBookingSheet(TripModel trip) {
+  void _showBookingSheet(TransitTrip trip) {
     DateTime? selectedDate;
     int travelers = 1;
     int paymentIdx = 0;
@@ -257,7 +257,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Confirm ─────────────────────────────────────────
+                  // ── Confirm button ────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -306,7 +306,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   Future<void> _confirmBooking(
-    TripModel trip,
+    TransitTrip trip,
     DateTime date,
     int travelers,
     String paymentMethod,
@@ -326,15 +326,12 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       return;
     }
 
-    final user = auth.currentUser!;
-    final uid = user.uid;
+    final uid = auth.currentUser!.uid;
     final rand = math.Random();
-    final bookingId = 'TRP-${rand.nextInt(90000) + 10000}';
+    final bookingId = 'TRX-${rand.nextInt(90000) + 10000}';
 
     final booking = Booking(
       id: bookingId,
-      tripId: trip.id,
-      tripType: trip.type.name,
       tripName: trip.name,
       tripImage: trip.imageUrl,
       date: date,
@@ -342,16 +339,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       travelers: travelers,
       pricePerPerson: trip.priceUsd.toDouble(),
       paymentMethod: paymentMethod,
-      pickupLocation: trip.locationLabel,
-      dropoffLocation: trip.locationLabel,
-      routeLabel: trip.mapHint.isNotEmpty ? trip.mapHint : trip.routeLabel,
+      pickupLocation: 'Cairo International Airport',
+      dropoffLocation: 'Cairo International Airport',
+      routeLabel: trip.routeLabel,
       accentColor: trip.accentColor,
-      userId: uid,
-      userEmail: user.email,
-      userName: user.name,
-      status: BookingStatus.pending,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
     );
 
     try {
@@ -360,7 +351,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Booking submitted! 🎉  Ref: $bookingId',
+            'Booking confirmed! 🎉  Ref: $bookingId',
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.green,
@@ -621,7 +612,8 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                 Consumer2<AuthService, FavoritesService>(
                                   builder: (context, auth, favorites, _) {
                                     final uid = auth.currentUser?.uid ?? '';
-                                    final tripId = widget.trip.id;
+                                    final tripId =
+                                        'transit_${widget.trip.name.hashCode}';
                                     final isFav =
                                         uid.isNotEmpty &&
                                         favorites.isFavorite(tripId);
@@ -713,7 +705,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    t.locationLabel,
+                                    'Cairo International Airport',
                                     style: roboto(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -772,7 +764,8 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                           builder: (ctx, auth, favorites, _) {
                                             final uid =
                                                 auth.currentUser?.uid ?? '';
-                                            final tripId = t.id;
+                                            final tripId =
+                                                'transit_${t.name.hashCode}';
                                             final isFav =
                                                 uid.isNotEmpty &&
                                                 favorites.isFavorite(tripId);
@@ -867,7 +860,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          '(${(t.durationMinutes ~/ 10) + 50} reviews)',
+                                          '(${t.durationHours * 10 + 50} reviews)',
                                           style: roboto(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -892,7 +885,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   children: [
                                     _InfoTag(
                                       Icons.access_time_rounded,
-                                      t.durationLabel,
+                                      '${t.durationHours} Hours',
                                       kBlue,
                                     ),
                                     _InfoTag(
@@ -925,17 +918,6 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               ),
                             ),
                             const SizedBox(height: 24),
-
-                            if (t.galleryImageUrls.isNotEmpty) ...[
-                              FadeTransition(
-                                opacity: _fade(0.18, 0.48),
-                                child: SlideTransition(
-                                  position: _slide(0.18, 0.48),
-                                  child: _buildTripGallery(t),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                            ],
 
                             // ── Stop Image Carousel ─────────────────────
                             FadeTransition(
@@ -1073,7 +1055,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Itinerary ─────────────────────────────────────────────────────────────
-  Widget _buildItinerary(TripModel t) {
+  Widget _buildItinerary(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1215,7 +1197,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Stop Image Carousel (GPS-style navigation) ────────────────────────────
-  Widget _buildStopImageCarousel(TripModel t) {
+  Widget _buildStopImageCarousel(TransitTrip t) {
     // Filter stops that have images
     final stopsWithImages = t.itinerary
         .where((s) => s.imageUrl.isNotEmpty)
@@ -1484,96 +1466,8 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
     );
   }
 
-  Widget _buildTripGallery(TripModel t) {
-    final images = t.galleryImageUrls;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: kBlue.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.photo_library_rounded, size: 17, color: kBlue),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Trip Gallery',
-              style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${images.length} photos',
-                style: roboto(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 180,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: images.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final url = images[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: SizedBox(
-                  width: 240,
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (ctx, child, prog) {
-                      if (prog == null) return child;
-                      return Container(
-                        color: kBlue.withValues(alpha: 0.12),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: kBlue,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (ctx, err, st) => Container(
-                      color: kBlue.withValues(alpha: 0.12),
-                      child: Center(
-                        child: Icon(
-                          Icons.photo_rounded,
-                          color: kBlue.withValues(alpha: 0.4),
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   // ── Route Map ──────────────────────────────────────────────────────────────
-  Widget _buildRouteMap(TripModel t) {
+  Widget _buildRouteMap(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1667,7 +1561,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Included Services ──────────────────────────────────────────────────────
-  Widget _buildIncluded(TripModel t) {
+  Widget _buildIncluded(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1724,7 +1618,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Reviews ────────────────────────────────────────────────────────────────
-  Widget _buildReviews(TripModel t) {
+  Widget _buildReviews(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1736,40 +1630,252 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             ),
             const SizedBox(width: 8),
             Text(
-              '(0)',
+              '(${t.reviews.length})',
               style: roboto(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 14),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F7FA),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            'No reviews yet. Be the first to share your experience.',
-            style: roboto(fontSize: 12, color: Colors.grey.shade600),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: TextButton.icon(
-            onPressed: _showAddReviewDialog,
-            icon: const Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
-            label: Text(
-              'Write a Review',
-              style: roboto(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: kBlue,
+        // Display reviews from trip data
+        ...t.reviews.asMap().entries.map((e) {
+          final review = e.value;
+          final isFirst = e.key == 0;
+
+          if (isFirst) {
+            // Featured review
+            return Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kBlue.withValues(alpha: 0.05), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kBlue.withValues(alpha: 0.12)),
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ...List.generate(
+                        review.rating,
+                        (i) => Icon(
+                          Icons.star_rounded,
+                          color: const Color(0xFFFFC107),
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${review.rating}/5',
+                        style: roboto(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '"${review.comment}"',
+                    style: roboto(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A2E),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '— ${review.name}  •  ${review.date}',
+                    style: roboto(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            // Standard review
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ReviewTile(
+                name: review.name,
+                rating: review.rating,
+                date: review.date,
+                comment: review.comment,
+              ),
+            );
+          }
+        }),
+        const SizedBox(height: 16),
+        // Write review button
+        GestureDetector(
+          onTap: _showAddReviewDialog,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: kBlue.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Write a Review',
+                  style: roboto(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: kBlue,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// Info tag chip
+// ══════════════════════════════════════════════════════════
+class _InfoTag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _InfoTag(this.icon, this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: roboto(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// Review Tile
+// ══════════════════════════════════════════════════════════
+class _ReviewTile extends StatelessWidget {
+  final String name;
+  final int rating;
+  final String date;
+  final String comment;
+  const _ReviewTile({
+    required this.name,
+    required this.rating,
+    required this.date,
+    required this.comment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: kBlue.withValues(alpha: 0.14),
+                child: Text(
+                  name[0],
+                  style: roboto(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBlue,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: roboto(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                    Row(
+                      children: [
+                        ...List.generate(
+                          5,
+                          (i) => Icon(
+                            i < rating
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: const Color(0xFFFFC107),
+                            size: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          date,
+                          style: roboto(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            comment,
+            style: roboto(
+              fontSize: 13,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1901,37 +2007,4 @@ class _RoutePathPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_) => false;
-}
-
-class _InfoTag extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _InfoTag(this.icon, this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: roboto(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -756,16 +756,71 @@ class _TripCard extends StatelessWidget {
   final TripModel trip;
   const _TripCard({required this.trip});
 
+  FlyingTaxiTrip _toFlyingTaxiTrip(TripModel trip) {
+    final durationMinutes = trip.durationMinutes > 0 ? trip.durationMinutes : 45;
+    final flightMinutes = trip.flightMinutes > 0
+        ? trip.flightMinutes
+        : (durationMinutes / 3).round().clamp(10, 40);
+
+    return FlyingTaxiTrip(
+      name: trip.name,
+      durationMinutes: durationMinutes,
+      flightMinutes: flightMinutes,
+      priceUsd: trip.priceUsd.toInt(),
+      description: trip.description.isNotEmpty
+          ? trip.description
+          : trip.shortDescription,
+      mapHint: trip.mapHint.isNotEmpty ? trip.mapHint : trip.routeLabel,
+      cardColor: trip.accentColor,
+      icon: Icons.flight_rounded,
+      imageUrl: trip.imageUrl,
+    );
+  }
+
+  TransitTrip _toTransitTrip(TripModel trip) {
+    final durationHoursExact =
+        trip.durationMinutes > 0 ? trip.durationMinutes / 60.0 : 2.0;
+    final itinerary = trip.itinerary
+        .map(
+          (s) => TransitStop(
+            title: s.title,
+            subtitle: s.subtitle,
+            duration: s.duration,
+            icon: s.icon,
+            color: s.color,
+            imageUrl: s.imageUrl,
+          ),
+        )
+        .toList();
+
+    return TransitTrip(
+      name: trip.name,
+      shortDescription: trip.shortDescription.isNotEmpty
+          ? trip.shortDescription
+          : trip.description,
+      durationHours: durationHoursExact.ceil(),
+      durationHoursExact: durationHoursExact,
+      priceUsd: trip.priceUsd.toInt(),
+      imageUrl: trip.imageUrl,
+      accentColor: trip.accentColor,
+      routeLabel: trip.routeLabel,
+      itinerary: itinerary,
+      included: trip.included,
+    );
+  }
+
   void _open(BuildContext context) {
     if (trip.isFlying) {
+      final flyingTrip = _toFlyingTaxiTrip(trip);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => TripDetailPage(trip: trip)),
+        MaterialPageRoute(builder: (_) => TripDetailPage(trip: flyingTrip)),
       );
     } else {
+      final transitTrip = _toTransitTrip(trip);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => TransitTripDetailPage(trip: trip)),
+        MaterialPageRoute(builder: (_) => TransitTripDetailPage(trip: transitTrip)),
       );
     }
   }

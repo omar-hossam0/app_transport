@@ -6,6 +6,74 @@ import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import 'auth_widgets.dart';
 
+// ── Sample data ───────────────────────────────────────────────────────────────
+final _sampleBookings = <Booking>[
+  Booking(
+    id: 'TRX-45821',
+    tripName: 'Giza Pyramids, NMEC & Nile Corniche',
+    tripImage:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Pyramids_of_the_Giza_Necropolis.jpg/1280px-Pyramids_of_the_Giza_Necropolis.jpg',
+    date: DateTime.now().add(const Duration(days: 5)),
+    time: '10:00 AM',
+    travelers: 2,
+    pricePerPerson: 90,
+    paymentMethod: 'Visa •••• 4242',
+    pickupLocation: 'Cairo International Airport',
+    dropoffLocation: 'Cairo International Airport',
+    routeLabel: 'Airport → Pyramids → NMEC → Nile → Airport',
+    accentColor: const Color(0xFFD4A843),
+  ),
+  Booking(
+    id: 'TRX-38204',
+    tripName: 'Old Cairo & Khan El-Khalili Bazaar',
+    tripImage:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Khan_el-Khalili_2019.jpg/1280px-Khan_el-Khalili_2019.jpg',
+    date: DateTime.now().add(const Duration(days: 12)),
+    time: '09:00 AM',
+    travelers: 1,
+    pricePerPerson: 65,
+    paymentMethod: 'Mastercard •••• 7890',
+    pickupLocation: 'Cairo International Airport',
+    dropoffLocation: 'Cairo International Airport',
+    routeLabel: 'Airport → Old Cairo → Khan El-Khalili → Airport',
+    accentColor: const Color(0xFF4A44AA),
+  ),
+  Booking(
+    id: 'TRX-29174',
+    tripName: 'Luxor Temples & Valley of Kings',
+    tripImage:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Luxor_Temple_R03.jpg/1280px-Luxor_Temple_R03.jpg',
+    date: DateTime.now().subtract(const Duration(days: 18)),
+    time: '07:00 AM',
+    travelers: 3,
+    pricePerPerson: 250,
+    paymentMethod: 'Visa •••• 1111',
+    pickupLocation: 'Cairo International Airport',
+    dropoffLocation: 'Cairo International Airport',
+    routeLabel: 'Fly to Luxor → Karnak → Valley of Kings → Return',
+    accentColor: const Color(0xFFE02850),
+    status: BookingStatus.completed,
+    userRating: 5,
+    userReview: 'Amazing experience! The temples were breathtaking.',
+  ),
+  Booking(
+    id: 'TRX-11053',
+    tripName: 'Cairo Tower & Nile Felucca Cruise',
+    tripImage:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg/1280px-Cairo_Tower_and_Qasr_El_Nil_Bridge.jpg',
+    date: DateTime.now().subtract(const Duration(days: 40)),
+    time: '02:00 PM',
+    travelers: 2,
+    pricePerPerson: 55,
+    paymentMethod: 'Cash on pickup',
+    pickupLocation: 'Cairo International Airport',
+    dropoffLocation: 'Cairo International Airport',
+    routeLabel: 'Airport → Cairo Tower → Nile Cruise → Airport',
+    accentColor: const Color(0xFF187BCD),
+    status: BookingStatus.completed,
+  ),
+];
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  MyBookingsPage
 // ═════════════════════════════════════════════════════════════════════════════
@@ -33,7 +101,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     super.didChangeDependencies();
     if (!_didLoad) {
       _didLoad = true;
-      _loadBookings();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadBookings();
+      });
     }
   }
 
@@ -41,7 +111,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     final auth = context.read<AuthService>();
     final svc = context.read<BookingService>();
     if (!auth.isLoggedIn) return;
-    await svc.loadBookings(auth.currentUser!.uid, force: true);
+    await svc.loadBookings(auth.currentUser!.uid);
     if (mounted) setState(() => _bookings = List.from(svc.bookings));
   }
 
@@ -188,12 +258,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 SnackBar(
                   content: Text(
                     'Booking #${b.id} cancelled.',
-                    style: roboto(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: roboto(color: Colors.white),
                   ),
-                  backgroundColor: const Color(0xFFEF4444),
+                  backgroundColor: const Color(0xFFE02850),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1174,22 +1241,12 @@ class _PastCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = booking;
     final isCancelled = b.status == BookingStatus.cancelled;
-    final isRejected = b.status == BookingStatus.rejected;
-    final isInactive = isCancelled || isRejected;
     final statusColor = isCancelled
         ? const Color(0xFFE02850)
-        : isRejected
-        ? Colors.orange.shade700
         : Colors.green.shade600;
-    final statusLabel = isCancelled
-        ? 'Cancelled'
-        : isRejected
-        ? 'Rejected'
-        : 'Completed';
+    final statusLabel = isCancelled ? 'Cancelled' : 'Completed';
     final statusIcon = isCancelled
         ? Icons.cancel_rounded
-        : isRejected
-        ? Icons.block_rounded
         : Icons.check_circle_rounded;
 
     return Container(
@@ -1213,7 +1270,7 @@ class _PastCard extends StatelessWidget {
               left: Radius.circular(20),
             ),
             child: ColorFiltered(
-              colorFilter: isInactive
+              colorFilter: isCancelled
                   ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
                   : const ColorFilter.mode(
                       Colors.transparent,
@@ -1435,9 +1492,8 @@ class _BookingDetailPage extends StatelessWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final btmPad = MediaQuery.of(context).padding.bottom;
     final isUpcoming =
-        b.status == BookingStatus.pending || b.status == BookingStatus.accepted;
-    final statusLabel = _statusLabel(b.status);
-    final statusColor = _statusColor(b.status);
+      b.status == BookingStatus.pending ||
+      b.status == BookingStatus.accepted;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -1571,15 +1627,21 @@ class _BookingDetailPage extends StatelessWidget {
                                 vertical: 7,
                               ),
                               decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.10),
+                                color: isUpcoming
+                                    ? Colors.green.withValues(alpha: 0.10)
+                                    : const Color(
+                                        0xFFE02850,
+                                      ).withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                statusLabel,
+                                isUpcoming ? 'Upcoming' : 'Completed',
                                 style: roboto(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: statusColor,
+                                  color: isUpcoming
+                                      ? Colors.green.shade700
+                                      : const Color(0xFFE02850),
                                 ),
                               ),
                             ),
@@ -1816,36 +1878,6 @@ class _BookingDetailPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _statusLabel(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.pending:
-        return 'Pending';
-      case BookingStatus.accepted:
-        return 'Accepted';
-      case BookingStatus.rejected:
-        return 'Rejected';
-      case BookingStatus.completed:
-        return 'Completed';
-      case BookingStatus.cancelled:
-        return 'Cancelled';
-    }
-  }
-
-  Color _statusColor(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.pending:
-        return Colors.orange.shade700;
-      case BookingStatus.accepted:
-        return Colors.green.shade700;
-      case BookingStatus.rejected:
-        return Colors.orange.shade700;
-      case BookingStatus.completed:
-        return kBlue;
-      case BookingStatus.cancelled:
-        return const Color(0xFFE02850);
-    }
   }
 }
 

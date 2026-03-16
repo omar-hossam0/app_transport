@@ -1,10 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'transit_trip_detail_page.dart';
-import '../models/trip_model.dart';
-import '../services/trip_service.dart';
 
 // ── Brand colours ─────────────────────────────────────────────────────────
 const _kDark = Color(0xFF1A1A2E);
@@ -962,10 +959,6 @@ class _TransitTripsPageState extends State<TransitTripsPage>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..forward();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TripService>().loadTrips();
-    });
   }
 
   @override
@@ -974,20 +967,18 @@ class _TransitTripsPageState extends State<TransitTripsPage>
     super.dispose();
   }
 
-  List<TripModel> _filteredTrips(List<TripModel> trips) {
+  List<TransitTrip> get _filtered {
     switch (_filterIndex) {
       case 1:
-        return trips.where((t) => t.durationMinutes <= 240).toList();
+        return transitTrips.where((t) => t.durationHours <= 4).toList();
       case 2:
-        return trips
-            .where(
-              (t) => t.durationMinutes > 240 && t.durationMinutes <= 480,
-            )
+        return transitTrips
+            .where((t) => t.durationHours > 4 && t.durationHours <= 8)
             .toList();
       case 3:
-        return trips.where((t) => t.durationMinutes > 480).toList();
+        return transitTrips.where((t) => t.durationHours > 8).toList();
       default:
-        return trips;
+        return transitTrips;
     }
   }
 
@@ -1013,7 +1004,7 @@ class _TransitTripsPageState extends State<TransitTripsPage>
     );
   }
 
-  void _openDetail(TripModel trip) {
+  void _openDetail(TransitTrip trip) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 520),
@@ -1036,10 +1027,7 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final tripService = context.watch<TripService>();
-    final trips = _filteredTrips(
-      tripService.activeTrips.where((t) => t.isTransit).toList(),
-    );
+    final trips = _filtered;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -1332,7 +1320,7 @@ class _TransitTripsPageState extends State<TransitTripsPage>
 //  Timeline Row Widget
 // ═════════════════════════════════════════════════════════════════════════════
 class _TimelineRow extends StatelessWidget {
-  final TripModel trip;
+  final TransitTrip trip;
   final bool isLast;
   final int index;
   final VoidCallback onTap;
@@ -1347,9 +1335,9 @@ class _TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Duration badge color
-    final durColor = trip.durationMinutes <= 240
+    final durColor = trip.durationHours <= 4
         ? const Color(0xFF0D7377)
-      : trip.durationMinutes <= 480
+        : trip.durationHours <= 8
         ? kBlue
         : const Color(0xFFE02850);
 
@@ -1636,7 +1624,7 @@ class _TimelineRow extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      trip.durationLabel,
+                                      '${trip.durationHours} Hours',
                                       style: roboto(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,

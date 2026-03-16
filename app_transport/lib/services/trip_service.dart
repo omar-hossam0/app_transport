@@ -33,6 +33,13 @@ class TripService extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint('[TripService] Load error: $e');
+      if (_trips.isEmpty) {
+        _trips
+          ..clear()
+          ..addAll(defaultTrips)
+          ..sort((a, b) => a.name.compareTo(b.name));
+        debugPrint('[TripService] Using local default trips fallback.');
+      }
     }
 
     _isLoading = false;

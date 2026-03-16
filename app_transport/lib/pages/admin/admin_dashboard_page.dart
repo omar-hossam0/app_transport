@@ -366,16 +366,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () => _confirmReseedTrips(context),
-                icon: const Icon(Icons.restore_rounded, size: 18),
-                label: Text('Restore Default Trips', style: roboto(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
                 onPressed: () => _openTripEditor(context),
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: Text('Add Trip', style: roboto(fontSize: 12)),
@@ -588,55 +578,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         },
       ),
     );
-  }
-
-  Future<void> _confirmReseedTrips(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Restore Default Trips?', style: roboto(fontWeight: FontWeight.w700)),
-        content: Text(
-          'This will re-add all the default flying and transit trips to the catalog.\n\n'
-          'Any existing trips with the same IDs will be overwritten, but trips you added manually will remain.',
-          style: roboto(color: Colors.grey.shade600),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: roboto()),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text('Restore', style: roboto(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (ok == true && mounted) {
-      try {
-        await context.read<TripService>().reseedDefaultTrips();
-        await context.read<TripService>().reloadTrips();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ Default trips restored successfully!', style: roboto()),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Failed to restore trips: $e', style: roboto()),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
   }
 
   Future<void> _confirmDeleteTrip(BuildContext context, TripModel trip) async {

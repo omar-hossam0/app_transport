@@ -1,10 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
-import '../models/trip_model.dart';
-import '../services/trip_service.dart';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -381,10 +378,6 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..forward();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TripService>().loadTrips();
-    });
   }
 
   @override
@@ -418,7 +411,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     );
   }
 
-  void _openDetail(TripModel trip) {
+  void _openDetail(FlyingTaxiTrip trip) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 550),
@@ -440,9 +433,6 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final topPad = mq.padding.top;
     final w = mq.size.width;
     final h = mq.size.height;
-    final tripService = context.watch<TripService>();
-    final trips =
-        tripService.activeTrips.where((t) => t.isFlying).toList();
 
     // ── Responsive values tuned for Samsung M31 (411×891 lp) ──
     final hPad = (w * 0.053).clamp(16.0, 28.0); // ~22 on M31
@@ -531,39 +521,30 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
               // ── Grid ─────────────────────────────────────────────────
-              trips.isEmpty
-                  ? SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          'No flying trips available yet',
-                          style: roboto(color: Colors.grey.shade500),
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: gridMainSpacing,
+                    crossAxisSpacing: gridSpacing,
+                    childAspectRatio: aspectRatio,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, i) {
+                    final trip = flyingTrips[i];
+                    return FadeTransition(
+                      opacity: _fade(i),
+                      child: SlideTransition(
+                        position: _slide(i),
+                        child: _FlyingTripCard(
+                          trip: trip,
+                          onTap: () => _openDetail(trip),
                         ),
                       ),
-                    )
-                  : SliverPadding(
-                      padding: EdgeInsets.symmetric(horizontal: hPad),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: gridMainSpacing,
-                          crossAxisSpacing: gridSpacing,
-                          childAspectRatio: aspectRatio,
-                        ),
-                        delegate: SliverChildBuilderDelegate((context, i) {
-                          final trip = trips[i];
-                          return FadeTransition(
-                            opacity: _fade(i),
-                            child: SlideTransition(
-                              position: _slide(i),
-                              child: _FlyingTripCard(
-                                trip: trip,
-                                onTap: () => _openDetail(trip),
-                              ),
-                            ),
-                          );
-                        }, childCount: trips.length),
-                      ),
-                    ),
+                    );
+                  }, childCount: flyingTrips.length),
+                ),
+              ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 28)),
             ],
@@ -578,7 +559,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 //  Individual trip card (matches reference image style)
 // ═════════════════════════════════════════════════════════════════════════════
 class _FlyingTripCard extends StatelessWidget {
-  final TripModel trip;
+  final FlyingTaxiTrip trip;
   final VoidCallback onTap;
   const _FlyingTripCard({required this.trip, required this.onTap});
 
@@ -628,8 +609,8 @@ class _FlyingTripCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              trip.accentColor,
-                              trip.accentColor.withValues(alpha: 0.6),
+                              trip.cardColor,
+                              trip.cardColor.withValues(alpha: 0.6),
                             ],
                             begin: Alignment.bottomLeft,
                             end: Alignment.topRight,
@@ -648,8 +629,8 @@ class _FlyingTripCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              trip.accentColor,
-                              trip.accentColor.withValues(alpha: 0.6),
+                              trip.cardColor,
+                              trip.cardColor.withValues(alpha: 0.6),
                             ],
                             begin: Alignment.bottomLeft,
                             end: Alignment.topRight,
@@ -657,7 +638,7 @@ class _FlyingTripCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Icon(
-                            Icons.flight_rounded,
+                            trip.icon,
                             color: Colors.white.withValues(alpha: 0.30),
                             size: 52,
                           ),
@@ -773,7 +754,7 @@ class _FlyingTripCard extends StatelessWidget {
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
-                            trip.locationLabel,
+                            'مطار القاهرة الدولي',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: roboto(
