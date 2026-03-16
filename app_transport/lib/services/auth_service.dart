@@ -594,7 +594,9 @@ class AuthService extends ChangeNotifier {
       if (!kIsWeb &&
           defaultTargetPlatform != TargetPlatform.android &&
           defaultTargetPlatform != TargetPlatform.iOS) {
-        _setError('Facebook sign in is supported on Android, iOS, and Web only');
+        _setError(
+          'Facebook sign in is supported on Android, iOS, and Web only',
+        );
         return false;
       }
 
@@ -615,7 +617,8 @@ class AuthService extends ChangeNotifier {
           return false;
         }
 
-        if (result.status != LoginStatus.success || result.accessToken == null) {
+        if (result.status != LoginStatus.success ||
+            result.accessToken == null) {
           _setError(result.message ?? 'Facebook sign in failed');
           return false;
         }
@@ -703,7 +706,8 @@ class AuthService extends ChangeNotifier {
       return false;
     } catch (e) {
       final raw = e.toString();
-      if (_looksLikeAuthConfigError(raw) || _looksLikeFacebookConfigError(raw)) {
+      if (_looksLikeAuthConfigError(raw) ||
+          _looksLikeFacebookConfigError(raw)) {
         _setError(_facebookAuthSetupMessage());
       } else {
         _setError('Facebook sign in failed: $e');
@@ -1093,11 +1097,11 @@ class AuthService extends ChangeNotifier {
 
   String _googleAuthSetupMessage() {
     return 'Google sign-in is not fully configured.\n\n'
-      'Required steps in Firebase:\n'
-      '1) Authentication > Sign-in method > Enable Google\n'
-      '2) Project settings > Your Android app > Add SHA-1 and SHA-256\n'
-      '3) Download the updated google-services.json and replace android/app/google-services.json\n\n'
-      'Then run: flutter clean ; flutter pub get ; flutter run';
+        'Required steps in Firebase:\n'
+        '1) Authentication > Sign-in method > Enable Google\n'
+        '2) Project settings > Your Android app > Add SHA-1 and SHA-256\n'
+        '3) Download the updated google-services.json and replace android/app/google-services.json\n\n'
+        'Then run: flutter clean ; flutter pub get ; flutter run';
   }
 
   Future<bool> _emailExistsInDatabase(String email) async {
