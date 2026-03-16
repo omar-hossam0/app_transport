@@ -248,17 +248,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             transitionBuilder: (child, animation) {
               return ScaleTransition(
                 scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
                 ),
                 child: FadeTransition(
                   opacity: animation,
                   child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.08, 0),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                    ),
+                    position:
+                        Tween<Offset>(
+                          begin: const Offset(0.08, 0),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
                     child: child,
                   ),
                 ),
@@ -279,7 +286,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ProfilePage(
                   onLogout: () {
                     if (!mounted) return;
-                    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const SignInPage()),
                       (_) => false,
                     );
@@ -789,22 +799,14 @@ class _NavItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 24,
-            color: active
-                ? kBlue
-                : Colors.grey.shade400,
-          ),
+          Icon(icon, size: 24, color: active ? kBlue : Colors.grey.shade400),
           const SizedBox(height: 4),
           Text(
             label,
             style: roboto(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: active
-                  ? kBlue
-                  : Colors.grey.shade500,
+              color: active ? kBlue : Colors.grey.shade500,
             ),
           ),
         ],
@@ -892,12 +894,16 @@ class _TripCard extends StatelessWidget {
               child: FadeTransition(
                 opacity: animation,
                 child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.12, 0),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                  ),
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(0.12, 0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
                   child: child,
                 ),
               ),
@@ -922,12 +928,16 @@ class _TripCard extends StatelessWidget {
               child: FadeTransition(
                 opacity: animation,
                 child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.12, 0),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                  ),
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(0.12, 0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
                   child: child,
                 ),
               ),

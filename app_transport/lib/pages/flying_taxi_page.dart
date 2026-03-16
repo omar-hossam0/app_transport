@@ -423,14 +423,18 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
               CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
             ),
             child: FadeTransition(
-              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+              opacity: CurvedAnimation(
+                parent: anim,
+                curve: Curves.easeOutCubic,
+              ),
               child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.12, 0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-                ),
+                position:
+                    Tween<Offset>(
+                      begin: const Offset(0.12, 0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                    ),
                 child: child,
               ),
             ),
