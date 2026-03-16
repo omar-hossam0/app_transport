@@ -283,7 +283,7 @@ class _SignUpPageState extends State<SignUpPage>
                                 Consumer<AuthService>(
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
-                                        label: authService.isLoading
+                                      label: authService.isLoading
                                           ? 'Sign Up...'
                                           : 'Sign up',
                                       onTap: authService.isLoading
