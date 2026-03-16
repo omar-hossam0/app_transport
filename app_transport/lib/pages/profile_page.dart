@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
+import 'sign_in_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/booking_service.dart';
@@ -394,6 +395,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _showSettingsSnack() => _snack('Settings page coming soon');
 
+  void _goToSignInAfterLogout() {
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignInPage()),
+      (_) => false,
+    );
+  }
+
   // ── Edit Profile ───────────────────────────────────────────────────────────
   void _showEditProfile() {
     final nameCtrl = TextEditingController(text: _name);
@@ -460,8 +469,12 @@ class _ProfilePageState extends State<ProfilePage> {
           await auth.signOut();
 
           if (!mounted) return;
-          Navigator.pop(ctx);
-          if (widget.onLogout != null) widget.onLogout!();
+
+          // Navigate directly to sign in
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const SignInPage()),
+            (_) => false,
+          );
         },
       ),
     );
@@ -488,13 +501,16 @@ class _ProfilePageState extends State<ProfilePage> {
           favorites.clearFavorites();
           bookings.clearBookings();
 
-          // Then sign out
+          // Sign out
           await auth.signOut();
 
-          if (mounted) {
-            Navigator.pop(ctx);
-            if (widget.onLogout != null) widget.onLogout!();
-          }
+          if (!mounted) return;
+
+          // Pop the bottom sheet and navigate directly to sign in
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const SignInPage()),
+            (_) => false,
+          );
         },
       ),
     );

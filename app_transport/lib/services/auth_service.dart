@@ -837,6 +837,7 @@ class AuthService extends ChangeNotifier {
   // ─────────────────────────────────────────────────
 
   Future<bool> signOut() async {
+    bool firebaseSignOutOk = true;
     try {
       if (!kIsWeb) {
         try {
@@ -850,17 +851,39 @@ class AuthService extends ChangeNotifier {
           // Best effort: keep Firebase sign out successful even if Facebook cache fails.
         }
       }
-      await _auth.signOut();
+
+      try {
+        await _auth.signOut();
+      } catch (e) {
+        firebaseSignOutOk = false;
+        debugPrint('[Auth] Firebase signOut failed: $e');
+      }
+
       await _clearSession();
       _currentUser = null;
       _needsEmailVerification = false;
       _pendingVerificationEmail = null;
       _errorMessage = null;
       notifyListeners();
-      debugPrint('[Auth] 👋 Signed out');
-      return true;
+
+      if (firebaseSignOutOk) {
+        debugPrint('[Auth] 👋 Signed out');
+      } else {
+        debugPrint('[Auth] 👋 Signed out locally (Firebase signOut had an issue)');
+      }
+
+      return firebaseSignOutOk;
     } catch (e) {
       debugPrint('[Auth] Error signing out: $e');
+
+      // Fallback: never keep local session active after explicit logout request.
+      await _clearSession();
+      _currentUser = null;
+      _needsEmailVerification = false;
+      _pendingVerificationEmail = null;
+      _errorMessage = null;
+      notifyListeners();
+
       return false;
     }
   }

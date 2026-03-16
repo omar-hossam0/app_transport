@@ -10,6 +10,7 @@ import 'trip_detail_page.dart';
 import 'my_bookings_page.dart';
 import 'chatbot_page.dart';
 import 'profile_page.dart';
+import 'sign_in_page.dart';
 import 'services_page.dart';
 import 'places_page.dart';
 import '../services/auth_service.dart';
@@ -226,6 +227,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // ── build ──────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    if (auth.currentUser == null) {
+      return const SignInPage();
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -250,7 +256,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 controller: _chatController,
                 onBack: () => setState(() => _navIndex = 0),
               ), // 4
-              ProfilePage(onLogout: () => setState(() => _navIndex = 0)), // 5
+              ProfilePage(
+                onLogout: () {
+                  if (!mounted) return;
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const SignInPage()),
+                    (_) => false,
+                  );
+                },
+              ), // 5
               const ServicesPage(), // 6
               const PlacesPage(), // 7
             ],
