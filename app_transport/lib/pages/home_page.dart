@@ -600,6 +600,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       (Icons.person_outline_rounded, 'Profile', 5),
     ];
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final availableWidth = screenWidth - 48; // horizontal outer padding
+    final slotWidth = (availableWidth - 20) / items.length; // inner nav padding
+    final showLabels = slotWidth >= 86;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
@@ -627,16 +632,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: List.generate(items.length, (i) {
                     final active = i == _navIndex;
                     final icon = items[i].$1;
                     final label = items[i].$2;
-                    return _NavItem(
-                      icon: icon,
-                      label: label,
-                      active: active,
-                      onTap: () => setState(() => _navIndex = i),
+                    return Expanded(
+                      child: _NavItem(
+                        icon: icon,
+                        label: label,
+                        active: active,
+                        showLabel: active && showLabels,
+                        onTap: () => setState(() => _navIndex = i),
+                      ),
                     );
                   }),
                 ),
@@ -656,12 +664,14 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final bool showLabel;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.active,
+    required this.showLabel,
     required this.onTap,
   });
 
@@ -674,7 +684,8 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOutCubic,
         height: 44,
-        padding: EdgeInsets.symmetric(horizontal: active ? 15 : 10),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: EdgeInsets.symmetric(horizontal: showLabel ? 10 : 0),
         decoration: BoxDecoration(
           gradient: active
               ? const LinearGradient(
@@ -696,12 +707,12 @@ class _NavItem extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 22,
+              size: 21,
               color: active
                   ? Colors.white
                   : Colors.white.withValues(alpha: 0.52),
@@ -710,11 +721,11 @@ class _NavItem extends StatelessWidget {
             ClipRect(
               child: AnimatedAlign(
                 alignment: Alignment.centerLeft,
-                widthFactor: active ? 1.0 : 0.0,
+                widthFactor: showLabel ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 350),
                 curve: Curves.easeInOutCubic,
                 child: AnimatedOpacity(
-                  opacity: active ? 1.0 : 0.0,
+                  opacity: showLabel ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 220),
                   child: Padding(
                     padding: const EdgeInsets.only(left: 7),

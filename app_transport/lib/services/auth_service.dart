@@ -99,8 +99,8 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _ensureAdminSeed() async {
     try {
-      const adminEmail = 'omarad@gmail.com';
-      const adminPassword = 'omar1234';
+      const adminEmail = 'omaradmin@gmail.com';
+      const adminPassword = '123456';
       const adminName = 'Omar Admin';
 
       final emailKey = _encodeEmail(adminEmail);
@@ -179,7 +179,7 @@ class AuthService extends ChangeNotifier {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
         _currentUser = UserModel.fromMap(data);
         notifyListeners();
-        debugPrint('[Auth] ✅ Session restored for: ${_currentUser!.email}');
+        debugPrint('[Auth] Session restored for: ${_currentUser!.email}');
       }
     } catch (e) {
       debugPrint('[Auth] Error loading user: $e');
@@ -288,7 +288,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
 
       debugPrint(
-        '[Auth] ✅ Sign up successful (verification required): $trimmedEmail',
+        '[Auth] Sign up successful (verification required): $trimmedEmail',
       );
       return true;
     } on fb_auth.FirebaseAuthException catch (e) {
@@ -378,7 +378,7 @@ class AuthService extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      debugPrint('[Auth] ✅ Sign in successful: $trimmedEmail');
+      debugPrint('[Auth] Sign in successful: $trimmedEmail');
       return true;
     } on fb_auth.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
@@ -582,7 +582,7 @@ class AuthService extends ChangeNotifier {
     _errorMessage = message;
     _isLoading = false;
     notifyListeners();
-    debugPrint('[Auth] ❌ Error: $message');
+    debugPrint('[Auth] Error: $message');
   }
 
   void clearError() {
@@ -664,9 +664,9 @@ class AuthService extends ChangeNotifier {
   }
 
   String _authSetupMessage() {
-    return '⚠️ إعداد Authentication غير مكتمل في Firebase.\n\n'
-        'فعّل Email/Password من:\n'
-        'Firebase Console > Authentication > Sign-in method\n\n'
-        'وتأكد من Authorized domains (أضف localhost).';
+    return 'Authentication setup is incomplete in Firebase.\n\n'
+      'Enable Email/Password in:\n'
+      'Firebase Console > Authentication > Sign-in method\n\n'
+      'Also verify Authorized domains include localhost.';
   }
 }

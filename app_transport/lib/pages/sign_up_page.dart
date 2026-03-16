@@ -94,7 +94,7 @@ class _SignUpPageState extends State<SignUpPage>
     if (!mounted) return;
 
     if (success) {
-      _showSuccessSnackBar(authService.errorMessage ?? 'Account created! ✨');
+      _showSuccessSnackBar(authService.errorMessage ?? 'Account created!');
       Future.delayed(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
@@ -283,8 +283,8 @@ class _SignUpPageState extends State<SignUpPage>
                                 Consumer<AuthService>(
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
-                                      label: authService.isLoading
-                                          ? 'Creating account...'
+                                        label: authService.isLoading
+                                          ? 'Sign Up...'
                                           : 'Sign up',
                                       onTap: authService.isLoading
                                           ? () {}

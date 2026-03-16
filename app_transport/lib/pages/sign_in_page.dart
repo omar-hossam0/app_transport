@@ -92,7 +92,7 @@ class _SignInPageState extends State<SignInPage>
       if (user != null) {
         await context.read<NotificationService>().registerForUser(user.uid);
       }
-      _showSuccessSnackBar('Welcome back! 🎉');
+      _showSuccessSnackBar('Welcome back!');
       Future.delayed(
         const Duration(milliseconds: 500),
         () => _goToHome(isAdmin: user?.isAdmin == true),
@@ -245,8 +245,8 @@ class _SignInPageState extends State<SignInPage>
                                 Consumer<AuthService>(
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
-                                      label: authService.isLoading
-                                          ? 'Signing in...'
+                                        label: authService.isLoading
+                                          ? 'Sign In...'
                                           : 'Sign In',
                                       onTap: authService.isLoading
                                           ? () {}
