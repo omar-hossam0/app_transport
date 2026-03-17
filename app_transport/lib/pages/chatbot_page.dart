@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'auth_widgets.dart';
 import '../config.dart';
+import '../services/smooth_navigation.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
@@ -147,29 +148,10 @@ void showChatBot(BuildContext context) {
 
 // ── Full-page chatbot route with slide-up animation ────────────────────────
 void openChatBotFullPage(BuildContext context) {
-  Navigator.of(context).push(
-    PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 500),
-      reverseTransitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          const ChatBotPage(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(curved),
-          child: FadeTransition(
-            opacity: Tween<double>(begin: 0.5, end: 1.0).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    ),
+  SmoothNavigation.slideUp(
+    context,
+    (context) => const ChatBotPage(),
+    routeName: 'chatbot_fullpage',
   );
 }
 

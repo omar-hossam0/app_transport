@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'auth_widgets.dart';
 import 'chatbot_page.dart';
 import 'transit_trip_detail_page.dart';
+import '../services/smooth_navigation.dart';
 
 // ── Brand colours ─────────────────────────────────────────────────────────
 const _kDark = Color(0xFF1A1A2E);
@@ -1243,45 +1244,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   child: GestureDetector(
                     onTap: () {
-                      Navigator.push(
+                      SmoothNavigation.zoomIn(
                         context,
-                        PageRouteBuilder(
-                          pageBuilder:
-                              (context, animation, secondaryAnimation) =>
-                                  const ChatBotPage(),
-                          transitionsBuilder:
-                              (context, animation, secondaryAnimation, child) {
-                                return ScaleTransition(
-                                  scale: Tween<double>(begin: 0.92, end: 1.0)
-                                      .animate(
-                                        CurvedAnimation(
-                                          parent: animation,
-                                          curve: Curves.easeOutCubic,
-                                        ),
-                                      ),
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position:
-                                          Tween<Offset>(
-                                            begin: const Offset(0.12, 0),
-                                            end: Offset.zero,
-                                          ).animate(
-                                            CurvedAnimation(
-                                              parent: animation,
-                                              curve: Curves.easeOutCubic,
-                                            ),
-                                          ),
-                                      child: child,
-                                    ),
-                                  ),
-                                );
-                              },
-                          transitionDuration: const Duration(milliseconds: 500),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 350,
-                          ),
-                        ),
+                        (context) => const ChatBotPage(),
+                        routeName: 'chatbot_transit',
                       );
                     },
                     child: Container(

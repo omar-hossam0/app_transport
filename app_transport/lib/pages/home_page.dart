@@ -17,6 +17,7 @@ import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/trip_service.dart';
 import '../services/notification_service.dart';
+import '../services/smooth_navigation.dart';
 import '../models/trip_model.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _navIndex = 0;
+  final _pageController = PageController(initialPage: 0);
   final _chatController = ChatBotController();
   final _searchController = TextEditingController();
 
@@ -153,6 +155,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _searchController.dispose();
+    _pageController.dispose();
     _entranceCtrl.dispose();
     super.dispose();
   }
@@ -162,11 +165,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     child: SlideTransition(position: _slideAnims[index], child: child),
   );
 
+  void _switchTab(int index) {
+    if (index == _navIndex) return;
+    setState(() => _navIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _openChatWithMessage(String message) {
     final text = message.trim();
     if (text.isEmpty) return;
 
-    setState(() => _navIndex = 4);
+    _switchTab(4);
     Future.delayed(const Duration(milliseconds: 350), () {
       _chatController.send(text);
     });
@@ -231,7 +244,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _navIndex != 0) {
-          setState(() => _navIndex = 0);
+          _switchTab(0);
         }
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -240,65 +253,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         child: Scaffold(
           extendBody: true,
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            reverseDuration: const Duration(milliseconds: 350),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) {
-              return ScaleTransition(
-                scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  ),
-                ),
-                child: FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position:
-                        Tween<Offset>(
-                          begin: const Offset(0.08, 0),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          ),
-                        ),
-                    child: child,
-                  ),
-                ),
-              );
+          body: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (index) {
+              if (_navIndex != index) {
+                setState(() => _navIndex = index);
+              }
             },
-            child: IndexedStack(
-              key: ValueKey<int>(_navIndex),
-              index: _navIndex,
-              children: [
-                _buildHomeContent(), // 0
-                const FlyingTaxiPage(), // 1
-                const TransitTripsPage(), // 2
-                const MyBookingsPage(), // 3
-                ChatBotPage(
-                  controller: _chatController,
-                  onBack: () => setState(() => _navIndex = 0),
-                ), // 4
-                ProfilePage(
-                  onLogout: () {
-                    if (!mounted) return;
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const SignInPage()),
-                      (_) => false,
-                    );
-                  },
-                ), // 5
-                const ServicesPage(), // 6
-                const PlacesPage(), // 7
-              ],
-            ),
+            children: [
+              _buildHomeContent(), // 0
+              const FlyingTaxiPage(), // 1
+              const TransitTripsPage(), // 2
+              const MyBookingsPage(), // 3
+              ChatBotPage(
+                controller: _chatController,
+                onBack: () => _switchTab(0),
+              ), // 4
+              ProfilePage(
+                onLogout: () {
+                  if (!mounted) return;
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const SignInPage()),
+                    (_) => false,
+                  );
+                },
+              ), // 5
+              const ServicesPage(), // 6
+              const PlacesPage(), // 7
+            ],
           ),
           bottomNavigationBar: _buildBottomNav(),
         ),
@@ -348,72 +331,79 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Row(
-        children: [
-          // Greeting + title on the left
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Consumer<AuthService>(
-                  builder: (context, auth, _) {
-                    final name = auth.currentUser?.name ?? 'Traveler';
-                    return Text(
-                      'Hi, $name',
-                      style: roboto(
-                        fontSize: 12,
-                        color: kLightBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "Let's Enjoy\nYour Vacation!",
-                  style: roboto(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
+      child: SizedBox(
+        height: 124,
+        child: Row(
+          children: [
+            // Greeting + title on the left
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Consumer<AuthService>(
+                    builder: (context, auth, _) {
+                      final name = auth.currentUser?.name ?? 'Traveler';
+                      return Text(
+                        'Hi, $name',
+                        style: roboto(
+                          fontSize: 12,
+                          color: kLightBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Logo in the center
-          Image.asset(
-            'img/logo_new.png',
-            width: 100,
-            height: 100,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 14),
-          // Profile avatar on the right
-          GestureDetector(
-            onTap: () => setState(() => _navIndex = 5),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
-                boxShadow: [
-                  BoxShadow(
-                    color: kBlue.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Let's Enjoy\nYour Vacation!",
+                    style: roboto(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 24,
+            ),
+            const SizedBox(width: 12),
+            // Logo exactly between left content and avatar
+            Transform.scale(
+              scale: 1.2,
+              child: Image.asset(
+                'img/logo_new.png',
+                width: 138,
+                height: 138,
+                fit: BoxFit.contain,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            // Profile avatar on the right
+            GestureDetector(
+              onTap: () => setState(() => _navIndex = 5),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kBlue.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -762,7 +752,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 label: label,
                 active: active,
                 showLabel: true,
-                onTap: () => setState(() => _navIndex = i),
+                onTap: () => _switchTab(i),
               );
             }),
           ),
@@ -881,71 +871,19 @@ class _TripCard extends StatelessWidget {
   void _open(BuildContext context) {
     if (trip.isFlying) {
       final flyingTrip = _toFlyingTaxiTrip(trip);
-      Navigator.push(
+      SmoothNavigation.slideRight(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              TripDetailPage(trip: flyingTrip),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return ScaleTransition(
-              scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              ),
-              child: FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position:
-                      Tween<Offset>(
-                        begin: const Offset(0.12, 0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
-                      ),
-                  child: child,
-                ),
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-          reverseTransitionDuration: const Duration(milliseconds: 350),
-        ),
+        (context) => TripDetailPage(trip: flyingTrip),
+        routeName: 'trip_detail_flying',
+        duration: const Duration(milliseconds: 450),
       );
     } else {
       final transitTrip = _toTransitTrip(trip);
-      Navigator.push(
+      SmoothNavigation.slideRight(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              TransitTripDetailPage(trip: transitTrip),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return ScaleTransition(
-              scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              ),
-              child: FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position:
-                      Tween<Offset>(
-                        begin: const Offset(0.12, 0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
-                      ),
-                  child: child,
-                ),
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-          reverseTransitionDuration: const Duration(milliseconds: 350),
-        ),
+        (context) => TransitTripDetailPage(trip: transitTrip),
+        routeName: 'trip_detail_transit',
+        duration: const Duration(milliseconds: 450),
       );
     }
   }
