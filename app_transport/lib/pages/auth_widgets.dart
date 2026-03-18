@@ -5,6 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 // ── Brand colours ────────────────────────────────────────────────────────────
 const kBlue = Color(0xFF187BCD);
 const kLightBlue = Color(0xFF5BC0EB);
+const kAuthHeaderEdgeBlue = Color(0xFF072F5D);
+const kSignHeaderImageProvider = ResizeImage(
+  AssetImage('img/sign.png'),
+  width: 1200,
+);
 
 // ── Helper: Roboto TextStyle shortcut ────────────────────────────────────────
 TextStyle roboto({
@@ -144,10 +149,7 @@ class AuthOrDivider extends StatelessWidget {
 class AuthSocialRow extends StatelessWidget {
   final VoidCallback onGoogleTap;
 
-  const AuthSocialRow({
-    super.key,
-    required this.onGoogleTap,
-  });
+  const AuthSocialRow({super.key, required this.onGoogleTap});
 
   @override
   Widget build(BuildContext context) {
@@ -231,18 +233,15 @@ class AuthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
     final screenH = MediaQuery.of(context).size.height;
-    final screenW = MediaQuery.of(context).size.width;
     // Responsive header: 36% of screen height on small phones, 32% on large
     final headerH = screenH * (screenH < 700 ? 0.38 : 0.34) + topPad;
-    // Logo takes ~55% of the available area width, centered
-    final logoW = screenW * 0.55;
 
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [kBlue, kLightBlue],
+        image: DecorationImage(
+          image: kSignHeaderImageProvider,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
         ),
       ),
       height: headerH,
@@ -254,13 +253,6 @@ class AuthHeader extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxHeight < 320;
-          final effectiveLogoW = (logoW).clamp(
-            140.0,
-            constraints.maxWidth * 0.72,
-          );
-          final logoH = constraints.maxHeight * (compact ? 0.34 : 0.44);
-
           return Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -280,17 +272,6 @@ class AuthHeader extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  Flexible(
-                    child: Text(
-                      trailingText,
-                      overflow: TextOverflow.ellipsis,
-                      style: roboto(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.88),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: onActionTap,
                     child: Container(
@@ -303,7 +284,7 @@ class AuthHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        actionLabel,
+                        actionLabel.toUpperCase(),
                         style: roboto(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -313,17 +294,6 @@ class AuthHeader extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              SizedBox(height: compact ? 8 : 12),
-              Expanded(
-                child: Center(
-                  child: Image.asset(
-                    'img/logo_new.png',
-                    width: effectiveLogoW,
-                    height: logoH,
-                    fit: BoxFit.contain,
-                  ),
-                ),
               ),
             ],
           );

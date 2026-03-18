@@ -291,6 +291,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildHomeContent() {
     final topPad = MediaQuery.of(context).padding.top;
+    final hasSearchQuery = _searchController.text.trim().isNotEmpty;
     return Container(
       color: const Color(0xFFE8F4F8),
       child: SingleChildScrollView(
@@ -308,16 +309,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             _stagger(1, _buildSearchBar()),
             const SizedBox(height: 22),
 
-            // ── 2  AI Suggestions ───────────────────────────────
-            _stagger(2, _buildAiSuggestions()),
-            const SizedBox(height: 24),
+            if (!hasSearchQuery) ...[
+              // ── 2  AI Suggestions ───────────────────────────────
+              _stagger(2, _buildAiSuggestions()),
+              const SizedBox(height: 24),
 
-            // ── 3  Categories ───────────────────────────────────
-            _stagger(3, _buildCategories()),
-            const SizedBox(height: 26),
+              // ── 3  Categories ───────────────────────────────────
+              _stagger(3, _buildCategories()),
+              const SizedBox(height: 26),
 
-            // ── 4  Popular Trips ────────────────────────────────
-            _stagger(4, _buildPopularTrips()),
+              // ── 4  Popular Trips ────────────────────────────────
+              _stagger(4, _buildPopularTrips()),
+            ] else ...[
+              // While searching, show trips directly and hide AI suggestion cards.
+              _buildPopularTrips(),
+            ],
             const SizedBox(height: 96),
           ],
         ),
@@ -436,25 +442,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: TextField(
                 controller: _searchController,
                 textInputAction: TextInputAction.search,
-                onSubmitted: _openChatWithMessage,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) {
+                  setState(() {});
+                  FocusScope.of(context).unfocus();
+                },
                 style: roboto(fontSize: 13),
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: 'Search for trips, landmarks or services...',
+                  hintText: 'Search for trips...',
                   hintStyle: roboto(fontSize: 13, color: Colors.grey.shade400),
                 ),
               ),
             ),
             GestureDetector(
               onTap: () {
-                final q = _searchController.text.trim();
-                if (q.isNotEmpty) {
-                  _openChatWithMessage(q);
+                if (_searchController.text.trim().isNotEmpty) {
+                  _searchController.clear();
+                  setState(() {});
                 } else {
-                  _openChatWithMessage(
-                    'Suggest a great trip for Cairo transit and ask me for my available hours.',
-                  );
+                  FocusScope.of(context).unfocus();
                 }
               },
               child: Container(
@@ -465,7 +473,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   color: kBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(Icons.tune_rounded, color: kBlue, size: 18),
+                child: Icon(
+                  _searchController.text.trim().isNotEmpty
+                      ? Icons.close_rounded
+                      : Icons.search_rounded,
+                  color: kBlue,
+                  size: 18,
+                ),
               ),
             ),
           ],
@@ -645,7 +659,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildPopularTrips() {
     final tripService = context.watch<TripService>();
-    final popular = _selectPopularTrips(tripService.activeTrips);
+    final query = _searchController.text.trim();
+    final isSearching = query.isNotEmpty;
+    final tripsToShow = isSearching
+        ? _filterTrips(tripService.activeTrips, query)
+        : _selectPopularTrips(tripService.activeTrips);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -654,31 +673,46 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Row(
             children: [
               Text(
-                'Popular Trips',
+                isSearching ? 'Search Results' : 'Popular Trips',
                 style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () => _openTransitTrips(),
-                child: Text(
-                  'See All',
-                  style: roboto(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: kBlue,
+              if (!isSearching)
+                GestureDetector(
+                  onTap: () => _openTransitTrips(),
+                  child: Text(
+                    'See All',
+                    style: roboto(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: kBlue,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
+        if (isSearching)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 6, 22, 0),
+            child: Text(
+              'Results for "$query"',
+              style: roboto(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         const SizedBox(height: 16),
         // Grid two-column
-        popular.isEmpty
+        tripsToShow.isEmpty
             ? Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Text(
-                  'No trips available yet',
+                  isSearching
+                      ? 'No trips matched your search'
+                      : 'No trips available yet',
                   style: roboto(color: Colors.grey.shade500),
                 ),
               )
@@ -693,8 +727,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     crossAxisSpacing: 16,
                     childAspectRatio: 0.78,
                   ),
-                  itemCount: popular.length,
-                  itemBuilder: (context, i) => _TripCard(trip: popular[i]),
+                  itemCount: tripsToShow.length,
+                  itemBuilder: (context, i) => _TripCard(trip: tripsToShow[i]),
                 ),
               ),
       ],
@@ -709,6 +743,107 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     result.addAll(transit.take(2));
     result.addAll(flying.take(2));
     return result;
+  }
+
+  static const Map<String, List<String>> _searchSynonyms = {
+    'رحله': ['trip', 'tour', 'travel'],
+    'طيران': ['flying', 'flight', 'air'],
+    'تاكسي': ['taxi', 'flying'],
+    'ترانزيت': ['transit', 'layover', 'transfer'],
+    'خدمه': ['service', 'services'],
+    'اماكن': ['place', 'places', 'landmark', 'landmarks'],
+    'معالم': ['landmark', 'landmarks', 'sightseeing'],
+    'اهرامات': ['pyramids', 'giza'],
+    'القاهره': ['cairo'],
+    'جيزه': ['giza'],
+    'نيل': ['nile', 'cruise'],
+    'متحف': ['museum'],
+  };
+
+  String _normalizeSearchText(String text) {
+    var value = text.toLowerCase();
+
+    // Normalize common Arabic letter variants for more forgiving matching.
+    const replacements = {
+      'أ': 'ا',
+      'إ': 'ا',
+      'آ': 'ا',
+      'ى': 'ي',
+      'ة': 'ه',
+      'ؤ': 'و',
+      'ئ': 'ي',
+    };
+    replacements.forEach((from, to) {
+      value = value.replaceAll(from, to);
+    });
+
+    // Remove Arabic diacritics and tatweel.
+    value = value.replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '');
+    value = value.replaceAll(RegExp(r'[^a-z0-9\u0600-\u06FF\s]'), ' ');
+    value = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return value;
+  }
+
+  Set<String> _variantsForToken(String token) {
+    final variants = <String>{token};
+
+    final direct = _searchSynonyms[token];
+    if (direct != null) {
+      variants.addAll(direct.map(_normalizeSearchText));
+    }
+
+    // Also support reverse matching when user writes English and data/tags are Arabic.
+    for (final entry in _searchSynonyms.entries) {
+      final normalizedValues = entry.value.map(_normalizeSearchText);
+      if (normalizedValues.contains(token)) {
+        variants.add(entry.key);
+        variants.addAll(normalizedValues);
+      }
+    }
+
+    return variants.where((v) => v.isNotEmpty).toSet();
+  }
+
+  List<Set<String>> _buildSearchGroups(String query) {
+    final normalizedQuery = _normalizeSearchText(query);
+    if (normalizedQuery.isEmpty) return const [];
+
+    final tokens = normalizedQuery
+        .split(' ')
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    return tokens.map(_variantsForToken).toList();
+  }
+
+  List<TripModel> _filterTrips(List<TripModel> trips, String query) {
+    final groups = _buildSearchGroups(query);
+    if (groups.isEmpty) return trips;
+
+    return trips.where((trip) {
+      final searchableParts = <String>[
+        trip.name,
+        trip.shortDescription,
+        trip.description,
+        trip.routeLabel,
+        if (trip.isFlying) 'flying flight air taxi طيران تاكسي طائر جوي',
+        if (trip.isTransit)
+          'transit layover transfer bus ترانزيت انتقال مواصلات',
+        ...trip.included,
+        ...trip.itinerary.map((stop) => '${stop.title} ${stop.subtitle}'),
+      ];
+
+      final normalizedSearchable = _normalizeSearchText(
+        searchableParts.join(' '),
+      );
+
+      return groups.every(
+        (tokenVariants) => tokenVariants.any(
+          (variant) => normalizedSearchable.contains(variant),
+        ),
+      );
+    }).toList();
   }
 
   // ═══════════════════════════════════════════════════════════════════

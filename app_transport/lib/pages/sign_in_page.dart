@@ -20,6 +20,7 @@ class _SignInPageState extends State<SignInPage>
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _didPrecacheHeaderImage = false;
 
   late final AnimationController _animCtrl;
   late final Animation<Offset> _slideAnim;
@@ -38,6 +39,14 @@ class _SignInPageState extends State<SignInPage>
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.decelerate));
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _animCtrl.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecacheHeaderImage) return;
+    _didPrecacheHeaderImage = true;
+    precacheImage(kSignHeaderImageProvider, context);
   }
 
   @override
@@ -190,13 +199,13 @@ class _SignInPageState extends State<SignInPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBlue,
+      backgroundColor: kAuthHeaderEdgeBlue,
       body: Column(
         children: [
           // ── Gradient header ──────────────────────────────────────────
           AuthHeader(
             trailingText: "Don't have an account?",
-            actionLabel: 'Get Started',
+            actionLabel: 'Sign Up',
             onActionTap: _goToSignUp,
           ),
 
@@ -323,9 +332,7 @@ class _SignInPageState extends State<SignInPage>
                           children: [
                             const AuthOrDivider(label: 'Or sign in with'),
                             const SizedBox(height: 18),
-                            AuthSocialRow(
-                              onGoogleTap: _handleGoogleSignIn,
-                            ),
+                            AuthSocialRow(onGoogleTap: _handleGoogleSignIn),
                           ],
                         ),
                       ],

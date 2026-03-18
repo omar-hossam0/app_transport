@@ -21,6 +21,7 @@ class _SignUpPageState extends State<SignUpPage>
   final _nameCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _didPrecacheHeaderImage = false;
 
   late final AnimationController _animCtrl;
   late final Animation<Offset> _slideAnim;
@@ -62,6 +63,14 @@ class _SignUpPageState extends State<SignUpPage>
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.decelerate));
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _animCtrl.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecacheHeaderImage) return;
+    _didPrecacheHeaderImage = true;
+    precacheImage(kSignHeaderImageProvider, context);
   }
 
   @override
@@ -219,7 +228,7 @@ class _SignUpPageState extends State<SignUpPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBlue,
+      backgroundColor: kAuthHeaderEdgeBlue,
       body: Column(
         children: [
           // ── Gradient header ──────────────────────────────────────────
@@ -354,9 +363,7 @@ class _SignUpPageState extends State<SignUpPage>
                           children: [
                             const AuthOrDivider(label: 'Or sign up with'),
                             const SizedBox(height: 18),
-                            AuthSocialRow(
-                              onGoogleTap: _handleGoogleSignUp,
-                            ),
+                            AuthSocialRow(onGoogleTap: _handleGoogleSignUp),
                           ],
                         ),
                       ],
