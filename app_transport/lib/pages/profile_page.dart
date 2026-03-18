@@ -307,10 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
 
-                    const SizedBox(height: 22),
-
-                    // ── 8. Logout button ────────────────────────────────────
-                    _LogoutButton(onTap: () => _confirmLogout()),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -394,14 +391,6 @@ class _ProfilePageState extends State<ProfilePage> {
   );
 
   void _showSettingsSnack() => _snack('Settings page coming soon');
-
-  void _goToSignInAfterLogout() {
-    if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const SignInPage()),
-      (_) => false,
-    );
-  }
 
   // ── Edit Profile ───────────────────────────────────────────────────────────
   void _showEditProfile() {
@@ -1140,50 +1129,6 @@ class _PaymentCardTile extends StatelessWidget {
             child: Container(height: 1, color: const Color(0xFFF0F6FB)),
           ),
       ],
-    );
-  }
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-//  Logout Button
-// ═════════════════════════════════════════════════════════════════════════════
-class _LogoutButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _LogoutButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE02850).withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFE02850).withValues(alpha: 0.25),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.logout_rounded,
-              color: Color(0xFFE02850),
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Log Out',
-              style: roboto(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFE02850),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

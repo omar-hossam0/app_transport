@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
+import '../services/smooth_navigation.dart';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -412,18 +413,10 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
   }
 
   void _openDetail(FlyingTaxiTrip trip) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 550),
-        reverseTransitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (context, anim, secAnim) => TripDetailPage(trip: trip),
-        transitionsBuilder: (context, anim, secAnim, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: child,
-          );
-        },
-      ),
+    SmoothNavigation.slideRight(
+      context,
+      (context) => TripDetailPage(trip: trip),
+      routeName: 'flying_trip_detail',
     );
   }
 

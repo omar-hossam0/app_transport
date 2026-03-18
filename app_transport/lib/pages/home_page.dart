@@ -17,6 +17,7 @@ import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/trip_service.dart';
 import '../services/notification_service.dart';
+import '../services/smooth_navigation.dart';
 import '../models/trip_model.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _navIndex = 0;
+  final _pageController = PageController(initialPage: 0);
   final _chatController = ChatBotController();
   final _searchController = TextEditingController();
 
@@ -153,6 +155,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _searchController.dispose();
+    _pageController.dispose();
     _entranceCtrl.dispose();
     super.dispose();
   }
@@ -162,11 +165,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     child: SlideTransition(position: _slideAnims[index], child: child),
   );
 
+  void _switchTab(int index) {
+    if (index == _navIndex) return;
+    setState(() => _navIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _openChatWithMessage(String message) {
     final text = message.trim();
     if (text.isEmpty) return;
 
-    setState(() => _navIndex = 4);
+    _switchTab(4);
     Future.delayed(const Duration(milliseconds: 350), () {
       _chatController.send(text);
     });
@@ -231,7 +244,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _navIndex != 0) {
-          setState(() => _navIndex = 0);
+          _switchTab(0);
         }
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -240,8 +253,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         child: Scaffold(
           extendBody: true,
-          body: IndexedStack(
-            index: _navIndex,
+          body: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (index) {
+              if (_navIndex != index) {
+                setState(() => _navIndex = index);
+              }
+            },
             children: [
               _buildHomeContent(), // 0
               const FlyingTaxiPage(), // 1
@@ -249,7 +268,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               const MyBookingsPage(), // 3
               ChatBotPage(
                 controller: _chatController,
-                onBack: () => setState(() => _navIndex = 0),
+                onBack: () => _switchTab(0),
               ), // 4
               ProfilePage(
                 onLogout: () {
@@ -310,80 +329,81 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Header
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildHeader() {
-    final screenW = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Logo — centred, responsive width, proper contain
-          Center(
-            child: Image.asset(
-              'img/logo_new.png',
-              width: screenW * 0.42,
-              fit: BoxFit.contain,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              // Greeting + title
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Consumer<AuthService>(
-                      builder: (context, auth, _) {
-                        final name = auth.currentUser?.name ?? 'Traveler';
-                        return Text(
-                          'Hi, $name',
-                          style: roboto(
-                            fontSize: 14,
-                            color: kLightBlue,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
-                      },
+      child: SizedBox(
+        height: 124,
+        child: Row(
+          children: [
+            // Greeting + title on the left
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Consumer<AuthService>(
+                    builder: (context, auth, _) {
+                      final name = auth.currentUser?.name ?? 'Traveler';
+                      return Text(
+                        'Hi, $name',
+                        style: roboto(
+                          fontSize: 12,
+                          color: kLightBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Let's Enjoy\nYour Vacation!",
+                    style: roboto(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Let's Enjoy\nYour Vacation!",
-                      style: roboto(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        height: 1.25,
-                      ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Logo exactly between left content and avatar
+            Transform.scale(
+              scale: 1.2,
+              child: Image.asset(
+                'img/logo_new.png',
+                width: 138,
+                height: 138,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Profile avatar on the right
+            GestureDetector(
+              onTap: () => setState(() => _navIndex = 5),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kBlue.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ),
-              // Profile avatar
-              GestureDetector(
-                onTap: () => setState(() => _navIndex = 5),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
-                    boxShadow: [
-                      BoxShadow(
-                        color: kBlue.withValues(alpha: 0.25),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 24,
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -704,56 +724,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       (Icons.person_outline_rounded, 'Profile', 5),
     ];
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final availableWidth = screenWidth - 48; // horizontal outer padding
-    final slotWidth = (availableWidth - 20) / items.length; // inner nav padding
-    final showLabels = slotWidth >= 86;
-
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1226).withValues(alpha: 0.58),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.13),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 28,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F7),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(items.length, (i) {
-                    final active = i == _navIndex;
-                    final icon = items[i].$1;
-                    final label = items[i].$2;
-                    return Expanded(
-                      child: _NavItem(
-                        icon: icon,
-                        label: label,
-                        active: active,
-                        showLabel: active && showLabels,
-                        onTap: () => setState(() => _navIndex = i),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(items.length, (i) {
+              final active = i == _navIndex;
+              final icon = items[i].$1;
+              final label = items[i].$2;
+              return _NavItem(
+                icon: icon,
+                label: label,
+                active: active,
+                showLabel: true,
+                onTap: () => _switchTab(i),
+              );
+            }),
           ),
         ),
       ),
@@ -784,70 +785,21 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 380),
-        curve: Curves.easeInOutCubic,
-        height: 44,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: EdgeInsets.symmetric(horizontal: showLabel ? 10 : 0),
-        decoration: BoxDecoration(
-          gradient: active
-              ? const LinearGradient(
-                  colors: [Color(0xFF187BCD), Color(0xFF5BC0EB)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                )
-              : null,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF187BCD).withValues(alpha: 0.45),
-                    blurRadius: 16,
-                    offset: const Offset(0, 5),
-                  ),
-                ]
-              : null,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 21,
-              color: active
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.52),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 24, color: active ? kBlue : Colors.grey.shade400),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: roboto(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: active ? kBlue : Colors.grey.shade500,
             ),
-            // ── Animated label slide-in ──────────────────────────────
-            ClipRect(
-              child: AnimatedAlign(
-                alignment: Alignment.centerLeft,
-                widthFactor: showLabel ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeInOutCubic,
-                child: AnimatedOpacity(
-                  opacity: showLabel ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 220),
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 7),
-                    child: Text(
-                      label,
-                      style: roboto(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -919,17 +871,19 @@ class _TripCard extends StatelessWidget {
   void _open(BuildContext context) {
     if (trip.isFlying) {
       final flyingTrip = _toFlyingTaxiTrip(trip);
-      Navigator.push(
+      SmoothNavigation.slideRight(
         context,
-        MaterialPageRoute(builder: (_) => TripDetailPage(trip: flyingTrip)),
+        (context) => TripDetailPage(trip: flyingTrip),
+        routeName: 'trip_detail_flying',
+        duration: const Duration(milliseconds: 450),
       );
     } else {
       final transitTrip = _toTransitTrip(trip);
-      Navigator.push(
+      SmoothNavigation.slideRight(
         context,
-        MaterialPageRoute(
-          builder: (_) => TransitTripDetailPage(trip: transitTrip),
-        ),
+        (context) => TransitTripDetailPage(trip: transitTrip),
+        routeName: 'trip_detail_transit',
+        duration: const Duration(milliseconds: 450),
       );
     }
   }

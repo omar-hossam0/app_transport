@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'auth_widgets.dart';
 import '../config.dart';
+import '../services/smooth_navigation.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
@@ -148,29 +149,10 @@ void showChatBot(BuildContext context) {
 
 // ── Full-page chatbot route with slide-up animation ────────────────────────
 void openChatBotFullPage(BuildContext context) {
-  Navigator.of(context).push(
-    PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 500),
-      reverseTransitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          const ChatBotPage(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(curved),
-          child: FadeTransition(
-            opacity: Tween<double>(begin: 0.5, end: 1.0).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    ),
+  SmoothNavigation.slideUp(
+    context,
+    (context) => const ChatBotPage(),
+    routeName: 'chatbot_fullpage',
   );
 }
 
@@ -249,47 +231,34 @@ class _ChatBotPageState extends State<ChatBotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(_kChatBackgroundAsset),
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
+      backgroundColor: const Color(0xFFF5F8FC),
+      body: Column(
+        children: [
+          // Header with status bar padding
+          _Header(
+            onClose: widget.onBack ?? () => Navigator.pop(context),
+            fullPage: true,
           ),
-          color: Color(0xFFF5F5F5),
-        ),
-        child: Container(
-          color: Colors.white.withValues(alpha: 0.28),
-          child: Column(
-            children: [
-              // Header with status bar padding
-              _Header(
-                onClose: widget.onBack ?? () => Navigator.pop(context),
-                fullPage: true,
-              ),
-              // Chips
-              _ChipsRow(onChip: _send),
-              // Messages
-              Expanded(
-                child: ListView.builder(
-                  controller: _scroll,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                  itemCount: _msgs.length + (_typing ? 1 : 0),
-                  itemBuilder: (ctx, i) {
-                    if (_typing && i == _msgs.length) {
-                      return const _TypingBubble();
-                    }
-                    return _Bubble(msg: _msgs[i]);
-                  },
-                ),
-              ),
-              // Input
-              _InputBar(controller: _ctrl, onSend: _send),
-            ],
+          // Chips
+          _ChipsRow(onChip: _send),
+          // Messages
+          Expanded(
+            child: ListView.builder(
+              controller: _scroll,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              itemCount: _msgs.length + (_typing ? 1 : 0),
+              itemBuilder: (ctx, i) {
+                if (_typing && i == _msgs.length) {
+                  return const _TypingBubble();
+                }
+                return _Bubble(msg: _msgs[i]);
+              },
+            ),
           ),
-        ),
+          // Input
+          _InputBar(controller: _ctrl, onSend: _send),
+        ],
       ),
     );
   }
@@ -434,7 +403,12 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 class _Header extends StatelessWidget {
   final VoidCallback onClose;
   final bool fullPage;
-  const _Header({required this.onClose, this.fullPage = false});
+  final bool useBackStyle;
+  const _Header({
+    required this.onClose,
+    this.fullPage = false,
+    this.useBackStyle = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -525,19 +499,33 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Close
+          // Close / back
           GestureDetector(
             onTap: onClose,
             child: Container(
-              width: 36,
-              height: 36,
+              width: useBackStyle ? 44 : 36,
+              height: useBackStyle ? 44 : 36,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(10),
+                color: useBackStyle
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.18),
+                shape: useBackStyle ? BoxShape.circle : BoxShape.rectangle,
+                borderRadius: useBackStyle ? null : BorderRadius.circular(10),
+                boxShadow: useBackStyle
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
-              child: const Icon(
-                Icons.close_rounded,
-                color: Colors.white,
+              child: Icon(
+                useBackStyle
+                    ? Icons.arrow_back_ios_new_rounded
+                    : Icons.close_rounded,
+                color: useBackStyle ? const Color(0xFF1A1A2E) : Colors.white,
                 size: 18,
               ),
             ),

@@ -92,9 +92,46 @@ class PlacesPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Popular Places', style: roboto(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.10),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: Color(0xFF1A1A2E),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Popular Places',
+                    style: roboto(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  Text('Top tourist landmarks across Egypt', style: roboto(fontSize: 13, color: Colors.white.withValues(alpha: 0.85))),
+                  Text(
+                    'Top tourist landmarks across Egypt',
+                    style: roboto(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -102,73 +139,104 @@ class PlacesPage extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) {
-                  final p = _places[i];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+              delegate: SliverChildBuilderDelegate((ctx, i) {
+                final p = _places[i];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: p.$5.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: p.$5.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(p.$4, color: p.$5, size: 28),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(p.$1, style: roboto(fontSize: 14, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  Icon(Icons.place_rounded, size: 12, color: Colors.grey.shade400),
-                                  const SizedBox(width: 3),
-                                  Text(p.$2, style: roboto(fontSize: 11, color: Colors.grey.shade500)),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(p.$3, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                  style: roboto(fontSize: 12, color: Colors.grey.shade600, height: 1.4)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
+                        child: Icon(p.$4, color: p.$5, size: 28),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: p.$5.withValues(alpha: 0.10),
-                                borderRadius: BorderRadius.circular(10),
+                            Text(
+                              p.$1,
+                              style: roboto(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
                               ),
-                              child: Text(p.$6, style: roboto(fontSize: 11, fontWeight: FontWeight.w700, color: p.$5)),
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.place_rounded,
+                                  size: 12,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  p.$2,
+                                  style: roboto(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              p.$3,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: roboto(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                                height: 1.4,
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-                childCount: _places.length,
-              ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: p.$5.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              p.$6,
+                              style: roboto(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: p.$5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }, childCount: _places.length),
             ),
           ),
         ],

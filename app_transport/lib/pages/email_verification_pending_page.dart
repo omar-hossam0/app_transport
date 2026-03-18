@@ -109,94 +109,128 @@ class _EmailVerificationPendingPageState
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FC),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 460),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.07),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 74,
-                    height: 74,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [kBlue, kLightBlue],
+        child: Stack(
+          children: [
+            Positioned(
+              top: 10,
+              left: 16,
+              child: GestureDetector(
+                onTap: _backToSignIn,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.mark_email_read_outlined,
-                      color: Colors.white,
-                      size: 36,
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Verify Your Email',
-                    style: roboto(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1A2E),
-                    ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 18,
+                    color: Color(0xFF1A1A2E),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    pendingEmail == null || pendingEmail.isEmpty
-                        ? 'We sent a verification link to your inbox. Click it to verify your account.'
-                        : 'A verification link was sent to:\n$pendingEmail',
-                    textAlign: TextAlign.center,
-                    style: roboto(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  AuthGradientButton(
-                    label: 'I Verified, Continue',
-                    onTap: () => _checkVerification(),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: _resend,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: kBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                    ),
-                    child: Text(
-                      'Resend Verification Email',
-                      style: roboto(color: kBlue, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _backToSignIn,
-                    child: Text(
-                      'Use another account',
-                      style: roboto(color: Colors.grey.shade700),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.07),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 74,
+                        height: 74,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [kBlue, kLightBlue],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.mark_email_read_outlined,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Verify Your Email',
+                        style: roboto(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1A1A2E),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        pendingEmail == null || pendingEmail.isEmpty
+                            ? 'We sent a verification link to your inbox. Click it to verify your account.'
+                            : 'A verification link was sent to:\n$pendingEmail',
+                        textAlign: TextAlign.center,
+                        style: roboto(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      AuthGradientButton(
+                        label: 'I Verified, Continue',
+                        onTap: () => _checkVerification(),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton(
+                        onPressed: _resend,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          side: const BorderSide(color: kBlue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                        ),
+                        child: Text(
+                          'Resend Verification Email',
+                          style: roboto(
+                            color: kBlue,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _backToSignIn,
+                        child: Text(
+                          'Use another account',
+                          style: roboto(color: Colors.grey.shade700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
