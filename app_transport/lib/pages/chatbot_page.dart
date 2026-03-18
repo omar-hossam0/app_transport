@@ -15,6 +15,7 @@ class ChatBotController {
 // ── Groq AI service ────────────────────────────────────────────────────────
 const _kGroqApiKey = kGroqApiKey;
 const _kGroqModel = 'llama-3.3-70b-versatile';
+const _kChatBackgroundAsset = 'img/Background.png';
 
 const _kSystemPrompt = '''
 You are a friendly specialized digital assistant for App Transport, a tourism application dedicated to Egypt.
@@ -248,34 +249,47 @@ class _ChatBotPageState extends State<ChatBotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FC),
-      body: Column(
-        children: [
-          // Header with status bar padding
-          _Header(
-            onClose: widget.onBack ?? () => Navigator.pop(context),
-            fullPage: true,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(_kChatBackgroundAsset),
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
           ),
-          // Chips
-          _ChipsRow(onChip: _send),
-          // Messages
-          Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              itemCount: _msgs.length + (_typing ? 1 : 0),
-              itemBuilder: (ctx, i) {
-                if (_typing && i == _msgs.length) {
-                  return const _TypingBubble();
-                }
-                return _Bubble(msg: _msgs[i]);
-              },
-            ),
+          color: Color(0xFFF5F5F5),
+        ),
+        child: Container(
+          color: Colors.white.withValues(alpha: 0.28),
+          child: Column(
+            children: [
+              // Header with status bar padding
+              _Header(
+                onClose: widget.onBack ?? () => Navigator.pop(context),
+                fullPage: true,
+              ),
+              // Chips
+              _ChipsRow(onChip: _send),
+              // Messages
+              Expanded(
+                child: ListView.builder(
+                  controller: _scroll,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  itemCount: _msgs.length + (_typing ? 1 : 0),
+                  itemBuilder: (ctx, i) {
+                    if (_typing && i == _msgs.length) {
+                      return const _TypingBubble();
+                    }
+                    return _Bubble(msg: _msgs[i]);
+                  },
+                ),
+              ),
+              // Input
+              _InputBar(controller: _ctrl, onSend: _send),
+            ],
           ),
-          // Input
-          _InputBar(controller: _ctrl, onSend: _send),
-        ],
+        ),
       ),
     );
   }
@@ -360,46 +374,56 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 
     return Padding(
       padding: EdgeInsets.only(bottom: btm),
-      child: Container(
-        height: height,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF5F8FC),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          children: [
-            // drag handle
-            const SizedBox(height: 10),
-            Container(
-              width: 38,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(4),
-              ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: Container(
+          height: height,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(_kChatBackgroundAsset),
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
             ),
-            // Header
-            _Header(onClose: () => Navigator.pop(context)),
-            // Chips
-            _ChipsRow(onChip: _send),
-            // Messages
-            Expanded(
-              child: ListView.builder(
-                controller: _scroll,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                itemCount: _msgs.length + (_typing ? 1 : 0),
-                itemBuilder: (ctx, i) {
-                  if (_typing && i == _msgs.length) {
-                    return const _TypingBubble();
-                  }
-                  return _Bubble(msg: _msgs[i]);
-                },
-              ),
+            color: Color(0xFFF5F5F5),
+          ),
+          child: Container(
+            color: Colors.white.withValues(alpha: 0.28),
+            child: Column(
+              children: [
+                // drag handle
+                const SizedBox(height: 10),
+                Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                // Header
+                _Header(onClose: () => Navigator.pop(context)),
+                // Chips
+                _ChipsRow(onChip: _send),
+                // Messages
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scroll,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                    itemCount: _msgs.length + (_typing ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      if (_typing && i == _msgs.length) {
+                        return const _TypingBubble();
+                      }
+                      return _Bubble(msg: _msgs[i]);
+                    },
+                  ),
+                ),
+                // Input
+                _InputBar(controller: _ctrl, onSend: _send),
+              ],
             ),
-            // Input
-            _InputBar(controller: _ctrl, onSend: _send),
-          ],
+          ),
         ),
       ),
     );
