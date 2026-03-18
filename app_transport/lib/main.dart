@@ -185,100 +185,170 @@ class SplashScreen extends StatelessWidget {
             fit: BoxFit.cover,
           ),
 
-          // ── Button (Fixed at Bottom) ─────────────────────────────
+          // ── Logo (Top Left) ─────────────────────────────────────
+          Positioned(
+            left: 10,
+            top: -45, // Negative position to push the logo to the extreme top edge
+            child: Image.asset(
+              'img/Logo-Bg.png',
+              width: MediaQuery.of(context).size.width * 0.65,
+              height: MediaQuery.of(context).size.width * 0.65,
+              fit: BoxFit.contain,
+            ),
+          ),
+
+          // ── Text + Button (Positioned above bottom) ──────────────
           Positioned(
             left: 24,
             right: 24,
-            bottom: 0,
-            child: SafeArea(
-              minimum: const EdgeInsets.only(bottom: 20),
-              child: GestureDetector(
-                onTap: () => _openSignIn(context),
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF67D9FF).withValues(alpha: 0.42),
-                        blurRadius: 20,
-                        spreadRadius: -5,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.24),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+            bottom: MediaQuery.of(context).size.height * 0.12,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Descriptive text
+                Text(
+                  'Plan your journey with transit apps and\nexplore the land of pharaohs at your fingertips.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.90),
+                    height: 1.5,
+                    letterSpacing: 0.2,
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x99000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  const Color(0xFFC98A58).withValues(alpha: 0.84),
-                                  const Color(0xFF8F502A).withValues(alpha: 0.84),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.26),
-                                width: 1.1,
+                ),
+                const SizedBox(height: 22),
+                // Frosted glass button with warm amber tint
+                GestureDetector(
+                  onTap: () => _openSignIn(context),
+                  child: Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        // Warm amber glow
+                        BoxShadow(
+                          color: const Color(0xFFD4A04A).withValues(alpha: 0.25),
+                          blurRadius: 18,
+                          spreadRadius: -2,
+                          offset: const Offset(0, 6),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Warm amber-tinted frosted glass background
+                          BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    const Color(0xFFB8885A).withValues(alpha: 0.50),
+                                    const Color(0xFF8B6540).withValues(alpha: 0.55),
+                                    const Color(0xFF6B4C30).withValues(alpha: 0.60),
+                                  ],
+                                ),
+                                border: Border.all(
+                                  color: const Color(0xFFD4A04A).withValues(alpha: 0.60),
+                                  width: 1.3,
+                                ),
+                                borderRadius: BorderRadius.circular(30),
                               ),
                             ),
                           ),
-                        ),
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: Container(
-                            height: 1.2,
-                            margin: const EdgeInsets.symmetric(horizontal: 18),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: Colors.white.withValues(alpha: 0.45),
+                          // Top highlight line (subtle shine)
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: Container(
+                              height: 1.0,
+                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.white.withValues(alpha: 0.35),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.location_on_rounded,
-                              color: Colors.white,
-                              size: 23,
-                            ),
-                            SizedBox(width: 10),
-                            Text(
-                              'Explore Egyptian Destinations',
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0.2,
-                                shadows: [
-                                  Shadow(
-                                    color: Color(0xAA000000),
-                                    blurRadius: 6,
-                                    offset: Offset(0, 1),
+                          // Bottom center bright glow/shine
+                          Align(
+                            alignment: const Alignment(0.0, 1.4),
+                            child: Container(
+                              width: 120,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE8C170).withValues(alpha: 0.60),
+                                    blurRadius: 28,
+                                    spreadRadius: 2,
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.30),
+                                    blurRadius: 16,
+                                    spreadRadius: -2,
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          // Content row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.location_on_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Explore Egyptian Destinations',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                  letterSpacing: 0.3,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0x88000000),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
