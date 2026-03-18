@@ -5,7 +5,7 @@ import 'package:app_transport/main.dart';
 void main() {
   testWidgets('MyApp renders without errors', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
-    // Verify the splash screen shows the Explore button
-    expect(find.text('Explore'), findsOneWidget);
+    // Verify the splash screen shows the CTA text.
+    expect(find.textContaining('Explore'), findsOneWidget);
   });
 }

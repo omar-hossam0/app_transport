@@ -238,6 +238,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
           _Header(
             onClose: widget.onBack ?? () => Navigator.pop(context),
             fullPage: true,
+            useBackStyle: true,
           ),
           // Chips
           _ChipsRow(onChip: _send),
