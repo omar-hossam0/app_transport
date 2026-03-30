@@ -1,5 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/trip_model.dart';
+import '../services/trip_service.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
@@ -427,6 +430,34 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final w = mq.size.width;
     final h = mq.size.height;
 
+    final tripSvc = context.watch<TripService>();
+    final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.flying).toList();
+
+    // Combine local data with live data, avoiding duplicates by name
+    final allTrips = <FlyingTaxiTrip>[];
+
+    // Add live trips from Firebase
+    for (final lt in liveTrips) {
+      allTrips.add(FlyingTaxiTrip(
+        name: lt.name,
+        durationMinutes: lt.durationMinutes,
+        flightMinutes: lt.flightMinutes,
+        priceUsd: lt.priceUsd.toInt(),
+        description: lt.description.isNotEmpty ? lt.description : lt.shortDescription,
+        mapHint: lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
+        cardColor: lt.accentColor,
+        icon: Icons.flight_rounded,
+        imageUrl: lt.imageUrl,
+      ));
+    }
+
+    // Add local trips that aren't in Firebase yet (by name)
+    for (final local in flyingTrips) {
+      if (!allTrips.any((t) => t.name == local.name)) {
+        allTrips.add(local);
+      }
+    }
+
     // ── Responsive values tuned for Samsung M31 (411×891 lp) ──
     final hPad = (w * 0.053).clamp(16.0, 28.0); // ~22 on M31
     final gridSpacing = (w * 0.039).clamp(12.0, 20.0); // ~16 on M31
@@ -524,7 +555,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                     childAspectRatio: aspectRatio,
                   ),
                   delegate: SliverChildBuilderDelegate((context, i) {
-                    final trip = flyingTrips[i];
+                    final trip = allTrips[i];
                     return FadeTransition(
                       opacity: _fade(i),
                       child: SlideTransition(
@@ -535,7 +566,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                         ),
                       ),
                     );
-                  }, childCount: flyingTrips.length),
+                  }, childCount: allTrips.length),
                 ),
               ),
 

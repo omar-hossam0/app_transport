@@ -1,5 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/trip_model.dart';
+import '../services/trip_service.dart';
 import 'auth_widgets.dart';
 import 'chatbot_page.dart';
 import 'transit_trip_detail_page.dart';
@@ -1035,7 +1038,50 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final trips = _filtered;
+    final tripSvc = context.watch<TripService>();
+    final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.transit).toList();
+    
+    // Combine local data with live data, avoiding duplicates by name
+    final allTrips = <TransitTrip>[];
+    
+    // Add live trips from Firebase
+    for (final lt in liveTrips) {
+      allTrips.add(TransitTrip(
+        name: lt.name,
+        shortDescription: lt.shortDescription,
+        durationHours: (lt.durationMinutes / 60).ceil(),
+        durationHoursExact: lt.durationMinutes / 60.0,
+        priceUsd: lt.priceUsd.toInt(),
+        imageUrl: lt.imageUrl,
+        accentColor: lt.accentColor,
+        routeLabel: lt.routeLabel,
+        itinerary: lt.itinerary.map((s) => TransitStop(
+          title: s.title,
+          subtitle: s.subtitle,
+          duration: s.duration,
+          icon: s.icon,
+          color: s.color,
+          imageUrl: s.imageUrl,
+        )).toList(),
+        included: lt.included,
+      ));
+    }
+    
+    // Add local trips that aren't in Firebase yet (by name)
+    for (final local in transitTrips) {
+      if (!allTrips.any((t) => t.name == local.name)) {
+        allTrips.add(local);
+      }
+    }
+
+    final trips = _filterIndex == 0 
+        ? allTrips 
+        : allTrips.where((t) {
+            final h = t.durationHoursExact;
+            if (_filterIndex == 1) return h <= 3;
+            if (_filterIndex == 2) return h > 3 && h <= 6;
+            return h > 6;
+          }).toList();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(

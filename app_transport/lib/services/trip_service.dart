@@ -19,6 +19,16 @@ class TripService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    try {
+      final keysToRemove = [
+        'flying_2', 'flying_4', 'flying_5', 'flying_6',
+        'transit_1', 'transit_2', 'transit_3', 'transit_4', 'transit_5', 'transit_6'
+      ];
+      for (var k in keysToRemove) {
+        await _db.ref('trips/$k').remove();
+      }
+    } catch (_) {}
+
     await _ensureSeeded();
 
     try {

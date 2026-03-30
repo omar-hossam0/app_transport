@@ -22,8 +22,7 @@ class AuthService extends ChangeNotifier {
   String? _pendingVerificationEmail;
 
   static const _seedAdminAccounts = [
-    ('omaradmin@gmail.com', '123456', 'Omar Admin'),
-    ('abdo@gmail.com', '123456', 'Abdo Admin'),
+    ('admin@gmail.com', 'admin1234', 'Admin User'),
   ];
 
   // Getters

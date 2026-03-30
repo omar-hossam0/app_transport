@@ -356,22 +356,83 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  'Manage trip catalog',
-                  style: roboto(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+              Text(
+                'Manage trip catalog',
+                style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
               ),
-              ElevatedButton.icon(
-                onPressed: () => _openTripEditor(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text('Add Trip', style: roboto(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBlue,
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final svc = context.read<TripService>();
+                        try {
+                          await svc.reseedDefaultTrips();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'All local trips (Transit & Flying) uploaded to database!',
+                                  style: roboto(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to upload trips: $e'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.cloud_upload_rounded, size: 18),
+                      label: Text('Upload All Local', style: roboto(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: () => _openTripEditor(context),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: Text('Add Trip', style: roboto(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -572,8 +633,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           final svc = context.read<TripService>();
           if (trip == null) {
             await svc.createTrip(updated);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Trip uploaded successfully!',
+                    style: roboto(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
           } else {
             await svc.updateTrip(updated);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Trip updated successfully!',
+                    style: roboto(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                  backgroundColor: kBlue,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
           }
         },
       ),

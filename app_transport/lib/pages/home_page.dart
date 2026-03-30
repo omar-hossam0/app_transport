@@ -740,8 +740,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final flying = trips.where((t) => t.isFlying).toList();
     final transit = trips.where((t) => t.isTransit).toList();
     final result = <TripModel>[];
-    result.addAll(transit.take(2));
-    result.addAll(flying.take(2));
+    result.addAll(transit.take(3));
+    result.addAll(flying.take(3));
     return result;
   }
 
