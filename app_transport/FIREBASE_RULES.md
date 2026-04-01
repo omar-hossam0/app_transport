@@ -42,6 +42,22 @@
       }
     },
 
+    // Email index for uniqueness checks
+    "email_index": {
+      "$emailKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() == auth.uid)"
+      }
+    },
+
+    // Activity logs per user
+    "user_activity": {
+      "$uid": {
+        ".read": "$uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val === true",
+        ".write": "$uid === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val === true"
+      }
+    },
+
     // System settings
     "system": {
       ".read": true,

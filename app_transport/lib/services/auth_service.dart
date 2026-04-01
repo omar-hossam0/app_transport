@@ -483,7 +483,27 @@ class AuthService extends ChangeNotifier {
         final provider = fb_auth.GoogleAuthProvider()
           ..addScope('email')
           ..setCustomParameters({'prompt': 'select_account'});
-        cred = await _auth.signInWithPopup(provider);
+
+        try {
+          cred = await _auth.signInWithPopup(provider);
+        } on fb_auth.FirebaseAuthException catch (e) {
+          final msg = (e.message ?? '').toLowerCase();
+          final popupClosed =
+              e.code == 'popup-closed-by-user' || msg.contains('popup');
+
+          if (!popupClosed) {
+            rethrow;
+          }
+
+          // Fallback for browsers that block/close the popup: use redirect flow.
+          await _auth.signInWithRedirect(provider);
+          cred = await _auth.getRedirectResult();
+
+          if (cred.user == null) {
+            _setError('Google sign in was cancelled or blocked. Please allow popups and try again');
+            return false;
+          }
+        }
       } else {
         final googleUser = await GoogleSignIn(scopes: ['email']).signIn();
 
