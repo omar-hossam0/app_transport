@@ -500,7 +500,9 @@ class AuthService extends ChangeNotifier {
           cred = await _auth.getRedirectResult();
 
           if (cred.user == null) {
-            _setError('Google sign in was cancelled or blocked. Please allow popups and try again');
+            _setError(
+              'Google sign in was cancelled or blocked. Please allow popups and try again',
+            );
             return false;
           }
         }
