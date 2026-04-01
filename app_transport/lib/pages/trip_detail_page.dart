@@ -6,6 +6,8 @@ import '../models/booking_model.dart';
 import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
 
@@ -61,6 +63,7 @@ class _TripDetailPageState extends State<TripDetailPage>
   @override
   Widget build(BuildContext context) {
     final t = widget.trip;
+    final isAr = context.watch<LanguageProvider>().isArabic;
     final screenH = MediaQuery.of(context).size.height;
     final topPad = MediaQuery.of(context).padding.top;
 
@@ -197,7 +200,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
-                                    'Cairo International Airport',
+                                    S.tr('cairo_intl_airport', isAr),
                                     style: roboto(
                                       fontSize: 13,
                                       color: Colors.grey.shade500,
@@ -216,7 +219,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.08, 0.38),
                               child: Text(
-                                t.name,
+                                t.localizedName(isAr),
                                 style: roboto(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w800,
@@ -233,7 +236,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.12, 0.42),
                               child: Text(
-                                'Cairo International Airport, Egypt',
+                                S.tr('cairo_intl_airport_egypt', isAr),
                                 style: roboto(
                                   fontSize: 13,
                                   color: Colors.grey.shade500,
@@ -297,6 +300,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   const _InfoTag(
                                     icon: Icons.headset_mic_rounded,
                                     label: 'AI Guide',
+                                    labelKey: 'ai_guide',
                                   ),
                                 ],
                               ),
@@ -310,8 +314,8 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.28, 0.58),
                               child: Text(
-                                t.description,
-                                textDirection: TextDirection.rtl,
+                                t.localizedDescription(isAr),
+                                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                                 style: roboto(
                                   fontSize: 14,
                                   color: Colors.grey.shade700,
@@ -327,7 +331,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.34, 0.64),
                             child: SlideTransition(
                               position: _slide(0.34, 0.64),
-                              child: _RouteCard(trip: t),
+                              child: _RouteCard(trip: t, isAr: isAr),
                             ),
                           ),
                           const SizedBox(height: 26),
@@ -337,7 +341,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.40, 0.70),
                             child: SlideTransition(
                               position: _slide(0.40, 0.70),
-                              child: _buildHighlights(t),
+                              child: _buildHighlights(t, isAr),
                             ),
                           ),
                           const SizedBox(height: 30),
@@ -347,7 +351,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.46, 0.76),
                             child: SlideTransition(
                               position: _slide(0.46, 0.76),
-                              child: _buildReviewsSection(t),
+                              child: _buildReviewsSection(t, isAr),
                             ),
                           ),
 
@@ -485,7 +489,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                               ),
                               child: Center(
                                 child: Text(
-                                  'Book This Flight',
+                                  S.tr('book_this_flight', isAr),
                                   style: roboto(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
@@ -511,6 +515,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Booking sheet ──────────────────────────────────────────────────────────────────
   void _showBookingSheet(FlyingTaxiTrip trip) {
+    final isAr = context.read<LanguageProvider>().isArabic;
     DateTime? selectedDate;
     int travelers = 1;
     int paymentIdx = 0;
@@ -541,7 +546,7 @@ class _TripDetailPageState extends State<TripDetailPage>
             'Dec',
           ];
           final dateLabel = selectedDate == null
-              ? 'Select a date'
+              ? S.tr('select_date', isAr)
               : '${selectedDate!.day} ${months[selectedDate!.month - 1]} ${selectedDate!.year}';
 
           return Padding(
@@ -570,18 +575,18 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                   ),
                   Text(
-                    'Book Flight',
+                    S.tr('book_flight', isAr),
                     style: roboto(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    trip.name,
+                    trip.localizedName(isAr),
                     style: roboto(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 22),
 
                   // ── Date ──
                   Text(
-                    'Flight Date',
+                    S.tr('flight_date', isAr),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -641,7 +646,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
                   // ── Travelers ──
                   Text(
-                    'Passengers',
+                    S.tr('passengers', isAr),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -675,7 +680,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        'Total: \$${trip.priceUsd * travelers}',
+                        '${S.tr('total_label', isAr)} \$${trip.priceUsd * travelers}',
                         style: roboto(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -688,7 +693,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
                   // ── Payment ──
                   Text(
-                    'Payment',
+                    S.tr('payment', isAr),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -752,8 +757,8 @@ class _TripDetailPageState extends State<TripDetailPage>
                       ),
                       child: Text(
                         selectedDate == null
-                            ? 'Select a date first'
-                            : 'Confirm Booking  \$${trip.priceUsd * travelers}',
+                            ? S.tr('select_date_first', isAr)
+                            : '${S.tr('confirm_booking_btn', isAr)}  \$${trip.priceUsd * travelers}',
                         style: roboto(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -780,11 +785,12 @@ class _TripDetailPageState extends State<TripDetailPage>
     String paymentMethod,
   ) async {
     final auth = context.read<AuthService>();
+    final isAr = context.read<LanguageProvider>().isArabic;
     if (!auth.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Please sign in to book a flight.',
+            S.tr('sign_in_to_book_flight', isAr),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -819,7 +825,7 @@ class _TripDetailPageState extends State<TripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Flight booked! 🎉  Ref: $bookingId',
+            '${S.tr('flight_booked', isAr)} 🎉  Ref: $bookingId',
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.green,
@@ -835,7 +841,7 @@ class _TripDetailPageState extends State<TripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to save booking. Check your connection.',
+            S.tr('booking_failed', isAr),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -845,18 +851,18 @@ class _TripDetailPageState extends State<TripDetailPage>
     }
   }
 
-  Widget _buildHighlights(FlyingTaxiTrip t) {
+  Widget _buildHighlights(FlyingTaxiTrip t, bool isAr) {
     final highlights = [
-      ('Scenic Views', Icons.visibility_rounded, kBlue),
-      ('AI Audio Guide', Icons.headset_mic_rounded, _kDarkBlue),
-      ('Photo Spots', Icons.camera_alt_rounded, const Color(0xFFE02850)),
+      (S.tr('scenic_views', isAr), Icons.visibility_rounded, kBlue),
+      (S.tr('ai_audio_guide', isAr), Icons.headset_mic_rounded, _kDarkBlue),
+      (S.tr('photo_spots', isAr), Icons.camera_alt_rounded, const Color(0xFFE02850)),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Trip Highlights',
+          S.tr('trip_highlights', isAr),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 14),
@@ -895,14 +901,14 @@ class _TripDetailPageState extends State<TripDetailPage>
   }
 
   // ── Reviews Section ──────────────────────────────────────────────────────
-  Widget _buildReviewsSection(FlyingTaxiTrip t) {
+  Widget _buildReviewsSection(FlyingTaxiTrip t, bool isAr) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Reviews',
+              S.tr('reviews', isAr),
               style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
@@ -947,7 +953,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Write a Review',
+                  S.tr('write_review', isAr),
                   style: roboto(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -964,6 +970,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Show Add Review Dialog ──────────────────────────────────────────────
   void _showAddReviewDialog() {
+    final isAr = context.read<LanguageProvider>().isArabic;
     final reviewController = TextEditingController();
     int selectedRating = 5;
 
@@ -977,7 +984,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(
-                'Write Your Review',
+                S.tr('write_your_review', isAr),
                 style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               content: Column(
@@ -985,7 +992,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rating',
+                    S.tr('rating_label', isAr),
                     style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -1009,7 +1016,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Your Comment',
+                    S.tr('your_comment', isAr),
                     style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -1017,7 +1024,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                     controller: reviewController,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: 'Share your experience...',
+                      hintText: S.tr('share_experience', isAr),
                       hintStyle: roboto(color: Colors.grey.shade400),
                       filled: true,
                       fillColor: const Color(0xFFF5F7FA),
@@ -1033,7 +1040,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(
-                    'Cancel',
+                    S.tr('cancel', isAr),
                     style: roboto(color: Colors.grey.shade600),
                   ),
                 ),
@@ -1043,7 +1050,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Thank you for your review!',
+                          S.tr('thank_review', isAr),
                           style: roboto(color: Colors.white),
                         ),
                         backgroundColor: Colors.green,
@@ -1066,7 +1073,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                   ),
                   child: Text(
-                    'Submit',
+                    S.tr('submit', isAr),
                     style: roboto(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1182,10 +1189,13 @@ class _ReviewCard extends StatelessWidget {
 class _InfoTag extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _InfoTag({required this.icon, required this.label});
+  final String? labelKey;
+  const _InfoTag({required this.icon, required this.label, this.labelKey});
 
   @override
   Widget build(BuildContext context) {
+    final isAr = context.watch<LanguageProvider>().isArabic;
+    final displayLabel = labelKey != null ? S.tr(labelKey!, isAr) : label;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -1198,7 +1208,7 @@ class _InfoTag extends StatelessWidget {
           Icon(icon, size: 15, color: Colors.grey.shade600),
           const SizedBox(width: 5),
           Text(
-            label,
+            displayLabel,
             style: roboto(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1216,7 +1226,8 @@ class _InfoTag extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 class _RouteCard extends StatelessWidget {
   final FlyingTaxiTrip trip;
-  const _RouteCard({required this.trip});
+  final bool isAr;
+  const _RouteCard({required this.trip, this.isAr = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1224,7 +1235,7 @@ class _RouteCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Flight Route',
+          S.tr('flight_route', isAr),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),

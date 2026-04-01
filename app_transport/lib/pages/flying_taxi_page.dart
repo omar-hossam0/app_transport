@@ -6,6 +6,8 @@ import '../services/trip_service.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -28,10 +30,12 @@ class Review {
 // ── Trip model ───────────────────────────────────────────────────────────────
 class FlyingTaxiTrip {
   final String name;
+  final String nameEn;
   final int durationMinutes;
   final int flightMinutes;
   final int priceUsd;
   final String description;
+  final String descriptionEn;
   final String mapHint;
   final Color cardColor;
   final IconData icon;
@@ -40,16 +44,21 @@ class FlyingTaxiTrip {
 
   const FlyingTaxiTrip({
     required this.name,
+    this.nameEn = '',
     required this.durationMinutes,
     required this.flightMinutes,
     required this.priceUsd,
     required this.description,
+    this.descriptionEn = '',
     required this.mapHint,
     required this.cardColor,
     required this.icon,
     required this.imageUrl,
     this.reviews = const [],
   });
+
+  String localizedName(bool isAr) => isAr ? name : (nameEn.isEmpty ? name : nameEn);
+  String localizedDescription(bool isAr) => isAr ? description : (descriptionEn.isEmpty ? description : descriptionEn);
 
   String get durationLabel {
     if (durationMinutes >= 120) {
@@ -69,6 +78,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 1 ─ جولة جوية فوق القلعة والنيل (15 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة جوية فوق القلعة والنيل',
+    nameEn: 'Citadel & Nile Aerial Tour',
     durationMinutes: 70,
     flightMinutes: 15,
     priceUsd: 120,
@@ -105,6 +115,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 2 ─ جولة جوية قصيرة فوق النيل والكورنيش (13 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة جوية فوق النيل والكورنيش',
+    nameEn: 'Nile & Corniche Flight',
     durationMinutes: 40,
     flightMinutes: 13,
     priceUsd: 100,
@@ -141,6 +152,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 3 ─ جولة جوية شاملة فوق الأهرامات وأبرز المعالم (30 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة شاملة فوق الأهرامات والمعالم',
+    nameEn: 'Pyramids & Landmarks Flight',
     durationMinutes: 120,
     flightMinutes: 30,
     priceUsd: 240,
@@ -178,6 +190,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 4 ─ جولة جوية سريعة فوق النيل وبرج القاهرة (10 دقائق طيران)
   FlyingTaxiTrip(
     name: 'جولة سريعة فوق النيل وبرج القاهرة',
+    nameEn: 'Quick Nile & Cairo Tower Flight',
     durationMinutes: 60,
     flightMinutes: 10,
     priceUsd: 85,
@@ -215,6 +228,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 5 ─ جولة بانورامية ممتدة فوق أحياء القاهرة الحديثة (18 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة بانورامية فوق أحياء القاهرة',
+    nameEn: 'Modern Cairo Panoramic Tour',
     durationMinutes: 75,
     flightMinutes: 18,
     priceUsd: 130,
@@ -252,6 +266,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 6 ─ جولة جوية فوق النيل وبرج القاهرة ودار الأوبرا (22 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة فوق النيل والأوبرا وبرج القاهرة',
+    nameEn: 'Nile, Opera & Cairo Tower Tour',
     durationMinutes: 100,
     flightMinutes: 22,
     priceUsd: 160,
@@ -289,6 +304,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 7 ─ جولة جوية فوق القاهرة الجديدة والعاصمة الإدارية (25 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة فوق القاهرة الجديدة والعاصمة الإدارية',
+    nameEn: 'New Capital Aerial Tour',
     durationMinutes: 90,
     flightMinutes: 25,
     priceUsd: 170,
@@ -327,6 +343,7 @@ const flyingTrips = <FlyingTaxiTrip>[
   // 8 ─ جولة جوية فوق القاهرة والنيل والمناطق العمرانية (30 دقيقة طيران)
   FlyingTaxiTrip(
     name: 'جولة جوية فوق القاهرة والنيل',
+    nameEn: 'Cairo & Nile Aerial Tour',
     durationMinutes: 120,
     flightMinutes: 30,
     priceUsd: 220,
@@ -431,6 +448,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final h = mq.size.height;
 
     final tripSvc = context.watch<TripService>();
+    final isAr = context.watch<LanguageProvider>().isArabic;
     final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.flying).toList();
 
     // Combine local data with live data, avoiding duplicates by name
@@ -439,11 +457,13 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     // Add live trips from Firebase
     for (final lt in liveTrips) {
       allTrips.add(FlyingTaxiTrip(
-        name: lt.name,
+        name: lt.nameAr.isNotEmpty ? lt.nameAr : lt.name,
+        nameEn: lt.name,
         durationMinutes: lt.durationMinutes,
         flightMinutes: lt.flightMinutes,
         priceUsd: lt.priceUsd.toInt(),
-        description: lt.description.isNotEmpty ? lt.description : lt.shortDescription,
+        description: lt.descriptionAr.isNotEmpty ? lt.descriptionAr : lt.description,
+        descriptionEn: lt.description,
         mapHint: lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
         cardColor: lt.accentColor,
         icon: Icons.flight_rounded,
@@ -509,7 +529,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Flying Taxi',
+                          S.tr('flying_taxi_page_title', isAr),
                           style: roboto(
                             fontSize: titleFs,
                             fontWeight: FontWeight.w800,
@@ -533,7 +553,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Text(
-                    'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي',
+                    S.tr('flying_taxi_subtitle', isAr),
                     style: roboto(
                       fontSize: subtitleFs,
                       color: Colors.grey.shade500,
@@ -563,6 +583,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                         child: _FlyingTripCard(
                           trip: trip,
                           onTap: () => _openDetail(trip),
+                          isAr: isAr,
                         ),
                       ),
                     );
@@ -585,7 +606,8 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 class _FlyingTripCard extends StatelessWidget {
   final FlyingTaxiTrip trip;
   final VoidCallback onTap;
-  const _FlyingTripCard({required this.trip, required this.onTap});
+  final bool isAr;
+  const _FlyingTripCard({required this.trip, required this.onTap, this.isAr = true});
 
   @override
   Widget build(BuildContext context) {
@@ -758,7 +780,7 @@ class _FlyingTripCard extends StatelessWidget {
                   children: [
                     // Name
                     Text(
-                      trip.name,
+                      trip.localizedName(isAr),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: roboto(
@@ -778,7 +800,7 @@ class _FlyingTripCard extends StatelessWidget {
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
-                            'مطار القاهرة الدولي',
+                            S.tr('cairo_intl_airport', isAr),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: roboto(

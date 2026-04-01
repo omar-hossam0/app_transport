@@ -1,6 +1,6 @@
 {
-    "name": "app_transport",
-    "short_name": "app_transport",
+    "name": "Transit App",
+    "short_name": "Transit App",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

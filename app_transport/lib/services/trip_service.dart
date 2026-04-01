@@ -19,16 +19,6 @@ class TripService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      final keysToRemove = [
-        'flying_2', 'flying_4', 'flying_5', 'flying_6',
-        'transit_1', 'transit_2', 'transit_3', 'transit_4', 'transit_5', 'transit_6'
-      ];
-      for (var k in keysToRemove) {
-        await _db.ref('trips/$k').remove();
-      }
-    } catch (_) {}
-
     await _ensureSeeded();
 
     try {
@@ -172,33 +162,41 @@ class TripService extends ChangeNotifier {
 
   Future<void> _ensureSeeded() async {
     try {
-      final seededSnap = await _db
-          .ref('system/trips_seeded')
-          .get()
-          .timeout(const Duration(seconds: 8));
-
-      if (seededSnap.exists && seededSnap.value == true) return;
-
-      final tripsSnap = await _db
-          .ref('trips')
-          .get()
-          .timeout(const Duration(seconds: 8));
-      if (tripsSnap.exists && tripsSnap.value != null) {
-        await _db
-            .ref('system/trips_seeded')
-            .set(true)
-            .timeout(const Duration(seconds: 8));
-        return;
-      }
-
+      // Always write default trips to ensure new ones are present
       for (final trip in defaultTrips) {
         final id = trip.id.isEmpty ? _db.ref('trips').push().key : trip.id;
         if (id == null) continue;
-        await _db
+        final existsSnap = await _db
             .ref('trips/$id')
-            .set(trip.copyWith(id: id).toMap())
+            .get()
             .timeout(const Duration(seconds: 8));
+        if (!existsSnap.exists) {
+          await _db
+              .ref('trips/$id')
+              .set(trip.copyWith(id: id).toMap())
+              .timeout(const Duration(seconds: 8));
+          debugPrint('[TripService] Seeded trip: $id');
+        }
       }
+
+      // Clean up any stale trips not in default set
+      try {
+        final snap = await _db
+            .ref('trips')
+            .get()
+            .timeout(const Duration(seconds: 8));
+        if (snap.exists && snap.value != null) {
+          final data = Map<String, dynamic>.from(snap.value as Map);
+          final defaultIds = defaultTrips.map((t) => t.id).toSet();
+          for (final key in data.keys) {
+            if (!defaultIds.contains(key)) {
+              // Remove ALL non-default trips (stale seeded data)
+              await _db.ref('trips/$key').remove();
+              debugPrint('[TripService] Removed stale trip: $key');
+            }
+          }
+        }
+      } catch (_) {}
 
       await _db
           .ref('system/trips_seeded')

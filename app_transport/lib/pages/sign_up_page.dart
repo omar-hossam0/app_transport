@@ -7,6 +7,8 @@ import 'admin/admin_dashboard_page.dart';
 import 'sign_in_page.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -38,8 +40,9 @@ class _SignUpPageState extends State<SignUpPage>
     return s;
   }
 
-  String get _strengthLabel =>
-      ['', 'Weak', 'Fair', 'Good', 'Strong'][_strength];
+  String get _strengthLabel {
+    return ['', S.tr('weak', false), S.tr('fair', false), S.tr('good', false), S.tr('strong', false)][_strength];
+  }
 
   Color get _strengthColor => [
     Colors.transparent,
@@ -110,12 +113,14 @@ class _SignUpPageState extends State<SignUpPage>
     if (_emailCtrl.text.isEmpty ||
         _passCtrl.text.isEmpty ||
         _nameCtrl.text.isEmpty) {
-      _showErrorSnackBar('Please fill in all fields');
+      final isAr = context.read<LanguageProvider>().isArabic;
+      _showErrorSnackBar(S.tr('fill_all_fields', isAr));
       return;
     }
 
     if (_passCtrl.text.length < 6) {
-      _showErrorSnackBar('Password must be at least 6 characters');
+      final isAr = context.read<LanguageProvider>().isArabic;
+      _showErrorSnackBar(S.tr('password_min_6', isAr));
       return;
     }
 
@@ -130,7 +135,7 @@ class _SignUpPageState extends State<SignUpPage>
     if (!mounted) return;
 
     if (success) {
-      _showSuccessSnackBar(authService.errorMessage ?? 'Account created!');
+      _showSuccessSnackBar(authService.errorMessage ?? S.tr('account_created', context.read<LanguageProvider>().isArabic));
       Future.delayed(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
@@ -141,7 +146,7 @@ class _SignUpPageState extends State<SignUpPage>
       });
     } else {
       _showErrorSnackBar(
-        authService.errorMessage ?? 'Failed to create account',
+        authService.errorMessage ?? S.tr('create_account_failed', context.read<LanguageProvider>().isArabic),
       );
     }
   }
@@ -159,7 +164,7 @@ class _SignUpPageState extends State<SignUpPage>
         await context.read<NotificationService>().registerForUser(user.uid);
       }
       _showSuccessSnackBar(
-        authService.errorMessage ?? 'Signed up with Google successfully',
+        authService.errorMessage ?? S.tr('google_sign_up_success', context.read<LanguageProvider>().isArabic),
       );
       Future.delayed(
         const Duration(milliseconds: 500),
@@ -168,7 +173,7 @@ class _SignUpPageState extends State<SignUpPage>
       return;
     }
 
-    _showErrorSnackBar(authService.errorMessage ?? 'Google sign up failed');
+    _showErrorSnackBar(authService.errorMessage ?? S.tr('google_sign_up_failed', context.read<LanguageProvider>().isArabic));
   }
 
   void _showErrorSnackBar(String message) {
@@ -227,14 +232,15 @@ class _SignUpPageState extends State<SignUpPage>
 
   @override
   Widget build(BuildContext context) {
+    final isAr = context.watch<LanguageProvider>().isArabic;
     return Scaffold(
       backgroundColor: kAuthHeaderEdgeBlue,
       body: Column(
         children: [
-          // ── Gradient header ──────────────────────────────────────────
+          // ── Gradient header ─────────────────────────────────────────────
           AuthHeader(
-            trailingText: 'Already have an account?',
-            actionLabel: 'Sign In',
+            trailingText: S.tr('already_have_account_header', isAr),
+            actionLabel: S.tr('sign_in', isAr),
             onActionTap: _goToSignIn,
           ),
 
@@ -265,7 +271,7 @@ class _SignUpPageState extends State<SignUpPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Get started free.',
+                                  S.tr('get_started_free', isAr),
                                   style: roboto(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800,
@@ -273,7 +279,7 @@ class _SignUpPageState extends State<SignUpPage>
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Free forever. No credit card needed.',
+                                  S.tr('no_credit_card', isAr),
                                   style: roboto(
                                     fontSize: 13,
                                     color: Colors.grey.shade500,
@@ -282,18 +288,18 @@ class _SignUpPageState extends State<SignUpPage>
                                 const SizedBox(height: 28),
                                 AuthInputField(
                                   controller: _emailCtrl,
-                                  label: 'Email Address',
+                                  label: S.tr('email_address', isAr),
                                   keyboardType: TextInputType.emailAddress,
                                 ),
                                 const SizedBox(height: 14),
                                 AuthInputField(
                                   controller: _nameCtrl,
-                                  label: 'Your name',
+                                  label: S.tr('your_name', isAr),
                                 ),
                                 const SizedBox(height: 14),
                                 AuthInputField(
                                   controller: _passCtrl,
-                                  label: 'Password',
+                                  label: S.tr('password', isAr),
                                   obscure: _obscure,
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -345,8 +351,8 @@ class _SignUpPageState extends State<SignUpPage>
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
                                       label: authService.isLoading
-                                          ? 'Sign Up...'
-                                          : 'Sign up',
+                                          ? S.tr('sign_up_loading', isAr)
+                                          : S.tr('sign_up', isAr),
                                       onTap: authService.isLoading
                                           ? () {}
                                           : _handleSignUp,
@@ -361,7 +367,7 @@ class _SignUpPageState extends State<SignUpPage>
                         // ── Bottom section: pinned ──────────────────
                         Column(
                           children: [
-                            const AuthOrDivider(label: 'Or sign up with'),
+                            AuthOrDivider(label: S.tr('or_sign_up_with', isAr)),
                             const SizedBox(height: 18),
                             AuthSocialRow(onGoogleTap: _handleGoogleSignUp),
                           ],

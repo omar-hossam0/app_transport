@@ -7,6 +7,8 @@ import 'sign_in_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/booking_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 
 // ── Card brand SVG logos ────────────────────────────────────────────────────
 const _kVisaSvg = '''
@@ -41,7 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _name = 'Omar Hossam';
   String _email = 'omar.hossam@email.com';
   String _phone = '+20 101 234 5678';
-  String _selectedLang = 'English';
+  late String _selectedLang;
   bool _didLoadUser = false;
 
   // ── Payment cards ──────────────────────────────────────────────────────────
@@ -63,20 +65,21 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didLoadUser) return;
-    final user = context.read<AuthService>().currentUser;
-    if (user != null) {
-      setState(() {
+    if (!_didLoadUser) {
+      final user = context.read<AuthService>().currentUser;
+      if (user != null) {
         _name = user.name;
         _email = user.email;
         _phone = user.phoneNumber;
-      });
+      }
+      _selectedLang = context.read<LanguageProvider>().isArabic ? 'العربية' : 'English';
+      _didLoadUser = true;
     }
-    _didLoadUser = true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAr = context.watch<LanguageProvider>().isArabic;
     final topPad = MediaQuery.of(context).padding.top;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -108,7 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Profile',
+                        S.tr('profile_title', isAr),
                         style: roboto(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -135,6 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       name: _name,
                       email: _email,
                       phone: _phone,
+                      isAr: isAr,
                       onEdit: () => _showEditProfile(),
                     ),
 
@@ -143,21 +147,21 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 2. Account Settings ─────────────────────────────────
                     _SectionBlock(
                       icon: Icons.manage_accounts_rounded,
-                      title: 'Account Settings',
+                      title: S.tr('account_settings', isAr),
                       children: [
                         _SectionTile(
                           icon: Icons.lock_outline_rounded,
-                          label: 'Change Password',
+                          label: S.tr('change_password', isAr),
                           onTap: () => _showChangePassword(),
                         ),
                         _SectionTile(
                           icon: Icons.swap_horiz_rounded,
-                          label: 'Switch Account',
+                          label: S.tr('switch_account', isAr),
                           onTap: () => _showSwitchAccount(),
                         ),
                         _SectionTile(
                           icon: Icons.logout_rounded,
-                          label: 'Log Out',
+                          label: S.tr('log_out', isAr),
                           labelColor: const Color(0xFFE02850),
                           iconColor: const Color(0xFFE02850),
                           onTap: () => _confirmLogout(),
@@ -171,7 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 3. Language ─────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.language_rounded,
-                      title: 'Language',
+                      title: S.tr('language', isAr),
                       children: [
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -182,9 +186,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             selected: _selectedLang,
                             onChanged: (v) {
                               setState(() => _selectedLang = v);
+                              final langProvider = context.read<LanguageProvider>();
+                              langProvider.setLanguage(v);
+                              final newIsAr = langProvider.isArabic;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Language set to $v'),
+                                  content: Text('${S.tr('language_set_to', newIsAr)} $v'),
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: kBlue,
                                 ),
@@ -200,9 +207,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 4. Payment Methods ──────────────────────────────────
                     _SectionBlock(
                       icon: Icons.credit_card_rounded,
-                      title: 'Payment Methods',
+                      title: S.tr('payment_methods', isAr),
                       trailing: _smallBtn(
-                        'Add Card',
+                        S.tr('add_card', isAr),
                         Icons.add,
                         onTap: () => _showAddCard(),
                       ),
@@ -224,7 +231,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         if (_cards.isEmpty)
                           _emptyRow(
-                            'No saved cards yet',
+                            S.tr('no_saved_cards', isAr),
                             Icons.credit_card_off_rounded,
                           ),
                       ],
@@ -235,23 +242,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 5. Preferences ──────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.tune_rounded,
-                      title: 'Preferences',
+                      title: S.tr('preferences', context.watch<LanguageProvider>().isArabic),
                       children: [
                         _ToggleTile(
                           icon: Icons.flight_takeoff_rounded,
-                          label: 'Trip Notifications',
+                          label: S.tr('trip_notifications', context.watch<LanguageProvider>().isArabic),
                           value: _notifyTrips,
                           onChanged: (v) => setState(() => _notifyTrips = v),
                         ),
                         _ToggleTile(
                           icon: Icons.local_offer_rounded,
-                          label: 'Deals & Discounts',
+                          label: S.tr('deals_discounts', context.watch<LanguageProvider>().isArabic),
                           value: _notifyOffers,
                           onChanged: (v) => setState(() => _notifyOffers = v),
                         ),
                         _ToggleTile(
                           icon: Icons.alarm_rounded,
-                          label: 'Trip Reminder',
+                          label: S.tr('trip_reminder', context.watch<LanguageProvider>().isArabic),
                           value: _notifyReminder,
                           onChanged: (v) => setState(() => _notifyReminder = v),
                           showDivider: false,
@@ -264,23 +271,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 6. Support ──────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.support_agent_rounded,
-                      title: 'Support',
+                      title: S.tr('support', context.watch<LanguageProvider>().isArabic),
                       children: [
                         _SectionTile(
                           icon: Icons.help_outline_rounded,
-                          label: 'Help Center',
-                          onTap: () => _snack('Help Center coming soon'),
+                          label: S.tr('help_center', context.watch<LanguageProvider>().isArabic),
+                          onTap: () => _snack(S.tr('help_coming_soon', context.read<LanguageProvider>().isArabic)),
                         ),
                         _SectionTile(
                           icon: Icons.mail_outline_rounded,
-                          label: 'Contact Us',
+                          label: S.tr('contact_us', context.watch<LanguageProvider>().isArabic),
                           sub: 'support@apptransport.com',
-                          onTap: () => _snack('Opening mail...'),
+                          onTap: () => _snack(S.tr('opening_mail', context.read<LanguageProvider>().isArabic)),
                         ),
                         _SectionTile(
                           icon: Icons.quiz_outlined,
-                          label: 'FAQs',
-                          onTap: () => _snack('FAQs coming soon'),
+                          label: S.tr('faqs', context.watch<LanguageProvider>().isArabic),
+                          onTap: () => _snack(S.tr('faqs_coming_soon', context.read<LanguageProvider>().isArabic)),
                           showDivider: false,
                         ),
                       ],
@@ -291,17 +298,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 7. Legal ────────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.gavel_rounded,
-                      title: 'Legal',
+                      title: S.tr('legal', context.watch<LanguageProvider>().isArabic),
                       children: [
                         _SectionTile(
                           icon: Icons.privacy_tip_outlined,
-                          label: 'Privacy Policy',
-                          onTap: () => _snack('Opening Privacy Policy...'),
+                          label: S.tr('privacy_policy', context.watch<LanguageProvider>().isArabic),
+                          onTap: () => _snack(S.tr('opening_privacy', context.read<LanguageProvider>().isArabic)),
                         ),
                         _SectionTile(
                           icon: Icons.description_outlined,
-                          label: 'Terms & Conditions',
-                          onTap: () => _snack('Opening Terms...'),
+                          label: S.tr('terms_conditions', context.watch<LanguageProvider>().isArabic),
+                          onTap: () => _snack(S.tr('opening_terms', context.read<LanguageProvider>().isArabic)),
                           showDivider: false,
                         ),
                       ],
@@ -390,7 +397,10 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
   );
 
-  void _showSettingsSnack() => _snack('Settings page coming soon');
+  void _showSettingsSnack() {
+    final isAr = context.read<LanguageProvider>().isArabic;
+    _snack(S.tr('settings_coming_soon', isAr));
+  }
 
   // ── Edit Profile ───────────────────────────────────────────────────────────
   void _showEditProfile() {
@@ -416,9 +426,9 @@ class _ProfilePageState extends State<ProfilePage> {
               _phone = phone;
             });
             Navigator.pop(ctx);
-            _snack('Profile updated successfully');
+            _snack(S.tr('profile_updated', context.read<LanguageProvider>().isArabic));
           } else {
-            _snack('Failed to update profile');
+            _snack(S.tr('failed_update_profile', context.read<LanguageProvider>().isArabic));
           }
         },
       ),
@@ -437,15 +447,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // ── Switch Account ─────────────────────────────────────────────────────────
   void _showSwitchAccount() {
+    final isAr = context.read<LanguageProvider>().isArabic;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _ConfirmSheet(
         icon: Icons.swap_horiz_rounded,
         iconColor: kBlue,
-        title: 'Switch Account',
-        body: 'You will be logged out of your current account. Continue?',
-        confirmLabel: 'Switch',
+        title: S.tr('switch_account', isAr),
+        body: S.tr('switch_account_body', isAr),
+        confirmLabel: S.tr('switch', isAr),
         confirmColor: kBlue,
         onConfirm: () async {
           final auth = context.read<AuthService>();
@@ -471,15 +482,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // ── Logout confirm ─────────────────────────────────────────────────────────
   void _confirmLogout() {
+    final isAr = context.read<LanguageProvider>().isArabic;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _ConfirmSheet(
         icon: Icons.logout_rounded,
         iconColor: const Color(0xFFE02850),
-        title: 'Log Out',
-        body: 'Are you sure you want to log out of App Transport?',
-        confirmLabel: 'Log Out',
+        title: S.tr('log_out', isAr),
+        body: S.tr('logout_body', isAr),
+        confirmLabel: S.tr('log_out', isAr),
         confirmColor: const Color(0xFFE02850),
         onConfirm: () async {
           final auth = context.read<AuthService>();
@@ -515,7 +527,7 @@ class _ProfilePageState extends State<ProfilePage> {
         onSave: (card) {
           setState(() => _cards.add(card));
           Navigator.pop(ctx);
-          _snack('Card added successfully');
+          _snack(S.tr('card_added', context.read<LanguageProvider>().isArabic));
         },
       ),
     );
@@ -527,11 +539,13 @@ class _ProfilePageState extends State<ProfilePage> {
 // ═════════════════════════════════════════════════════════════════════════════
 class _UserInfoCard extends StatelessWidget {
   final String name, email, phone;
+  final bool isAr;
   final VoidCallback onEdit;
   const _UserInfoCard({
     required this.name,
     required this.email,
     required this.phone,
+    required this.isAr,
     required this.onEdit,
   });
 
@@ -619,19 +633,19 @@ class _UserInfoCard extends StatelessWidget {
             children: [
               _InfoChip(
                 icon: Icons.flight_rounded,
-                label: '12 Trips',
+                label: S.tr('trips_count', isAr),
                 color: kBlue,
               ),
               const SizedBox(width: 10),
               _InfoChip(
                 icon: Icons.star_rounded,
-                label: '4.8 Rating',
+                label: S.tr('rating', isAr),
                 color: const Color(0xFFFFC107),
               ),
               const SizedBox(width: 10),
               _InfoChip(
                 icon: Icons.calendar_month_rounded,
-                label: 'Since 2024',
+                label: S.tr('since', isAr),
                 color: const Color(0xFF4CAF50),
               ),
             ],
@@ -664,7 +678,7 @@ class _UserInfoCard extends StatelessWidget {
                   const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    'Edit Profile',
+                    S.tr('edit_profile', isAr),
                     style: roboto(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,

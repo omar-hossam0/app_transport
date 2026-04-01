@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});
@@ -7,56 +10,57 @@ class ServicesPage extends StatelessWidget {
   static const _services = [
     (
       Icons.wifi_rounded,
-      'Airport WiFi',
-      'Free high-speed internet at Cairo Airport',
+      'airport_wifi',
+      'airport_wifi_desc',
       Color(0xFF187BCD),
     ),
     (
       Icons.local_taxi_rounded,
-      'Private Car Hire',
-      'Comfortable private transfers around Cairo',
+      'private_car',
+      'private_car_desc',
       Color(0xFF4A44AA),
     ),
     (
       Icons.language_rounded,
-      'Tour Guide',
-      'Certified multilingual guides for your tour',
+      'tour_guide',
+      'tour_guide_desc',
       Color(0xFF0D7377),
     ),
     (
       Icons.photo_camera_rounded,
-      'Photography Tour',
-      'Professional photo sessions at landmarks',
+      'photography_tour',
+      'photography_desc',
       Color(0xFFE02850),
     ),
     (
       Icons.luggage_rounded,
-      'Luggage Storage',
-      'Safe storage at the airport during your tour',
+      'luggage_storage',
+      'luggage_desc',
       Color(0xFFFF6B35),
     ),
     (
       Icons.local_dining_rounded,
-      'Egyptian Dining',
-      'Traditional meal experiences included',
+      'egyptian_dining',
+      'dining_desc',
       Color(0xFF2E7D32),
     ),
     (
       Icons.sim_card_rounded,
-      'SIM Card',
-      'Local Egyptian SIM with data package',
+      'sim_card',
+      'sim_card_desc',
       Color(0xFF6A1B9A),
     ),
     (
       Icons.medical_services_rounded,
-      'Travel Insurance',
-      'Full coverage for all our tour packages',
+      'travel_insurance',
+      'travel_insurance_desc',
       Color(0xFF00838F),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final isAr = context.watch<LanguageProvider>().isArabic;
     final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4F8),
@@ -101,7 +105,7 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Our Services',
+                    isAr ? 'خدماتنا' : 'Our Services',
                     style: roboto(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -110,7 +114,7 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Everything you need for the perfect Egypt tour',
+                    isAr ? 'كل اللي محتاجه لجولة مصر المثالية' : 'Everything you need for the perfect Egypt tour',
                     style: roboto(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -158,7 +162,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        s.$2,
+                        S.tr(s.$2, isAr),
                         style: roboto(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -166,7 +170,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        s.$3,
+                        S.tr(s.$3, isAr),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: roboto(

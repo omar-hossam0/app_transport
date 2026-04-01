@@ -5,6 +5,8 @@ import '../models/booking_model.dart';
 import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/smooth_navigation.dart';
+import '../services/language_provider.dart';
+import '../services/app_localizations.dart';
 import 'auth_widgets.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -76,25 +78,18 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         ..sort((a, b) => b.date.compareTo(a.date));
 
   String _formatDate(DateTime d) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final isAr = context.read<LanguageProvider>().isArabic;
+    const monthKeys = [
+      'month_jan', 'month_feb', 'month_mar', 'month_apr',
+      'month_may', 'month_jun', 'month_jul', 'month_aug',
+      'month_sep', 'month_oct', 'month_nov', 'month_dec',
     ];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
+    return '${d.day} ${S.tr(monthKeys[d.month - 1], isAr)} ${d.year}';
   }
 
   // ── Cancel flow ───────────────────────────────────────────────────────────
   void _showCancelDialog(Booking b) {
+    final isAr = context.read<LanguageProvider>().isArabic;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -119,12 +114,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'Cancel Booking?',
+              S.tr('cancel_booking_q', isAr),
               style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
-              'Are you sure you want to cancel\n"${b.tripName}"?',
+              '${S.tr('cancel_booking_body', isAr)}"${b.tripName}"?',
               textAlign: TextAlign.center,
               style: roboto(
                 fontSize: 13,
@@ -149,7 +144,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Free cancellation up to 2 hours before departure.',
+                      S.tr('free_cancellation_note', isAr),
                       style: roboto(
                         fontSize: 12,
                         color: const Color(0xFF856404),
@@ -167,7 +162,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'Keep Booking',
+              S.tr('keep_booking', isAr),
               style: roboto(
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade600,
@@ -210,7 +205,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
             ),
             child: Text(
-              'Confirm Cancel',
+              S.tr('confirm_cancel', isAr),
               style: roboto(fontWeight: FontWeight.w700),
             ),
           ),
@@ -221,6 +216,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
   // ── Modify flow ───────────────────────────────────────────────────────────
   void _showModifyDialog(Booking b) {
+    final isAr = context.read<LanguageProvider>().isArabic;
     TimeOfDay selectedTime = TimeOfDay(hour: 10, minute: 0);
     int travelers = b.travelers;
 
@@ -236,7 +232,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               Icon(Icons.edit_calendar_rounded, color: kBlue, size: 22),
               const SizedBox(width: 8),
               Text(
-                'Modify Booking',
+                S.tr('modify_booking', isAr),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ],
@@ -253,7 +249,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
               // Time
               Text(
-                'Departure Time',
+                S.tr('departure_time', isAr),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -303,7 +299,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
               // Travelers
               Text(
-                'Number of Travelers',
+                S.tr('number_of_travelers', isAr),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -399,7 +395,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                       size: 18,
                     ),
                     Text(
-                      'Updated total: ',
+                      S.tr('updated_total', isAr),
                       style: roboto(fontSize: 13, color: Colors.grey.shade700),
                     ),
                     Text(
@@ -418,7 +414,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: roboto(color: Colors.grey.shade600)),
+              child: Text(S.tr('cancel', isAr), style: roboto(color: Colors.grey.shade600)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -427,7 +423,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Booking updated successfully!',
+                      S.tr('booking_updated', isAr),
                       style: roboto(color: Colors.white),
                     ),
                     backgroundColor: Colors.green,
@@ -450,7 +446,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 ),
               ),
               child: Text(
-                'Save Changes',
+                S.tr('save_changes', isAr),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ),
@@ -462,6 +458,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
   // ── Review flow ───────────────────────────────────────────────────────────
   void _showReviewDialog(Booking b) {
+    final isAr = context.read<LanguageProvider>().isArabic;
     double star = b.userRating == 0 ? 5 : b.userRating;
     final ctrl = TextEditingController(text: b.userReview);
 
@@ -481,7 +478,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(width: 8),
               Text(
-                'Leave a Review',
+                S.tr('leave_review', isAr),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ],
@@ -496,7 +493,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Your Rating',
+                S.tr('your_rating', isAr),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -514,7 +511,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Your Comment',
+                S.tr('your_comment', isAr),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -522,7 +519,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 controller: ctrl,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Share your experience…',
+                  hintText: S.tr('share_experience', isAr),
                   hintStyle: roboto(color: Colors.grey.shade400),
                   filled: true,
                   fillColor: const Color(0xFFF5F7FA),
@@ -537,7 +534,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Skip', style: roboto(color: Colors.grey.shade600)),
+              child: Text(S.tr('cancel', isAr), style: roboto(color: Colors.grey.shade600)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -582,7 +579,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   vertical: 11,
                 ),
               ),
-              child: Text('Submit', style: roboto(fontWeight: FontWeight.w700)),
+              child: Text(S.tr('submit', isAr), style: roboto(fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -646,7 +643,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     Row(
                       children: [
                         Text(
-                          'My Bookings',
+                          S.tr('my_bookings', context.watch<LanguageProvider>().isArabic),
                           style: roboto(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
@@ -670,7 +667,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Track and manage all your trips',
+                      S.tr('my_bookings', context.watch<LanguageProvider>().isArabic) == 'حجوزاتي' ? 'تابع وأدر كل رحلاتك' : 'Track and manage all your trips',
                       style: roboto(fontSize: 13, color: Colors.grey.shade500),
                     ),
                     const SizedBox(height: 16),
@@ -698,7 +695,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             children: [
                               const Icon(Icons.upcoming_rounded, size: 16),
                               const SizedBox(width: 6),
-                              const Text('Upcoming'),
+                              Text(S.tr('upcoming', context.watch<LanguageProvider>().isArabic)),
                               const SizedBox(width: 6),
                               _CountBadge(
                                 count: _upcoming.length,
@@ -713,7 +710,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             children: [
                               const Icon(Icons.history_rounded, size: 16),
                               const SizedBox(width: 6),
-                              const Text('Past'),
+                              Text(S.tr('past', context.watch<LanguageProvider>().isArabic)),
                               const SizedBox(width: 6),
                               _CountBadge(
                                 count: _past.length,

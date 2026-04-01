@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,8 @@ import 'services/favorites_service.dart';
 import 'services/trip_service.dart';
 import 'services/admin_service.dart';
 import 'services/notification_service.dart';
+import 'services/language_provider.dart';
+import 'services/app_localizations.dart';
 import 'pages/sign_in_page.dart';
 
 Future<void> main() async {
@@ -112,6 +115,7 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (_) => FavoritesService()),
           ChangeNotifierProvider(create: (_) => TripService()),
           ChangeNotifierProvider(create: (_) => AdminService()),
+          ChangeNotifierProvider(create: (_) => LanguageProvider()),
           Provider(create: (_) => NotificationService()),
         ],
         child: const MyApp(),
@@ -134,6 +138,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FavoritesService()),
         ChangeNotifierProvider(create: (_) => TripService()),
         ChangeNotifierProvider(create: (_) => AdminService()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
         Provider(create: (_) => NotificationService()),
       ],
       child: const MyApp(),
@@ -146,12 +151,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = context.watch<LanguageProvider>();
+    final isAr = langProvider.isArabic;
     return MaterialApp(
-      title: 'App Transport',
+      title: 'Transit App',
       debugShowCheckedModeBanner: false,
+      locale: langProvider.locale,
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF187BCD)),
       ),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: child!,
+        );
+      },
       home: const SplashScreen(),
     );
   }
@@ -175,6 +195,7 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = context.watch<LanguageProvider>().isArabic;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -207,7 +228,7 @@ class SplashScreen extends StatelessWidget {
               children: [
                 // Descriptive text
                 Text(
-                  'Plan your journey with transit apps and\nexplore the land of pharaohs at your fingertips.',
+                  S.tr('splash_description', isAr),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -326,7 +347,7 @@ class SplashScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                'Explore Egyptian Destinations',
+                                S.tr('explore_destinations', isAr),
                                 style: TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w600,
