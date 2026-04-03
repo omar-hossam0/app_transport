@@ -492,6 +492,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  AI Suggestions
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildAiSuggestions() {
+    final tripService = context.watch<TripService>();
+    final suggestionTrips = _buildSuggestionTrips(tripService.activeTrips);
+    final showingTrips = suggestionTrips.isNotEmpty;
+    final fallbackCount = _suggestions.length >= 3 ? 3 : _suggestions.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -510,14 +515,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 14),
         SizedBox(
-          height: 110,
+          height: 130,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            itemCount: _suggestions.length,
+            itemCount: showingTrips ? suggestionTrips.length : fallbackCount,
             separatorBuilder: (context, index) => const SizedBox(width: 14),
             itemBuilder: (context, i) {
+              if (showingTrips) {
+                final trip = suggestionTrips[i];
+                return _TripSuggestionCard(trip: trip);
+              }
+
               final s = _suggestions[i];
               return GestureDetector(
                 onTap: () {
@@ -528,7 +538,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   _openChatWithMessage(s.title);
                 },
                 child: Container(
-                  width: 170,
+                  width: 180,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: s.gradient,
@@ -614,14 +624,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: _categories.map((c) {
+          final targetIndex = c.label == 'Flying Taxi'
+              ? 1
+              : c.label == 'Transit Trips'
+                  ? 2
+                  : c.label == 'Services'
+                      ? 6
+                      : 7;
           return GestureDetector(
-            onTap: c.label == 'Flying Taxi'
-                ? () => setState(() => _navIndex = 1)
-                : c.label == 'Transit Trips'
-                ? () => setState(() => _navIndex = 2)
-                : c.label == 'Services'
-                ? () => setState(() => _navIndex = 6)
-                : () => setState(() => _navIndex = 7),
+            onTap: () => _switchTab(targetIndex),
             child: Column(
               children: [
                 Container(
@@ -743,6 +754,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     result.addAll(transit.take(3));
     result.addAll(flying.take(3));
     return result;
+  }
+
+  List<TripModel> _buildSuggestionTrips(List<TripModel> trips) {
+    if (trips.isEmpty) return [];
+    final transit = trips.where((t) => t.isTransit).toList();
+    final flying = trips.where((t) => t.isFlying).toList();
+    final picks = <TripModel>[];
+
+    while (picks.length < 3 && (transit.isNotEmpty || flying.isNotEmpty)) {
+      if (transit.isNotEmpty) {
+        picks.add(transit.removeAt(0));
+      }
+      if (picks.length == 3) break;
+      if (flying.isNotEmpty) {
+        picks.add(flying.removeAt(0));
+      }
+      if (picks.length == 3) break;
+    }
+
+    if (picks.length < 3) {
+      final remaining = [...transit, ...flying];
+      picks.addAll(remaining.take(3 - picks.length));
+    }
+
+    return picks;
   }
 
   static const Map<String, List<String>> _searchSynonyms = {
@@ -940,6 +976,82 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+FlyingTaxiTrip _asFlyingTaxiTrip(TripModel trip) {
+  final durationMinutes = trip.durationMinutes > 0
+      ? trip.durationMinutes
+      : 45;
+  final flightMinutes = trip.flightMinutes > 0
+      ? trip.flightMinutes
+      : (durationMinutes / 3).round().clamp(10, 40);
+
+  return FlyingTaxiTrip(
+    name: trip.name,
+    durationMinutes: durationMinutes,
+    flightMinutes: flightMinutes,
+    priceUsd: trip.priceUsd.toInt(),
+    description: trip.description.isNotEmpty
+        ? trip.description
+        : trip.shortDescription,
+    mapHint: trip.mapHint.isNotEmpty ? trip.mapHint : trip.routeLabel,
+    cardColor: trip.accentColor,
+    icon: Icons.flight_rounded,
+    imageUrl: trip.imageUrl,
+  );
+}
+
+TransitTrip _asTransitTrip(TripModel trip) {
+  final durationHoursExact = trip.durationMinutes > 0
+      ? trip.durationMinutes / 60.0
+      : 2.0;
+  final itinerary = trip.itinerary
+      .map(
+        (s) => TransitStop(
+          title: s.title,
+          subtitle: s.subtitle,
+          duration: s.duration,
+          icon: s.icon,
+          color: s.color,
+          imageUrl: s.imageUrl,
+        ),
+      )
+      .toList();
+
+  return TransitTrip(
+    name: trip.name,
+    shortDescription: trip.shortDescription.isNotEmpty
+        ? trip.shortDescription
+        : trip.description,
+    durationHours: durationHoursExact.ceil(),
+    durationHoursExact: durationHoursExact,
+    priceUsd: trip.priceUsd.toInt(),
+    imageUrl: trip.imageUrl,
+    accentColor: trip.accentColor,
+    routeLabel: trip.routeLabel,
+    itinerary: itinerary,
+    included: trip.included,
+  );
+}
+
+void _openTripDetail(BuildContext context, TripModel trip) {
+  if (trip.isFlying) {
+    final flyingTrip = _asFlyingTaxiTrip(trip);
+    SmoothNavigation.slideRight(
+      context,
+      (context) => TripDetailPage(trip: flyingTrip),
+      routeName: 'trip_detail_flying',
+      duration: const Duration(milliseconds: 450),
+    );
+  } else {
+    final transitTrip = _asTransitTrip(trip);
+    SmoothNavigation.slideRight(
+      context,
+      (context) => TransitTripDetailPage(trip: transitTrip),
+      routeName: 'trip_detail_transit',
+      duration: const Duration(milliseconds: 450),
+    );
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  Trip card widget
 // ═════════════════════════════════════════════════════════════════════════════
@@ -947,86 +1059,10 @@ class _TripCard extends StatelessWidget {
   final TripModel trip;
   const _TripCard({required this.trip});
 
-  FlyingTaxiTrip _toFlyingTaxiTrip(TripModel trip) {
-    final durationMinutes = trip.durationMinutes > 0
-        ? trip.durationMinutes
-        : 45;
-    final flightMinutes = trip.flightMinutes > 0
-        ? trip.flightMinutes
-        : (durationMinutes / 3).round().clamp(10, 40);
-
-    return FlyingTaxiTrip(
-      name: trip.name,
-      durationMinutes: durationMinutes,
-      flightMinutes: flightMinutes,
-      priceUsd: trip.priceUsd.toInt(),
-      description: trip.description.isNotEmpty
-          ? trip.description
-          : trip.shortDescription,
-      mapHint: trip.mapHint.isNotEmpty ? trip.mapHint : trip.routeLabel,
-      cardColor: trip.accentColor,
-      icon: Icons.flight_rounded,
-      imageUrl: trip.imageUrl,
-    );
-  }
-
-  TransitTrip _toTransitTrip(TripModel trip) {
-    final durationHoursExact = trip.durationMinutes > 0
-        ? trip.durationMinutes / 60.0
-        : 2.0;
-    final itinerary = trip.itinerary
-        .map(
-          (s) => TransitStop(
-            title: s.title,
-            subtitle: s.subtitle,
-            duration: s.duration,
-            icon: s.icon,
-            color: s.color,
-            imageUrl: s.imageUrl,
-          ),
-        )
-        .toList();
-
-    return TransitTrip(
-      name: trip.name,
-      shortDescription: trip.shortDescription.isNotEmpty
-          ? trip.shortDescription
-          : trip.description,
-      durationHours: durationHoursExact.ceil(),
-      durationHoursExact: durationHoursExact,
-      priceUsd: trip.priceUsd.toInt(),
-      imageUrl: trip.imageUrl,
-      accentColor: trip.accentColor,
-      routeLabel: trip.routeLabel,
-      itinerary: itinerary,
-      included: trip.included,
-    );
-  }
-
-  void _open(BuildContext context) {
-    if (trip.isFlying) {
-      final flyingTrip = _toFlyingTaxiTrip(trip);
-      SmoothNavigation.slideRight(
-        context,
-        (context) => TripDetailPage(trip: flyingTrip),
-        routeName: 'trip_detail_flying',
-        duration: const Duration(milliseconds: 450),
-      );
-    } else {
-      final transitTrip = _toTransitTrip(trip);
-      SmoothNavigation.slideRight(
-        context,
-        (context) => TransitTripDetailPage(trip: transitTrip),
-        routeName: 'trip_detail_transit',
-        duration: const Duration(milliseconds: 450),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _open(context),
+      onTap: () => _openTripDetail(context, trip),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -1248,6 +1284,106 @@ class _TripCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TripSuggestionCard extends StatelessWidget {
+  final TripModel trip;
+  const _TripSuggestionCard({required this.trip});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = trip.isFlying
+        ? Icons.flight_takeoff_rounded
+        : Icons.directions_bus_rounded;
+    final categoryLabel = trip.isFlying ? 'Flying' : 'Transit';
+    final colors = [
+      trip.accentColor,
+      trip.accentColor.withValues(alpha: 0.75),
+    ];
+
+    return GestureDetector(
+      onTap: () => _openTripDetail(context, trip),
+      child: Container(
+        width: 190,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withValues(alpha: 0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 26),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                categoryLabel,
+                style: roboto(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              trip.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: roboto(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  trip.durationLabel,
+                  style: roboto(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  trip.priceLabel,
+                  style: roboto(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
