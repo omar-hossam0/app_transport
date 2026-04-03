@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../data/default_trips.dart';
 import '../models/trip_model.dart';
 
@@ -9,6 +10,8 @@ class TripService extends ChangeNotifier {
   final List<TripModel> _trips = [];
   bool _isLoading = false;
   StreamSubscription<DatabaseEvent>? _sub;
+  final Set<String> _warmedImageUrls = <String>{};
+  Timer? _warmupDebounce;
 
   List<TripModel> get trips => List.unmodifiable(_trips);
   List<TripModel> get activeTrips =>
@@ -146,6 +149,13 @@ class TripService extends ChangeNotifier {
     _sub = null;
   }
 
+  @override
+  void dispose() {
+    _warmupDebounce?.cancel();
+    disposeListener();
+    super.dispose();
+  }
+
   void _applySnapshot(DataSnapshot snap) {
     _trips.clear();
     if (snap.exists && snap.value != null) {
@@ -166,7 +176,56 @@ class TripService extends ChangeNotifier {
       }
       _trips.sort((a, b) => a.name.compareTo(b.name));
     }
+    _scheduleImageWarmup();
     notifyListeners();
+  }
+
+  void _scheduleImageWarmup() {
+    _warmupDebounce?.cancel();
+    _warmupDebounce = Timer(const Duration(milliseconds: 250), () {
+      unawaited(_warmTripImageCache());
+    });
+  }
+
+  Future<void> _warmTripImageCache() async {
+    final urls = <String>{};
+
+    for (final trip in _trips) {
+      final cover = trip.imageUrl.trim();
+      if (_isCacheableUrl(cover)) urls.add(cover);
+
+      for (final url in trip.galleryImageUrls) {
+        final normalized = url.trim();
+        if (_isCacheableUrl(normalized)) urls.add(normalized);
+      }
+
+      for (final stop in trip.itinerary) {
+        final stopUrl = stop.imageUrl.trim();
+        if (_isCacheableUrl(stopUrl)) urls.add(stopUrl);
+      }
+    }
+
+    final pending = urls
+        .where((url) => !_warmedImageUrls.contains(url))
+        .take(60)
+        .toList();
+
+    if (pending.isEmpty) return;
+
+    final cache = DefaultCacheManager();
+    for (final url in pending) {
+      try {
+        await cache.downloadFile(url, key: url);
+        _warmedImageUrls.add(url);
+      } catch (e) {
+        debugPrint('[TripService] Cache warmup skipped for $url: $e');
+      }
+    }
+  }
+
+  bool _isCacheableUrl(String value) {
+    if (value.isEmpty || value.startsWith('data:image')) return false;
+    return value.startsWith('http://') || value.startsWith('https://');
   }
 
   /// Resets the seed flag and re-seeds all default trips into Firebase.

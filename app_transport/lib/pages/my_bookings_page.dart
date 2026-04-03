@@ -7,6 +7,7 @@ import '../services/booking_service.dart';
 import '../services/language_service.dart';
 import '../services/ui_translation.dart';
 import '../services/smooth_navigation.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -916,12 +917,12 @@ class _UpcomingCard extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                Image.network(
-                  b.tripImage,
+                TripImage(
+                  imageUrl: b.tripImage,
                   height: 130,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Container(
+                  errorBuilder: (_) => Container(
                     height: 130,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -1250,12 +1251,12 @@ class _PastCard extends StatelessWidget {
                       Colors.transparent,
                       BlendMode.saturation,
                     ),
-              child: Image.network(
-                b.tripImage,
+              child: TripImage(
+                imageUrl: b.tripImage,
                 width: 95,
                 height: 130,
                 fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
+                errorBuilder: (_) => Container(
                   width: 95,
                   height: 130,
                   color: Colors.grey.shade200,
@@ -1492,10 +1493,10 @@ class _BookingDetailPage extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(
-                          b.tripImage,
+                        TripImage(
+                          imageUrl: b.tripImage,
                           fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => Container(
+                          errorBuilder: (_) => Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [

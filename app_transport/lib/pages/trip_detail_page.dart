@@ -8,6 +8,7 @@ import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
 import '../services/language_service.dart';
 import '../services/ui_translation.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
 
@@ -95,51 +96,46 @@ class _TripDetailPageState extends State<TripDetailPage>
                         fit: StackFit.expand,
                         children: [
                           // Real image from network
-                          Image.network(
-                            t.imageUrl,
+                          TripImage(
+                            imageUrl: t.imageUrl,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.cardColor,
-                                      t.cardColor.withValues(alpha: 0.55),
-                                    ],
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.topRight,
-                                  ),
+                            placeholderBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.cardColor,
+                                    t.cardColor.withValues(alpha: 0.55),
+                                  ],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topRight,
                                 ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.cardColor,
-                                      t.cardColor.withValues(alpha: 0.55),
-                                    ],
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.topRight,
-                                  ),
+                              ),
+                            ),
+                            errorBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.cardColor,
+                                    t.cardColor.withValues(alpha: 0.55),
+                                  ],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topRight,
                                 ),
-                                child: Center(
-                                  child: Icon(
-                                    t.icon,
-                                    color: Colors.white.withValues(alpha: 0.20),
-                                    size: 90,
-                                  ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  t.icon,
+                                  color: Colors.white.withValues(alpha: 0.20),
+                                  size: 90,
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
                           // Top gradient for status bar readability
                           Positioned(

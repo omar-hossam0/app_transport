@@ -8,6 +8,7 @@ import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
 import '../services/language_service.dart';
 import '../services/ui_translation.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
 import 'transit_trips_page.dart';
 
@@ -555,29 +556,26 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.network(
-                            t.imageUrl,
+                          TripImage(
+                            imageUrl: t.imageUrl,
                             fit: BoxFit.cover,
-                            loadingBuilder: (ctx, child, prog) {
-                              if (prog == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.accentColor,
-                                      t.accentColor.withValues(alpha: 0.5),
-                                    ],
-                                  ),
+                            placeholderBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.accentColor,
+                                    t.accentColor.withValues(alpha: 0.5),
+                                  ],
                                 ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            errorBuilder: (c, e, s) => Container(
+                              ),
+                            ),
+                            errorBuilder: (_) => Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -1304,22 +1302,19 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       fit: StackFit.expand,
                       children: [
                         // Image
-                        Image.network(
-                          stop.imageUrl,
+                        TripImage(
+                          imageUrl: stop.imageUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, prog) {
-                            if (prog == null) return child;
-                            return Container(
-                              color: stop.color.withValues(alpha: 0.15),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: stop.color,
-                                  strokeWidth: 2,
-                                ),
+                          placeholderBuilder: (_) => Container(
+                            color: stop.color.withValues(alpha: 0.15),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: stop.color,
+                                strokeWidth: 2,
                               ),
-                            );
-                          },
-                          errorBuilder: (c, e, s) => Container(
+                            ),
+                          ),
+                          errorBuilder: (_) => Container(
                             color: stop.color.withValues(alpha: 0.15),
                             child: Center(
                               child: Icon(

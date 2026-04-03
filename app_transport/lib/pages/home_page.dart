@@ -20,6 +20,7 @@ import '../services/language_service.dart';
 import '../services/ui_translation.dart';
 import '../services/smooth_navigation.dart';
 import '../models/trip_model.dart';
+import '../widgets/trip_image.dart';
 
 // ── Extra brand colours ──────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -234,6 +235,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _switchTab(4);
     Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
       _chatController.send(text);
     });
   }
@@ -318,7 +320,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void _onAiSuggestionTap(int index) {
     if (index == 0) {
-      _openHoursSuggestionFlow();
+      final isArabic = context.read<LanguageService>().isArabic;
+      _openChatWithMessage(
+        isArabic
+            ? 'اريد اقتراح رحلة على حسب مدة الترانزيت المتاحة لدي. اسالني اولا عن عدد الساعات ثم اقترح الانسب.'
+            : 'I want a trip recommendation based on my layover time. Ask me first how many hours I have, then suggest the best option.',
+      );
       return;
     }
 
@@ -393,8 +400,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             },
             children: [
               _buildHomeContent(), // 0
-              const FlyingTaxiPage(), // 1
-              const TransitTripsPage(), // 2
+              FlyingTaxiPage(onBack: () => _switchTab(0)), // 1
+              TransitTripsPage(onBack: () => _switchTab(0)), // 2
               const MyBookingsPage(), // 3
               ChatBotPage(
                 controller: _chatController,
@@ -1193,10 +1200,10 @@ class _TripCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    trip.imageUrl,
+                  TripImage(
+                    imageUrl: trip.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_) => Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -1215,17 +1222,15 @@ class _TripCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    loadingBuilder: (_, child, progress) => progress == null
-                        ? child
-                        : Container(
-                            color: trip.accentColor.withValues(alpha: 0.3),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                    placeholderBuilder: (_) => Container(
+                      color: trip.accentColor.withValues(alpha: 0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                   // Gradient overlay at bottom
                   Positioned(

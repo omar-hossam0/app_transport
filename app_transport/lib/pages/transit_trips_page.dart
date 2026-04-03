@@ -9,6 +9,7 @@ import 'auth_widgets.dart';
 import 'chatbot_page.dart';
 import 'transit_trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
+import '../widgets/trip_image.dart';
 
 // ── Brand colours ─────────────────────────────────────────────────────────
 const _kDark = Color(0xFF1A1A2E);
@@ -947,7 +948,9 @@ final transitTrips = <TransitTrip>[
 //  TransitTripsPage
 // ═════════════════════════════════════════════════════════════════════════════
 class TransitTripsPage extends StatefulWidget {
-  const TransitTripsPage({super.key});
+  final VoidCallback? onBack;
+
+  const TransitTripsPage({super.key, this.onBack});
 
   @override
   State<TransitTripsPage> createState() => _TransitTripsPageState();
@@ -1261,7 +1264,14 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                       Row(
                         children: [
                           GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
+                            onTap: () {
+                              final onBack = widget.onBack;
+                              if (onBack != null) {
+                                onBack();
+                                return;
+                              }
+                              Navigator.of(context).maybePop();
+                            },
                             child: Container(
                               width: 42,
                               height: 42,
@@ -1644,32 +1654,29 @@ class _TimelineRow extends StatelessWidget {
                       child: Stack(
                         clipBehavior: Clip.hardEdge,
                         children: [
-                          Image.network(
-                            trip.imageUrl,
+                          TripImage(
+                            imageUrl: trip.imageUrl,
                             height: 150,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            loadingBuilder: (ctx, child, prog) {
-                              if (prog == null) return child;
-                              return Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      trip.accentColor,
-                                      trip.accentColor.withValues(alpha: 0.5),
-                                    ],
-                                  ),
+                            placeholderBuilder: (_) => Container(
+                              height: 150,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    trip.accentColor,
+                                    trip.accentColor.withValues(alpha: 0.5),
+                                  ],
                                 ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            errorBuilder: (c, e, s) => Container(
+                              ),
+                            ),
+                            errorBuilder: (_) => Container(
                               height: 150,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(

@@ -50,6 +50,8 @@ dependencies:
   google_sign_in: ^6.3.0 # Google account sign-in (mobile/desktop)
   flutter_facebook_auth: ^7.1.2 # Facebook account sign-in
   image_picker: ^1.1.2 # Select trip images on mobile
+  cached_network_image: ^3.4.1 # Stable cached loading for trip images
+  flutter_cache_manager: ^3.4.1 # Warm image cache after trip sync
   crypto: ^3.0.3 # Password hashing (SHA-256)
   shared_preferences: ^2.3.2 # Persist login session locally
   uuid: ^4.5.1 # Generate unique user IDs

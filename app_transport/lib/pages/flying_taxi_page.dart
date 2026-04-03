@@ -367,7 +367,9 @@ const flyingTrips = <FlyingTaxiTrip>[
 
 // ─────────────────────────────────────────────────────────────────────────────
 class FlyingTaxiPage extends StatefulWidget {
-  const FlyingTaxiPage({super.key});
+  final VoidCallback? onBack;
+
+  const FlyingTaxiPage({super.key, this.onBack});
 
   @override
   State<FlyingTaxiPage> createState() => _FlyingTaxiPageState();
@@ -567,7 +569,12 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          final onBack = widget.onBack;
+                          if (onBack != null) {
+                            onBack();
+                          }
+                        },
                         child: Container(
                           width: 42,
                           height: 42,
