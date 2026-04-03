@@ -589,7 +589,16 @@ class AuthService extends ChangeNotifier {
       return false;
     } on PlatformException catch (e) {
       final raw = '${e.code} ${e.message ?? ''} ${e.details ?? ''}';
-      if (_looksLikeGoogleConfigError(raw)) {
+      final txt = raw.toLowerCase();
+
+      // User-cancelled flows should not be shown as setup/config errors.
+      if (e.code == 'sign_in_canceled' ||
+          txt.contains('12501') ||
+          txt.contains('canceled')) {
+        _setError('Google sign in was cancelled');
+      } else if (txt.contains('network_error')) {
+        _setError('Network error during Google sign in. Please try again');
+      } else if (_looksLikeGoogleConfigError(raw)) {
         _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: ${e.message ?? e.code}');
@@ -597,7 +606,15 @@ class AuthService extends ChangeNotifier {
       return false;
     } catch (e) {
       final raw = e.toString();
-      if (_looksLikeAuthConfigError(raw) || _looksLikeGoogleConfigError(raw)) {
+      final txt = raw.toLowerCase();
+      if (txt.contains('permission_denied') ||
+          txt.contains('permission denied')) {
+        _setError(
+          'Google sign-in succeeded, but Database rules blocked profile sync (PERMISSION_DENIED).\n'
+          'Check Realtime Database rules for users/{uid} read/write with auth.uid.',
+        );
+      } else if (_looksLikeAuthConfigError(raw) ||
+          _looksLikeGoogleConfigError(raw)) {
         _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: $e');
@@ -1134,7 +1151,6 @@ class AuthService extends ChangeNotifier {
         txt.contains('api exception: 10') ||
         txt.contains('sign_in_failed') ||
         txt.contains('12500') ||
-        txt.contains('12501') ||
         txt.contains('oauth') ||
         txt.contains('sha-1') ||
         txt.contains('sha1') ||

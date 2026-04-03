@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import 'services/favorites_service.dart';
 import 'services/trip_service.dart';
 import 'services/admin_service.dart';
 import 'services/notification_service.dart';
+import 'services/language_service.dart';
 import 'pages/sign_in_page.dart';
 
 Future<void> main() async {
@@ -48,11 +50,11 @@ Future<void> main() async {
       debugPrint('\n[DB Connection Test] Starting...');
       final db = FirebaseDatabase.instance;
       debugPrint('[DB Connection Test] FirebaseDatabase instance created');
-      debugPrint('[DB Connection Test] Attempting a safe root read...');
+      debugPrint('[DB Connection Test] Attempting lightweight health read...');
 
-      // Use a safe root read for all platforms.
-      // (.info/connected and '/'' can throw invalid-path errors on web SDK wrappers)
-      final connectedFuture = db.ref().get().timeout(
+      // Avoid root reads because some payload shapes can trigger map-cast
+      // issues in platform wrappers. A scalar path is safer for connectivity checks.
+      final connectedFuture = db.ref('system/trips_seeded').get().timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           debugPrint('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
@@ -85,13 +87,8 @@ Future<void> main() async {
       } else if (e.toString().contains('no address associated')) {
         dbError = '🌐 No internet\nFix:\n→ Check device internet connection';
       } else if (e.toString().contains('not a subtype')) {
-        // Data format issue - but database is working!
-        dbConnected = true;
         dbError =
-            '✅ Database is accessible! (data format note - this is normal)';
-        debugPrint(
-          '[DB Connection Test] 📝 Database is accessible - data format is working!',
-        );
+            '⚠️ Data format mismatch during health-check\nFix:\n→ Check unexpected data at tested DB path';
       } else {
         dbError = '❌ Firebase Error: ${e.toString().split('\n').first}';
       }
@@ -112,6 +109,7 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (_) => FavoritesService()),
           ChangeNotifierProvider(create: (_) => TripService()),
           ChangeNotifierProvider(create: (_) => AdminService()),
+          ChangeNotifierProvider(create: (_) => LanguageService()..load()),
           Provider(create: (_) => NotificationService()),
         ],
         child: const MyApp(),
@@ -134,6 +132,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FavoritesService()),
         ChangeNotifierProvider(create: (_) => TripService()),
         ChangeNotifierProvider(create: (_) => AdminService()),
+        ChangeNotifierProvider(create: (_) => LanguageService()..load()),
         Provider(create: (_) => NotificationService()),
       ],
       child: const MyApp(),
@@ -144,15 +143,37 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  double _appTextScale(BuildContext context) {
+    final shortest = MediaQuery.of(context).size.shortestSide;
+    final scale = shortest / 390.0;
+    return scale.clamp(0.92, 1.10);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App Transport',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF187BCD)),
+    return Consumer<LanguageService>(
+      builder: (context, language, _) => MaterialApp(
+        title: 'App Transport',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF187BCD)),
+        ),
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: mq.copyWith(textScaler: TextScaler.linear(_appTextScale(context))),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        locale: language.locale,
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: const SplashScreen(),
       ),
-      home: const SplashScreen(),
     );
   }
 }
@@ -175,20 +196,19 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
           // ── Background Image ────────────────────────────────────
-          Image.asset(
-            'img/Background.png',
-            fit: BoxFit.cover,
-          ),
+          Image.asset('img/Background.png', fit: BoxFit.cover),
 
           // ── Logo (Top Left) ─────────────────────────────────────
           Positioned(
             left: 10,
-            top: -45, // Negative position to push the logo to the extreme top edge
+            top:
+                -45, // Negative position to push the logo to the extreme top edge
             child: Image.asset(
               'img/Logo-Bg.png',
               width: MediaQuery.of(context).size.width * 0.65,
@@ -207,7 +227,9 @@ class SplashScreen extends StatelessWidget {
               children: [
                 // Descriptive text
                 Text(
-                  'Plan your journey with transit apps and\nexplore the land of pharaohs at your fingertips.',
+                  isArabic
+                      ? 'خطط رحلتك مع تطبيقات الترانزيت\nواكتشف أرض الفراعنة من هاتفك.'
+                      : 'Plan your journey with transit apps and\nexplore the land of pharaohs at your fingertips.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -235,7 +257,9 @@ class SplashScreen extends StatelessWidget {
                       boxShadow: [
                         // Warm amber glow
                         BoxShadow(
-                          color: const Color(0xFFD4A04A).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFFD4A04A,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 18,
                           spreadRadius: -2,
                           offset: const Offset(0, 6),
@@ -261,13 +285,21 @@ class SplashScreen extends StatelessWidget {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    const Color(0xFFB8885A).withValues(alpha: 0.50),
-                                    const Color(0xFF8B6540).withValues(alpha: 0.55),
-                                    const Color(0xFF6B4C30).withValues(alpha: 0.60),
+                                    const Color(
+                                      0xFFB8885A,
+                                    ).withValues(alpha: 0.50),
+                                    const Color(
+                                      0xFF8B6540,
+                                    ).withValues(alpha: 0.55),
+                                    const Color(
+                                      0xFF6B4C30,
+                                    ).withValues(alpha: 0.60),
                                   ],
                                 ),
                                 border: Border.all(
-                                  color: const Color(0xFFD4A04A).withValues(alpha: 0.60),
+                                  color: const Color(
+                                    0xFFD4A04A,
+                                  ).withValues(alpha: 0.60),
                                   width: 1.3,
                                 ),
                                 borderRadius: BorderRadius.circular(30),
@@ -279,7 +311,9 @@ class SplashScreen extends StatelessWidget {
                             alignment: Alignment.topCenter,
                             child: Container(
                               height: 1.0,
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
                                 gradient: LinearGradient(
@@ -302,7 +336,9 @@ class SplashScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFE8C170).withValues(alpha: 0.60),
+                                    color: const Color(
+                                      0xFFE8C170,
+                                    ).withValues(alpha: 0.60),
                                     blurRadius: 28,
                                     spreadRadius: 2,
                                   ),
@@ -326,7 +362,9 @@ class SplashScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                'Explore Egyptian Destinations',
+                                isArabic
+                                    ? 'استكشف الوجهات المصرية'
+                                    : 'Explore Egyptian Destinations',
                                 style: TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w600,

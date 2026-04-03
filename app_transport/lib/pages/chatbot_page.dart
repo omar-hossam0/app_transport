@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'auth_widgets.dart';
 import '../config.dart';
 import '../services/smooth_navigation.dart';
+import '../services/ui_translation.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
@@ -454,7 +455,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'App Assistant',
+                  UiTranslation.display(context, 'App Assistant'),
                   style: roboto(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -474,7 +475,10 @@ class _Header extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Online — AI Travel Guide',
+                      UiTranslation.display(
+                        context,
+                        'Online - AI Travel Guide',
+                      ),
                       style: roboto(
                         fontSize: 11,
                         color: Colors.white.withValues(alpha: 0.80),
@@ -571,7 +575,7 @@ class _ChipsRow extends StatelessWidget {
                     Icon(c.$1, size: 13, color: kBlue),
                     const SizedBox(width: 5),
                     Text(
-                      c.$2,
+                      UiTranslation.display(context, c.$2),
                       style: roboto(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -657,7 +661,7 @@ class _Bubble extends StatelessWidget {
                 ],
               ),
               child: Text(
-                msg.text,
+                isUser ? msg.text : UiTranslation.display(context, msg.text),
                 style: roboto(
                   fontSize: 13,
                   color: isUser ? Colors.white : const Color(0xFF1A1A2E),
@@ -809,7 +813,7 @@ class _InputBar extends StatelessWidget {
                 onSubmitted: onSend,
                 style: roboto(fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'Chat here...',
+                  hintText: UiTranslation.display(context, 'Chat here...'),
                   hintStyle: roboto(fontSize: 13, color: Colors.grey.shade400),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(

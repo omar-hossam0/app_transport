@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +16,8 @@ import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/trip_service.dart';
 import '../services/notification_service.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
 import '../services/smooth_navigation.dart';
 import '../models/trip_model.dart';
 
@@ -94,6 +95,58 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final _pageController = PageController(initialPage: 0);
   final _chatController = ChatBotController();
   final _searchController = TextEditingController();
+
+  String _t(String en, String ar) =>
+      context.read<LanguageService>().isArabic ? ar : en;
+
+  String _suggestionTitle(int index) {
+    switch (index) {
+      case 0:
+        return _t('Find the best trip for my time', 'ابحث عن افضل رحلة حسب وقتي');
+      case 1:
+        return _t('3-hour Giza Tour', 'جولة الجيزة 3 ساعات');
+      case 2:
+        return _t('Flying Taxi over Cairo', 'تاكسي طائر فوق القاهرة');
+      case 3:
+        return _t('Old Cairo Walking', 'جولة مشي في القاهرة القديمة');
+      case 4:
+        return _t('Short Nile Cruise', 'رحلة نيلية قصيرة');
+      default:
+        return _t('Transit day in Cairo', 'يوم ترانزيت في القاهرة');
+    }
+  }
+
+  String _suggestionDuration(int index) {
+    switch (index) {
+      case 0:
+        return _t('Set hours', 'حدد الساعات');
+      case 1:
+        return _t('3 hrs', '3 ساعات');
+      case 2:
+        return _t('30 min', '30 دقيقة');
+      case 3:
+        return _t('1.5 hrs', 'ساعة ونصف');
+      case 4:
+        return _t('2 hrs', 'ساعتان');
+      default:
+        return _t('5 hrs', '5 ساعات');
+    }
+  }
+
+  String _categoryLabel(String englishLabel) {
+    switch (englishLabel) {
+      case 'Flying Taxi':
+        return _t('Flying Taxi', 'التاكسي الطائر');
+      case 'Transit Trips':
+        return _t('Transit Trips', 'رحلات الترانزيت');
+      case 'Services':
+        return _t('Services', 'الخدمات');
+      case 'Places':
+        return _t('Places', 'الاماكن');
+      default:
+        return englishLabel;
+    }
+  }
 
   // ── staggered entrance animations ────────────────────────────────
   late final AnimationController _entranceCtrl;
@@ -191,7 +244,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          'How many hours do you have?',
+          _t('How many hours do you have?', 'كم ساعة متاحة معك؟'),
           style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         content: TextField(
@@ -199,14 +252,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            hintText: 'Example: 4',
+            hintText: _t('Example: 4', 'مثال: 4'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(_t('Cancel', 'الغاء')),
           ),
           FilledButton(
             onPressed: () {
@@ -215,7 +268,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               if (parsed == null || parsed <= 0) return;
               Navigator.pop(ctx, parsed);
             },
-            child: const Text('Get Suggestion'),
+            child: Text(_t('Get Suggestion', 'احصل على اقتراح')),
           ),
         ],
       ),
@@ -226,15 +279,92 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final hoursLabel = hours == hours.roundToDouble()
         ? hours.toInt().toString()
         : hours.toStringAsFixed(1);
+    final isArabic = context.read<LanguageService>().isArabic;
 
     _openChatWithMessage(
-      'عندي ترانزيت لمدة $hoursLabel ساعة في القاهرة. اقترح أفضل رحلة مناسبة للمدة دي مع السعر وخطة سريعة.',
+      isArabic
+          ? 'عندي ترانزيت لمدة $hoursLabel ساعة في القاهرة. اقترح أفضل رحلة مناسبة للمدة دي مع السعر وخطة سريعة.'
+          : 'I have a $hoursLabel-hour layover in Cairo. Suggest the best trip for this time with price and a quick plan.',
     );
+  }
+
+  TripModel? _pickTripFromBackend({
+    required bool flying,
+    List<String> keywords = const [],
+  }) {
+    final all = context.read<TripService>().activeTrips;
+    final byType = all.where((t) => flying ? t.isFlying : t.isTransit).toList();
+    if (byType.isEmpty) return null;
+
+    if (keywords.isNotEmpty) {
+      for (final trip in byType) {
+        final searchable = _normalizeSearchText(
+          [
+            trip.name,
+            trip.shortDescription,
+            trip.description,
+            trip.routeLabel,
+          ].join(' '),
+        );
+        final hasKeyword = keywords.any(
+          (k) => searchable.contains(_normalizeSearchText(k)),
+        );
+        if (hasKeyword) return trip;
+      }
+    }
+
+    return byType.first;
+  }
+
+  void _onAiSuggestionTap(int index) {
+    if (index == 0) {
+      _openHoursSuggestionFlow();
+      return;
+    }
+
+    TripModel? trip;
+    switch (index) {
+      case 1:
+        trip = _pickTripFromBackend(
+          flying: false,
+          keywords: ['giza', 'pyramid', 'pyramids', 'اهرامات', 'جيزه'],
+        );
+        break;
+      case 2:
+        trip = _pickTripFromBackend(
+          flying: true,
+          keywords: ['cairo', 'nile', 'القاهره', 'نيل'],
+        );
+        break;
+      case 3:
+        trip = _pickTripFromBackend(
+          flying: false,
+          keywords: ['old cairo', 'historic', 'خان', 'معز', 'قلعه'],
+        );
+        break;
+      case 4:
+        trip = _pickTripFromBackend(
+          flying: false,
+          keywords: ['nile', 'cruise', 'river', 'نيل'],
+        );
+        break;
+      default:
+        trip = _pickTripFromBackend(flying: false);
+        break;
+    }
+
+    if (trip != null) {
+      _openTripDetail(context, trip);
+      return;
+    }
+
+    _openChatWithMessage(_suggestions[index].title);
   }
 
   // ── build ──────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageService>();
     final auth = context.watch<AuthService>();
     if (auth.currentUser == null) {
       return const SignInPage();
@@ -362,7 +492,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    "Let's Enjoy\nYour Vacation!",
+                    _t("Let's Enjoy\nYour Vacation!", 'استمتع\nبرحلتك!'),
                     style: roboto(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -451,7 +581,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: 'Search for trips...',
+                  hintText: _t('Search for trips...', 'ابحث عن الرحلات...'),
                   hintStyle: roboto(fontSize: 13, color: Colors.grey.shade400),
                 ),
               ),
@@ -492,10 +622,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  AI Suggestions
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildAiSuggestions() {
-    final tripService = context.watch<TripService>();
-    final suggestionTrips = _buildSuggestionTrips(tripService.activeTrips);
-    final showingTrips = suggestionTrips.isNotEmpty;
-    final fallbackCount = _suggestions.length >= 3 ? 3 : _suggestions.length;
+    final suggestionCount = _suggestions.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,7 +634,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               const Icon(Icons.smart_toy_rounded, color: _kDarkBlue, size: 18),
               const SizedBox(width: 6),
               Text(
-                'AI Suggestions',
+                _t('AI Suggestions', 'اقتراحات الذكاء الاصطناعي'),
                 style: roboto(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ],
@@ -520,23 +647,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            itemCount: showingTrips ? suggestionTrips.length : fallbackCount,
+            itemCount: suggestionCount,
             separatorBuilder: (context, index) => const SizedBox(width: 14),
             itemBuilder: (context, i) {
-              if (showingTrips) {
-                final trip = suggestionTrips[i];
-                return _TripSuggestionCard(trip: trip);
-              }
-
               final s = _suggestions[i];
+              final suggestionTitle = _suggestionTitle(i);
+              final suggestionDuration = _suggestionDuration(i);
               return GestureDetector(
-                onTap: () {
-                  if (i == 0) {
-                    _openHoursSuggestionFlow();
-                    return;
-                  }
-                  _openChatWithMessage(s.title);
-                },
+                onTap: () => _onAiSuggestionTap(i),
                 child: Container(
                   width: 180,
                   decoration: BoxDecoration(
@@ -565,7 +683,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ),
                       const Spacer(),
                       Text(
-                        s.title,
+                        suggestionTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: roboto(
@@ -576,7 +694,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        s.duration,
+                        suggestionDuration,
                         style: roboto(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.78),
@@ -627,10 +745,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           final targetIndex = c.label == 'Flying Taxi'
               ? 1
               : c.label == 'Transit Trips'
-                  ? 2
-                  : c.label == 'Services'
-                      ? 6
-                      : 7;
+              ? 2
+              : c.label == 'Services'
+              ? 6
+              : 7;
           return GestureDetector(
             onTap: () => _switchTab(targetIndex),
             child: Column(
@@ -650,7 +768,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  c.label,
+                  _categoryLabel(c.label),
                   style: roboto(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -684,7 +802,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Row(
             children: [
               Text(
-                isSearching ? 'Search Results' : 'Popular Trips',
+                isSearching
+                    ? _t('Search Results', 'نتائج البحث')
+                    : _t('Popular Trips', 'الرحلات الاكثر طلبا'),
                 style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
@@ -692,7 +812,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 GestureDetector(
                   onTap: () => _openTransitTrips(),
                   child: Text(
-                    'See All',
+                    _t('See All', 'عرض الكل'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -707,7 +827,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 6, 22, 0),
             child: Text(
-              'Results for "$query"',
+              _t('Results for "$query"', 'نتائج البحث عن "$query"'),
               style: roboto(
                 fontSize: 12,
                 color: Colors.grey.shade600,
@@ -716,30 +836,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
         const SizedBox(height: 16),
-        // Grid two-column
-        tripsToShow.isEmpty
-            ? Padding(
+            // Grid two-column
+            if (tripsToShow.isEmpty)
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Text(
                   isSearching
-                      ? 'No trips matched your search'
-                      : 'No trips available yet',
+                      ? _t('No trips matched your search', 'لا توجد رحلات مطابقة للبحث')
+                      : _t('No trips available yet', 'لا توجد رحلات متاحة حاليا'),
                   style: roboto(color: Colors.grey.shade500),
                 ),
               )
-            : Padding(
+            else
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 22),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.78,
-                  ),
-                  itemCount: tripsToShow.length,
-                  itemBuilder: (context, i) => _TripCard(trip: tripsToShow[i]),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final crossAxisCount = width >= 980
+                        ? 4
+                        : width >= 700
+                        ? 3
+                        : width <= 340
+                        ? 1
+                        : 2;
+                    final ratio = crossAxisCount == 1 ? 1.22 : 0.78;
+
+                    return GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: ratio,
+                      ),
+                      itemCount: tripsToShow.length,
+                      itemBuilder: (context, i) => _TripCard(trip: tripsToShow[i]),
+                    );
+                  },
                 ),
               ),
       ],
@@ -754,31 +889,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     result.addAll(transit.take(3));
     result.addAll(flying.take(3));
     return result;
-  }
-
-  List<TripModel> _buildSuggestionTrips(List<TripModel> trips) {
-    if (trips.isEmpty) return [];
-    final transit = trips.where((t) => t.isTransit).toList();
-    final flying = trips.where((t) => t.isFlying).toList();
-    final picks = <TripModel>[];
-
-    while (picks.length < 3 && (transit.isNotEmpty || flying.isNotEmpty)) {
-      if (transit.isNotEmpty) {
-        picks.add(transit.removeAt(0));
-      }
-      if (picks.length == 3) break;
-      if (flying.isNotEmpty) {
-        picks.add(flying.removeAt(0));
-      }
-      if (picks.length == 3) break;
-    }
-
-    if (picks.length < 3) {
-      final remaining = [...transit, ...flying];
-      picks.addAll(remaining.take(3 - picks.length));
-    }
-
-    return picks;
   }
 
   static const Map<String, List<String>> _searchSynonyms = {
@@ -886,13 +996,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //  Bottom nav — frosted glass floating pill
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildBottomNav() {
-    const items = [
-      (Icons.home_rounded, 'Home', -1),
-      (Icons.flight_rounded, 'Flying', 1),
-      (Icons.directions_bus_rounded, 'Transit', 2),
-      (Icons.calendar_today_rounded, 'Bookings', 3),
-      (Icons.smart_toy_rounded, 'AI Chat', 4),
-      (Icons.person_outline_rounded, 'Profile', 5),
+    final items = [
+      (Icons.home_rounded, _t('Home', 'الرئيسية'), -1),
+      (Icons.flight_rounded, _t('Flying', 'الطيران'), 1),
+      (Icons.directions_bus_rounded, _t('Transit', 'الترانزيت'), 2),
+      (Icons.calendar_today_rounded, _t('Bookings', 'الحجوزات'), 3),
+      (Icons.smart_toy_rounded, _t('AI Chat', 'محادثة AI'), 4),
+      (Icons.person_outline_rounded, _t('Profile', 'البروفايل'), 5),
     ];
 
     return SafeArea(
@@ -977,9 +1087,7 @@ class _NavItem extends StatelessWidget {
 }
 
 FlyingTaxiTrip _asFlyingTaxiTrip(TripModel trip) {
-  final durationMinutes = trip.durationMinutes > 0
-      ? trip.durationMinutes
-      : 45;
+  final durationMinutes = trip.durationMinutes > 0 ? trip.durationMinutes : 45;
   final flightMinutes = trip.flightMinutes > 0
       ? trip.flightMinutes
       : (durationMinutes / 3).round().clamp(10, 40);
@@ -1147,7 +1255,7 @@ class _TripCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          trip.name,
+                          UiTranslation.display(context, trip.name),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: roboto(
@@ -1167,7 +1275,7 @@ class _TripCard extends StatelessWidget {
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
-                                trip.locationLabel,
+                                UiTranslation.display(context, trip.locationLabel),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: roboto(
@@ -1284,106 +1392,6 @@ class _TripCard extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TripSuggestionCard extends StatelessWidget {
-  final TripModel trip;
-  const _TripSuggestionCard({required this.trip});
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = trip.isFlying
-        ? Icons.flight_takeoff_rounded
-        : Icons.directions_bus_rounded;
-    final categoryLabel = trip.isFlying ? 'Flying' : 'Transit';
-    final colors = [
-      trip.accentColor,
-      trip.accentColor.withValues(alpha: 0.75),
-    ];
-
-    return GestureDetector(
-      onTap: () => _openTripDetail(context, trip),
-      child: Container(
-        width: 190,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colors.first.withValues(alpha: 0.35),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 26),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Text(
-                categoryLabel,
-                style: roboto(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              trip.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: roboto(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  color: Colors.white.withValues(alpha: 0.85),
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  trip.durationLabel,
-                  style: roboto(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  trip.priceLabel,
-                  style: roboto(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
             ),
           ],
         ),

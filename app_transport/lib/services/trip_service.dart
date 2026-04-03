@@ -11,23 +11,50 @@ class TripService extends ChangeNotifier {
   StreamSubscription<DatabaseEvent>? _sub;
 
   List<TripModel> get trips => List.unmodifiable(_trips);
-  List<TripModel> get activeTrips => _trips.where((t) => t.isActive).toList();
+  List<TripModel> get activeTrips =>
+      _trips.where((t) => t.isActive && !_isBlockedTripName(t.name)).toList();
   bool get isLoading => _isLoading;
+
+  String _normalizeName(String value) {
+    final lower = value.toLowerCase();
+    final cleaned = lower.replaceAll(RegExp(r'[^a-z0-9\s\u0600-\u06FF]'), ' ');
+    return cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  bool _isBlockedTripName(String nameRaw) {
+    final name = _normalizeName(nameRaw);
+
+    final isSunsetDelta =
+        name.contains('sunset') &&
+        name.contains('nile') &&
+        name.contains('delta');
+
+    final isBaronPharaonic =
+        (name.contains('baron') && name.contains('pharaonic')) ||
+        (name.contains('قصر البارون') && name.contains('القرية الفرعونية'));
+
+    final isOldCairoKhan =
+        (name.contains('old cairo') && name.contains('khan el khalili')) ||
+        (name.contains('القاهرة القديمة') && name.contains('خان الخليلي'));
+
+    final isPyramidsMuseumExpress =
+        (name.contains('pyramids') &&
+            name.contains('egyptian museum') &&
+            name.contains('express')) ||
+        (name.contains('الاهرامات') &&
+            name.contains('المتحف المصري') &&
+            name.contains('express'));
+
+    return isSunsetDelta ||
+        isBaronPharaonic ||
+        isOldCairoKhan ||
+        isPyramidsMuseumExpress;
+  }
 
   Future<void> loadTrips() async {
     if (_sub != null) return;
     _isLoading = true;
     notifyListeners();
-
-    try {
-      final keysToRemove = [
-        'flying_2', 'flying_4', 'flying_5', 'flying_6',
-        'transit_1', 'transit_2', 'transit_3', 'transit_4', 'transit_5', 'transit_6'
-      ];
-      for (var k in keysToRemove) {
-        await _db.ref('trips/$k').remove();
-      }
-    } catch (_) {}
 
     await _ensureSeeded();
 
@@ -62,7 +89,6 @@ class TripService extends ChangeNotifier {
     _sub = null;
     await loadTrips();
   }
-
 
   Future<String> createTrip(TripModel trip) async {
     final now = DateTime.now();
@@ -125,9 +151,16 @@ class TripService extends ChangeNotifier {
     if (snap.exists && snap.value != null) {
       final data = Map<String, dynamic>.from(snap.value as Map);
       for (final entry in data.entries) {
-        final map = Map<String, dynamic>.from(entry.value as Map);
+        final raw = entry.value;
+        if (raw is! Map) {
+          debugPrint(
+            '[TripService] Skipping non-map trip payload at key: ${entry.key}',
+          );
+          continue;
+        }
+        final map = Map<String, dynamic>.from(raw);
         final trip = TripModel.fromMap(map);
-        if (trip.id.isNotEmpty) {
+        if (trip.id.isNotEmpty && !_isBlockedTripName(trip.name)) {
           _trips.add(trip);
         }
       }

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/booking_model.dart';
 import '../services/auth_service.dart';
 import '../services/booking_service.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
 import '../services/smooth_navigation.dart';
 import 'auth_widgets.dart';
 
@@ -22,6 +24,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   late final TabController _tab;
   List<Booking> _bookings = [];
   bool _didLoad = false;
+
+  String _t(String en, String ar) =>
+      context.read<LanguageService>().isArabic ? ar : en;
 
   @override
   void initState() {
@@ -76,20 +81,35 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         ..sort((a, b) => b.date.compareTo(a.date));
 
   String _formatDate(DateTime d) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
+    final months = context.read<LanguageService>().isArabic
+        ? const [
+            'يناير',
+            'فبراير',
+            'مارس',
+            'ابريل',
+            'مايو',
+            'يونيو',
+            'يوليو',
+            'اغسطس',
+            'سبتمبر',
+            'اكتوبر',
+            'نوفمبر',
+            'ديسمبر',
+          ]
+        : const [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
@@ -119,12 +139,15 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'Cancel Booking?',
+              _t('Cancel Booking?', 'الغاء الحجز؟'),
               style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
-              'Are you sure you want to cancel\n"${b.tripName}"?',
+              _t(
+                'Are you sure you want to cancel\n"${b.tripName}"?',
+                'هل تريد الغاء الحجز\n"${UiTranslation.toArabic(b.tripName)}"؟',
+              ),
               textAlign: TextAlign.center,
               style: roboto(
                 fontSize: 13,
@@ -149,7 +172,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Free cancellation up to 2 hours before departure.',
+                      _t(
+                        'Free cancellation up to 2 hours before departure.',
+                        'الغاء مجاني حتى ساعتين قبل موعد الانطلاق.',
+                      ),
                       style: roboto(
                         fontSize: 12,
                         color: const Color(0xFF856404),
@@ -167,7 +193,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'Keep Booking',
+              _t('Keep Booking', 'الاحتفاظ بالحجز'),
               style: roboto(
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade600,
@@ -190,7 +216,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Booking #${b.id} cancelled.',
+                    _t(
+                      'Booking #${b.id} cancelled.',
+                      'تم الغاء الحجز رقم ${b.id}.',
+                    ),
                     style: roboto(color: Colors.white),
                   ),
                   backgroundColor: const Color(0xFFE02850),
@@ -210,7 +239,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
             ),
             child: Text(
-              'Confirm Cancel',
+              _t('Confirm Cancel', 'تأكيد الالغاء'),
               style: roboto(fontWeight: FontWeight.w700),
             ),
           ),
@@ -236,7 +265,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               Icon(Icons.edit_calendar_rounded, color: kBlue, size: 22),
               const SizedBox(width: 8),
               Text(
-                'Modify Booking',
+                _t('Modify Booking', 'تعديل الحجز'),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ],
@@ -253,7 +282,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
               // Time
               Text(
-                'Departure Time',
+                _t('Departure Time', 'وقت الانطلاق'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -303,7 +332,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
               // Travelers
               Text(
-                'Number of Travelers',
+                _t('Number of Travelers', 'عدد المسافرين'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -322,7 +351,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     const Icon(Icons.people_rounded, color: kBlue, size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      '$travelers Adult${travelers > 1 ? 's' : ''}',
+                      _t(
+                        '$travelers Adult${travelers > 1 ? 's' : ''}',
+                        '$travelers بالغ',
+                      ),
                       style: roboto(fontWeight: FontWeight.w600, color: kBlue),
                     ),
                     const Spacer(),
@@ -399,7 +431,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                       size: 18,
                     ),
                     Text(
-                      'Updated total: ',
+                      _t('Updated total: ', 'الاجمالي بعد التعديل: '),
                       style: roboto(fontSize: 13, color: Colors.grey.shade700),
                     ),
                     Text(
@@ -418,7 +450,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: roboto(color: Colors.grey.shade600)),
+              child: Text(
+                _t('Cancel', 'الغاء'),
+                style: roboto(color: Colors.grey.shade600),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -427,7 +462,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Booking updated successfully!',
+                      _t(
+                        'Booking updated successfully!',
+                        'تم تحديث الحجز بنجاح!',
+                      ),
                       style: roboto(color: Colors.white),
                     ),
                     backgroundColor: Colors.green,
@@ -450,7 +488,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 ),
               ),
               child: Text(
-                'Save Changes',
+                _t('Save Changes', 'حفظ التغييرات'),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ),
@@ -481,7 +519,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(width: 8),
               Text(
-                'Leave a Review',
+                _t('Leave a Review', 'اترك تقييما'),
                 style: roboto(fontWeight: FontWeight.w700),
               ),
             ],
@@ -496,7 +534,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Your Rating',
+                _t('Your Rating', 'تقييمك'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -514,7 +552,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Your Comment',
+                _t('Your Comment', 'تعليقك'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -522,7 +560,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 controller: ctrl,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Share your experience…',
+                  hintText: _t('Share your experience…', 'شارك تجربتك...'),
                   hintStyle: roboto(color: Colors.grey.shade400),
                   filled: true,
                   fillColor: const Color(0xFFF5F7FA),
@@ -537,7 +575,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Skip', style: roboto(color: Colors.grey.shade600)),
+              child: Text(
+                _t('Skip', 'تخطي'),
+                style: roboto(color: Colors.grey.shade600),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -560,7 +601,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Thank you for your review! ⭐',
+                      _t('Thank you for your review! ⭐', 'شكرا على تقييمك! ⭐'),
                       style: roboto(color: Colors.white),
                     ),
                     backgroundColor: const Color(0xFFD4A843),
@@ -582,7 +623,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   vertical: 11,
                 ),
               ),
-              child: Text('Submit', style: roboto(fontWeight: FontWeight.w700)),
+              child: Text(
+                _t('Submit', 'ارسال'),
+                style: roboto(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
@@ -646,7 +690,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     Row(
                       children: [
                         Text(
-                          'My Bookings',
+                          _t('My Bookings', 'حجوزاتي'),
                           style: roboto(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
@@ -670,7 +714,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Track and manage all your trips',
+                      _t(
+                        'Track and manage all your trips',
+                        'تابع وادِر كل رحلاتك',
+                      ),
                       style: roboto(fontSize: 13, color: Colors.grey.shade500),
                     ),
                     const SizedBox(height: 16),
@@ -698,7 +745,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             children: [
                               const Icon(Icons.upcoming_rounded, size: 16),
                               const SizedBox(width: 6),
-                              const Text('Upcoming'),
+                              Text(_t('Upcoming', 'القادمة')),
                               const SizedBox(width: 6),
                               _CountBadge(
                                 count: _upcoming.length,
@@ -713,7 +760,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             children: [
                               const Icon(Icons.history_rounded, size: 16),
                               const SizedBox(width: 6),
-                              const Text('Past'),
+                              Text(_t('Past', 'السابقة')),
                               const SizedBox(width: 6),
                               _CountBadge(
                                 count: _past.length,
@@ -941,10 +988,10 @@ class _UpcomingCard extends StatelessWidget {
                     ),
                     child: Text(
                       days == 0
-                          ? 'Today!'
+                          ? UiTranslation.display(context, 'Today!')
                           : days == 1
-                          ? 'Tomorrow'
-                          : 'In $days days',
+                          ? UiTranslation.display(context, 'Tomorrow')
+                          : UiTranslation.display(context, 'In $days days'),
                       style: roboto(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -959,7 +1006,7 @@ class _UpcomingCard extends StatelessWidget {
                   left: 12,
                   right: 12,
                   child: Text(
-                    b.tripName,
+                    UiTranslation.display(context, b.tripName),
                     style: roboto(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -982,14 +1029,14 @@ class _UpcomingCard extends StatelessWidget {
                   children: [
                     _DetailCell(
                       icon: Icons.calendar_today_rounded,
-                      label: 'Date',
+                      label: UiTranslation.display(context, 'Date'),
                       value: formatDate(b.date),
                       color: kBlue,
                     ),
                     const SizedBox(width: 10),
                     _DetailCell(
                       icon: Icons.access_time_rounded,
-                      label: 'Time',
+                      label: UiTranslation.display(context, 'Time'),
                       value: b.time,
                       color: const Color(0xFF4A44AA),
                     ),
@@ -1000,15 +1047,17 @@ class _UpcomingCard extends StatelessWidget {
                   children: [
                     _DetailCell(
                       icon: Icons.people_rounded,
-                      label: 'Travelers',
-                      value:
-                          '${b.travelers} Adult${b.travelers > 1 ? 's' : ''}',
+                      label: UiTranslation.display(context, 'Travelers'),
+                      value: UiTranslation.display(
+                        context,
+                        '${b.travelers} Adult${b.travelers > 1 ? 's' : ''}',
+                      ),
                       color: const Color(0xFF0D7377),
                     ),
                     const SizedBox(width: 10),
                     _DetailCell(
                       icon: Icons.attach_money_rounded,
-                      label: 'Total',
+                      label: UiTranslation.display(context, 'Total'),
                       value: b.totalPriceLabel,
                       color: const Color(0xFFE87832),
                     ),
@@ -1034,7 +1083,7 @@ class _UpcomingCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Pickup: ',
+                        UiTranslation.display(context, 'Pickup: '),
                         style: roboto(
                           fontSize: 12,
                           color: Colors.grey.shade500,
@@ -1070,7 +1119,7 @@ class _UpcomingCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _ActionBtn(
-                    label: 'View Details',
+                    label: UiTranslation.display(context, 'View Details'),
                     icon: Icons.visibility_rounded,
                     color: kBlue,
                     outlined: false,
@@ -1080,7 +1129,7 @@ class _UpcomingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _ActionBtn(
-                    label: 'Modify',
+                    label: UiTranslation.display(context, 'Modify'),
                     icon: Icons.edit_rounded,
                     color: const Color(0xFF4A44AA),
                     outlined: true,
@@ -1089,7 +1138,7 @@ class _UpcomingCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _ActionBtn(
-                  label: 'Cancel',
+                  label: UiTranslation.display(context, 'Cancel'),
                   icon: Icons.close_rounded,
                   color: const Color(0xFFE02850),
                   outlined: true,
@@ -1166,7 +1215,10 @@ class _PastCard extends StatelessWidget {
     final statusColor = isCancelled
         ? const Color(0xFFE02850)
         : Colors.green.shade600;
-    final statusLabel = isCancelled ? 'Cancelled' : 'Completed';
+    final statusLabel = UiTranslation.display(
+      context,
+      isCancelled ? 'Cancelled' : 'Completed',
+    );
     final statusIcon = isCancelled
         ? Icons.cancel_rounded
         : Icons.check_circle_rounded;
@@ -1366,8 +1418,14 @@ class _PastCard extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   b.userRating > 0
-                                      ? 'Edit Review'
-                                      : 'Leave Review',
+                                      ? UiTranslation.display(
+                                          context,
+                                          'Edit Review',
+                                        )
+                                      : UiTranslation.display(
+                                          context,
+                                          'Leave Review',
+                                        ),
                                   style: roboto(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -1556,7 +1614,10 @@ class _BookingDetailPage extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                isUpcoming ? 'Upcoming' : 'Completed',
+                                UiTranslation.display(
+                                  context,
+                                  isUpcoming ? 'Upcoming' : 'Completed',
+                                ),
                                 style: roboto(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -2074,8 +2135,11 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             tab == 'upcoming'
-                ? "You don't have any\nbookings yet"
-                : "No past trips found",
+                ? UiTranslation.display(
+                    context,
+                    "You don't have any\nbookings yet",
+                  )
+                : UiTranslation.display(context, 'No past trips found'),
             textAlign: TextAlign.center,
             style: roboto(
               fontSize: 17,
@@ -2086,8 +2150,14 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             tab == 'upcoming'
-                ? 'Explore available trips and book your\nnext layover adventure!'
-                : 'Completed trips will appear here',
+                ? UiTranslation.display(
+                    context,
+                    'Explore available trips and book your\nnext layover adventure!',
+                  )
+                : UiTranslation.display(
+                    context,
+                    'Completed trips will appear here',
+                  ),
             textAlign: TextAlign.center,
             style: roboto(fontSize: 13, color: Colors.grey.shade500),
           ),

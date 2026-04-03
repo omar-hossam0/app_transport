@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
@@ -375,6 +377,69 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
 
+  bool _containsArabic(String value) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
+
+  FlyingTaxiTrip _forLocale(FlyingTaxiTrip trip, int index, bool isArabic) {
+    if (isArabic) {
+      return FlyingTaxiTrip(
+        name: UiTranslation.toArabic(trip.name),
+        durationMinutes: trip.durationMinutes,
+        flightMinutes: trip.flightMinutes,
+        priceUsd: trip.priceUsd,
+        description: UiTranslation.toArabic(trip.description),
+        mapHint: UiTranslation.toArabic(trip.mapHint),
+        cardColor: trip.cardColor,
+        icon: trip.icon,
+        imageUrl: trip.imageUrl,
+        reviews: [
+          for (final review in trip.reviews)
+            Review(
+              name: UiTranslation.toArabic(review.name),
+              rating: review.rating,
+              date: UiTranslation.toArabic(review.date),
+              comment: UiTranslation.toArabic(review.comment),
+            ),
+        ],
+      );
+    }
+
+    final fallbackName = 'Cairo Aerial Tour ${index + 1}';
+    final fallbackDescription =
+        'Scenic flying taxi experience over Cairo landmarks with airport pickup and return.';
+    final fallbackMapHint =
+        'Cairo Airport route with key aerial landmarks and return transfer.';
+
+    return FlyingTaxiTrip(
+      name: _containsArabic(trip.name) ? fallbackName : trip.name,
+      durationMinutes: trip.durationMinutes,
+      flightMinutes: trip.flightMinutes,
+      priceUsd: trip.priceUsd,
+      description: _containsArabic(trip.description)
+          ? fallbackDescription
+          : trip.description,
+      mapHint: _containsArabic(trip.mapHint) ? fallbackMapHint : trip.mapHint,
+      cardColor: trip.cardColor,
+      icon: trip.icon,
+      imageUrl: trip.imageUrl,
+      reviews: [
+        for (var i = 0; i < trip.reviews.length; i++)
+          Review(
+            name: _containsArabic(trip.reviews[i].name)
+                ? 'Traveler ${i + 1}'
+                : trip.reviews[i].name,
+            rating: trip.reviews[i].rating,
+            date: _containsArabic(trip.reviews[i].date)
+                ? 'Recently'
+                : trip.reviews[i].date,
+            comment: _containsArabic(trip.reviews[i].comment)
+                ? 'Great experience with amazing city views.'
+                : trip.reviews[i].comment,
+          ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -429,30 +494,48 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final topPad = mq.padding.top;
     final w = mq.size.width;
     final h = mq.size.height;
+    final isArabic = context.watch<LanguageService>().isArabic;
 
     final tripSvc = context.watch<TripService>();
-    final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.flying).toList();
+    final liveTrips = tripSvc.activeTrips
+        .where((t) => t.type == TripType.flying)
+        .toList();
 
     // Combine local data with live data, avoiding duplicates by name
     final allTrips = <FlyingTaxiTrip>[];
 
     // Add live trips from Firebase
     for (final lt in liveTrips) {
-      allTrips.add(FlyingTaxiTrip(
-        name: lt.name,
-        durationMinutes: lt.durationMinutes,
-        flightMinutes: lt.flightMinutes,
-        priceUsd: lt.priceUsd.toInt(),
-        description: lt.description.isNotEmpty ? lt.description : lt.shortDescription,
-        mapHint: lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
-        cardColor: lt.accentColor,
-        icon: Icons.flight_rounded,
-        imageUrl: lt.imageUrl,
-      ));
+      allTrips.add(
+        FlyingTaxiTrip(
+          name: isArabic ? UiTranslation.toArabic(lt.name) : lt.name,
+          durationMinutes: lt.durationMinutes,
+          flightMinutes: lt.flightMinutes,
+          priceUsd: lt.priceUsd.toInt(),
+          description: isArabic
+              ? UiTranslation.toArabic(
+                  lt.description.isNotEmpty
+                      ? lt.description
+                      : lt.shortDescription,
+                )
+              : (lt.description.isNotEmpty
+                    ? lt.description
+                    : lt.shortDescription),
+          mapHint: isArabic
+              ? UiTranslation.toArabic(
+                  lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
+                )
+              : (lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel),
+          cardColor: lt.accentColor,
+          icon: Icons.flight_rounded,
+          imageUrl: lt.imageUrl,
+        ),
+      );
     }
 
     // Add local trips that aren't in Firebase yet (by name)
-    for (final local in flyingTrips) {
+    for (var i = 0; i < flyingTrips.length; i++) {
+      final local = _forLocale(flyingTrips[i], i, isArabic);
       if (!allTrips.any((t) => t.name == local.name)) {
         allTrips.add(local);
       }
@@ -509,7 +592,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Flying Taxi',
+                          UiTranslation.display(context, 'Flying Taxi'),
                           style: roboto(
                             fontSize: titleFs,
                             fontWeight: FontWeight.w800,
@@ -533,7 +616,9 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Text(
-                    'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي',
+                    isArabic
+                        ? 'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي'
+                        : 'Trips inside Cairo with airport pickup and return.',
                     style: roboto(
                       fontSize: subtitleFs,
                       color: Colors.grey.shade500,
@@ -712,7 +797,7 @@ class _FlyingTripCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            trip.durationLabel,
+                            UiTranslation.display(context, trip.durationLabel),
                             style: roboto(
                               fontSize: 10,
                               color: Colors.white,
@@ -758,7 +843,7 @@ class _FlyingTripCard extends StatelessWidget {
                   children: [
                     // Name
                     Text(
-                      trip.name,
+                      UiTranslation.display(context, trip.name),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: roboto(

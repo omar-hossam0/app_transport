@@ -96,7 +96,7 @@ class TripModel {
       final isWhole = hours == hours.truncateToDouble();
       return isWhole ? '${hours.toInt()}h' : '${hours.toStringAsFixed(1)}h';
     }
-    return '${durationMinutes} min';
+    return '$durationMinutes min';
   }
 
   String get priceLabel => '\$${priceUsd.toInt()}';
@@ -137,8 +137,12 @@ class TripModel {
 
     final includedRaw = map['included'] as List? ?? const [];
     final galleryRaw = map['galleryImageUrls'] as List? ?? const [];
-    final coverUrl =
-      map['imageUrl'] as String? ?? map['coverImageUrl'] as String? ?? '';
+    final galleryUrls = galleryRaw.map((e) => e.toString()).toList();
+    var coverUrl =
+        map['imageUrl'] as String? ?? map['coverImageUrl'] as String? ?? '';
+    if (coverUrl.trim().isEmpty && galleryUrls.isNotEmpty) {
+      coverUrl = galleryUrls.first;
+    }
 
     return TripModel(
       id: map['id'] as String? ?? '',
@@ -150,12 +154,13 @@ class TripModel {
       flightMinutes: ((map['flightMinutes'] ?? 0) as num).toInt(),
       priceUsd: ((map['priceUsd'] ?? 0) as num).toDouble(),
       imageUrl: coverUrl,
-      galleryImageUrls: galleryRaw.map((e) => e.toString()).toList(),
-        accentColorValue: ((map['accentColorValue'] ?? 0xFF187BCD) as num)
+      galleryImageUrls: galleryUrls,
+      accentColorValue: ((map['accentColorValue'] ?? 0xFF187BCD) as num)
           .toInt(),
       routeLabel: map['routeLabel'] as String? ?? '',
       mapHint: map['mapHint'] as String? ?? '',
-      locationLabel: map['locationLabel'] as String? ?? 'Cairo International Airport',
+      locationLabel:
+          map['locationLabel'] as String? ?? 'Cairo International Airport',
       included: includedRaw.map((e) => e.toString()).toList(),
       itinerary: stops,
       isActive: map['isActive'] != false,

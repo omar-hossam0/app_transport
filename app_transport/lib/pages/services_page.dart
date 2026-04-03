@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_widgets.dart';
+import '../services/ui_translation.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});
@@ -101,7 +102,7 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Our Services',
+                    UiTranslation.display(context, 'Our Services'),
                     style: roboto(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -110,7 +111,10 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Everything you need for the perfect Egypt tour',
+                    UiTranslation.display(
+                      context,
+                      'Everything you need for the perfect Egypt tour',
+                    ),
                     style: roboto(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -158,7 +162,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        s.$2,
+                        UiTranslation.display(context, s.$2),
                         style: roboto(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -166,7 +170,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        s.$3,
+                        UiTranslation.display(context, s.$3),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: roboto(

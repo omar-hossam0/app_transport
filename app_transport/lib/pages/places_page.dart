@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_widgets.dart';
+import '../services/ui_translation.dart';
 
 class PlacesPage extends StatelessWidget {
   const PlacesPage({super.key});
@@ -117,7 +118,7 @@ class PlacesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Popular Places',
+                    UiTranslation.display(context, 'Popular Places'),
                     style: roboto(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -126,7 +127,10 @@ class PlacesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Top tourist landmarks across Egypt',
+                    UiTranslation.display(
+                      context,
+                      'Top tourist landmarks across Egypt',
+                    ),
                     style: roboto(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -172,7 +176,7 @@ class PlacesPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              p.$1,
+                              UiTranslation.display(context, p.$1),
                               style: roboto(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -188,7 +192,7 @@ class PlacesPage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  p.$2,
+                                  UiTranslation.display(context, p.$2),
                                   style: roboto(
                                     fontSize: 11,
                                     color: Colors.grey.shade500,
@@ -198,7 +202,7 @@ class PlacesPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              p.$3,
+                              UiTranslation.display(context, p.$3),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: roboto(
@@ -223,7 +227,7 @@ class PlacesPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              p.$6,
+                              UiTranslation.display(context, p.$6),
                               style: roboto(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,

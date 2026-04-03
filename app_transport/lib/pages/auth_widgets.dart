@@ -45,25 +45,29 @@ class AuthInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = (MediaQuery.of(context).size.shortestSide / 390.0).clamp(
+      0.92,
+      1.08,
+    );
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
-      style: roboto(fontSize: 15),
+      style: roboto(fontSize: 15 * scale),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: roboto(fontSize: 13, color: Colors.grey.shade500),
+        labelStyle: roboto(fontSize: 13 * scale, color: Colors.grey.shade500),
         suffixIcon: suffixIcon,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16 * scale,
+          vertical: 16 * scale,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14 * scale),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14 * scale),
           borderSide: const BorderSide(color: kBlue, width: 1.6),
         ),
         filled: true,
@@ -86,23 +90,27 @@ class AuthGradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = (MediaQuery.of(context).size.shortestSide / 390.0).clamp(
+      0.92,
+      1.08,
+    );
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        height: 56,
+        height: 54 * scale,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [kBlue, kLightBlue],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(28 * scale),
           boxShadow: [
             BoxShadow(
               color: kBlue.withValues(alpha: 0.32),
-              blurRadius: 18,
-              offset: const Offset(0, 7),
+              blurRadius: 16 * scale,
+              offset: Offset(0, 6 * scale),
             ),
           ],
         ),
@@ -110,7 +118,7 @@ class AuthGradientButton extends StatelessWidget {
           child: Text(
             label,
             style: roboto(
-              fontSize: 16,
+              fontSize: 15 * scale,
               fontWeight: FontWeight.w700,
               color: Colors.white,
               letterSpacing: 0.4,
@@ -184,19 +192,23 @@ class _SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = (MediaQuery.of(context).size.shortestSide / 390.0).clamp(
+      0.92,
+      1.08,
+    );
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 52,
+        height: 50 * scale,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14 * scale),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              blurRadius: 8 * scale,
+              offset: Offset(0, 3 * scale),
             ),
           ],
         ),
@@ -207,7 +219,7 @@ class _SocialButton extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               label,
-              style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
+              style: roboto(fontSize: 13 * scale, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -233,8 +245,10 @@ class AuthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
     final screenH = MediaQuery.of(context).size.height;
+    final screenW = MediaQuery.of(context).size.width;
     // Responsive header: 36% of screen height on small phones, 32% on large
     final headerH = screenH * (screenH < 700 ? 0.38 : 0.34) + topPad;
+    final horizontalPadding = screenW < 360 ? 14.0 : 20.0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -247,8 +261,8 @@ class AuthHeader extends StatelessWidget {
       height: headerH,
       padding: EdgeInsets.only(
         top: topPad + 8,
-        left: 20,
-        right: 20,
+        left: horizontalPadding,
+        right: horizontalPadding,
         bottom: 20,
       ),
       child: LayoutBuilder(

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
 import 'auth_widgets.dart';
 import 'chatbot_page.dart';
 import 'transit_trip_detail_page.dart';
@@ -957,6 +959,121 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   int _filterIndex = 0; // 0=All, 1=Short, 2=Medium, 3=Long
   final _filters = ['All', '≤4h', '4–8h', '8h+'];
 
+  bool _containsArabic(String value) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
+
+  String _normalizeTripName(String value) {
+    final lower = value.toLowerCase();
+    final cleaned = lower.replaceAll(RegExp(r'[^a-z0-9\s\u0600-\u06FF]'), ' ');
+    return cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  bool _isRemovedTrip(TransitTrip trip) {
+    final name = _normalizeTripName(trip.name);
+
+    final isOldCairoKhan =
+        (name.contains('old cairo') && name.contains('khan el khalili')) ||
+        (name.contains('القاهرة القديمة') && name.contains('خان الخليلي'));
+    final isPyramidsMuseum =
+        (name.contains('pyramids') &&
+            name.contains('egyptian museum express')) ||
+        (name.contains('الاهرامات') &&
+            name.contains('المتحف المصري') &&
+            name.contains('express'));
+    final isBaronPharaonic =
+        (name.contains('baron palace') && name.contains('pharaonic village')) ||
+        (name.contains('قصر البارون') && name.contains('القرية الفرعونية'));
+
+    return isOldCairoKhan || isPyramidsMuseum || isBaronPharaonic;
+  }
+
+  TransitTrip _forLocale(TransitTrip trip, int index, bool isArabic) {
+    if (isArabic) {
+      return TransitTrip(
+        name: UiTranslation.toArabic(trip.name),
+        shortDescription: UiTranslation.toArabic(trip.shortDescription),
+        durationHours: trip.durationHours,
+        durationHoursExact: trip.durationHoursExact,
+        priceUsd: trip.priceUsd,
+        imageUrl: trip.imageUrl,
+        accentColor: trip.accentColor,
+        routeLabel: UiTranslation.toArabic(trip.routeLabel),
+        itinerary: [
+          for (final stop in trip.itinerary)
+            TransitStop(
+              title: UiTranslation.toArabic(stop.title),
+              subtitle: UiTranslation.toArabic(stop.subtitle),
+              duration: UiTranslation.toArabic(stop.duration),
+              icon: stop.icon,
+              color: stop.color,
+              imageUrl: stop.imageUrl,
+            ),
+        ],
+        included: trip.included.map(UiTranslation.toArabic).toList(),
+        reviews: [
+          for (final review in trip.reviews)
+            Review(
+              name: UiTranslation.toArabic(review.name),
+              rating: review.rating,
+              date: UiTranslation.toArabic(review.date),
+              comment: UiTranslation.toArabic(review.comment),
+            ),
+        ],
+      );
+    }
+
+    final fallbackTitle = 'Transit Experience ${index + 1}';
+    final fallbackDescription =
+        'A curated Cairo transit experience with airport pickup, guided stops, and return transfer.';
+    final fallbackRoute = 'Airport -> Curated Stops -> Return to Cairo Airport';
+
+    return TransitTrip(
+      name: _containsArabic(trip.name) ? fallbackTitle : trip.name,
+      shortDescription: _containsArabic(trip.shortDescription)
+          ? fallbackDescription
+          : trip.shortDescription,
+      durationHours: trip.durationHours,
+      durationHoursExact: trip.durationHoursExact,
+      priceUsd: trip.priceUsd,
+      imageUrl: trip.imageUrl,
+      accentColor: trip.accentColor,
+      routeLabel: _containsArabic(trip.routeLabel)
+          ? fallbackRoute
+          : trip.routeLabel,
+      itinerary: [
+        for (var i = 0; i < trip.itinerary.length; i++)
+          TransitStop(
+            title: _containsArabic(trip.itinerary[i].title)
+                ? 'Stop ${i + 1}'
+                : trip.itinerary[i].title,
+            subtitle: _containsArabic(trip.itinerary[i].subtitle)
+                ? 'Scheduled activity during your transit journey.'
+                : trip.itinerary[i].subtitle,
+            duration: trip.itinerary[i].duration,
+            icon: trip.itinerary[i].icon,
+            color: trip.itinerary[i].color,
+            imageUrl: trip.itinerary[i].imageUrl,
+          ),
+      ],
+      included: trip.included,
+      reviews: [
+        for (var i = 0; i < trip.reviews.length; i++)
+          Review(
+            name: _containsArabic(trip.reviews[i].name)
+                ? 'Traveler ${i + 1}'
+                : trip.reviews[i].name,
+            rating: trip.reviews[i].rating,
+            date: _containsArabic(trip.reviews[i].date)
+                ? 'Recently'
+                : trip.reviews[i].date,
+            comment: _containsArabic(trip.reviews[i].comment)
+                ? 'Very enjoyable transit experience with smooth planning.'
+                : trip.reviews[i].comment,
+          ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1038,44 +1155,70 @@ class _TransitTripsPageState extends State<TransitTripsPage>
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final isArabic = context.watch<LanguageService>().isArabic;
+    final filterLabels = isArabic
+        ? const ['الكل', 'اقل من 4س', '4-8س', 'اكثر من 8س']
+        : _filters;
     final tripSvc = context.watch<TripService>();
-    final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.transit).toList();
-    
+    final liveTrips = tripSvc.activeTrips
+        .where((t) => t.type == TripType.transit)
+        .toList();
+
     // Combine local data with live data, avoiding duplicates by name
     final allTrips = <TransitTrip>[];
-    
+
     // Add live trips from Firebase
     for (final lt in liveTrips) {
-      allTrips.add(TransitTrip(
-        name: lt.name,
-        shortDescription: lt.shortDescription,
-        durationHours: (lt.durationMinutes / 60).ceil(),
-        durationHoursExact: lt.durationMinutes / 60.0,
-        priceUsd: lt.priceUsd.toInt(),
-        imageUrl: lt.imageUrl,
-        accentColor: lt.accentColor,
-        routeLabel: lt.routeLabel,
-        itinerary: lt.itinerary.map((s) => TransitStop(
-          title: s.title,
-          subtitle: s.subtitle,
-          duration: s.duration,
-          icon: s.icon,
-          color: s.color,
-          imageUrl: s.imageUrl,
-        )).toList(),
-        included: lt.included,
-      ));
+      allTrips.add(
+        TransitTrip(
+          name: isArabic ? UiTranslation.toArabic(lt.name) : lt.name,
+          shortDescription: isArabic
+              ? UiTranslation.toArabic(lt.shortDescription)
+              : lt.shortDescription,
+          durationHours: (lt.durationMinutes / 60).ceil(),
+          durationHoursExact: lt.durationMinutes / 60.0,
+          priceUsd: lt.priceUsd.toInt(),
+          imageUrl: lt.imageUrl,
+          accentColor: lt.accentColor,
+          routeLabel: isArabic
+              ? UiTranslation.toArabic(lt.routeLabel)
+              : lt.routeLabel,
+          itinerary: lt.itinerary
+              .map(
+                (s) => TransitStop(
+                  title: isArabic ? UiTranslation.toArabic(s.title) : s.title,
+                  subtitle: isArabic
+                      ? UiTranslation.toArabic(s.subtitle)
+                      : s.subtitle,
+                  duration: isArabic
+                      ? UiTranslation.toArabic(s.duration)
+                      : s.duration,
+                  icon: s.icon,
+                  color: s.color,
+                  imageUrl: s.imageUrl,
+                ),
+              )
+              .toList(),
+          included: isArabic
+              ? lt.included.map(UiTranslation.toArabic).toList()
+              : lt.included,
+        ),
+      );
     }
-    
+
     // Add local trips that aren't in Firebase yet (by name)
-    for (final local in transitTrips) {
+    for (var i = 0; i < transitTrips.length; i++) {
+      final local = _forLocale(transitTrips[i], i, isArabic);
       if (!allTrips.any((t) => t.name == local.name)) {
         allTrips.add(local);
       }
     }
 
-    final trips = _filterIndex == 0 
-        ? allTrips 
+    // Remove only the three specific trips requested by the user.
+    allTrips.removeWhere(_isRemovedTrip);
+
+    final trips = _filterIndex == 0
+        ? allTrips
         : allTrips.where((t) {
             final h = t.durationHoursExact;
             if (_filterIndex == 1) return h <= 3;
@@ -1135,7 +1278,7 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                           ),
                           const SizedBox(width: 14),
                           Text(
-                            'Transit Trips',
+                            UiTranslation.display(context, 'Transit Trips'),
                             style: roboto(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -1160,7 +1303,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  'Cairo Airport',
+                                  UiTranslation.display(
+                                    context,
+                                    'Cairo Airport',
+                                  ),
                                   style: roboto(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -1174,7 +1320,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Trips that start & end at Cairo International Airport',
+                        UiTranslation.display(
+                          context,
+                          'Trips that start & end at Cairo International Airport',
+                        ),
                         style: roboto(
                           fontSize: 13,
                           color: Colors.grey.shade500,
@@ -1217,7 +1366,7 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                                       : [],
                                 ),
                                 child: Text(
-                                  _filters[i],
+                                  filterLabels[i],
                                   style: roboto(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -1252,7 +1401,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'No trips for this filter',
+                              UiTranslation.display(
+                                context,
+                                'No trips for this filter',
+                              ),
                               style: roboto(
                                 fontSize: 15,
                                 color: Colors.grey.shade400,
@@ -1339,7 +1491,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Find the best trip for my time',
+                                  UiTranslation.display(
+                                    context,
+                                    'Find the best trip for my time',
+                                  ),
                                   style: roboto(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -1348,7 +1503,10 @@ class _TransitTripsPageState extends State<TransitTripsPage>
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  'AI-powered layover trip recommendations',
+                                  UiTranslation.display(
+                                    context,
+                                    'AI-powered layover trip recommendations',
+                                  ),
                                   style: roboto(
                                     fontSize: 12,
                                     color: Colors.white.withValues(alpha: 0.78),
@@ -1616,7 +1774,7 @@ class _TimelineRow extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            trip.name,
+                            UiTranslation.display(context, trip.name),
                             style: roboto(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -1626,7 +1784,10 @@ class _TimelineRow extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            trip.shortDescription,
+                            UiTranslation.display(
+                              context,
+                              trip.shortDescription,
+                            ),
                             style: roboto(
                               fontSize: 12,
                               color: Colors.grey.shade500,
@@ -1648,7 +1809,10 @@ class _TimelineRow extends StatelessWidget {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  trip.routeLabel,
+                                  UiTranslation.display(
+                                    context,
+                                    trip.routeLabel,
+                                  ),
                                   style: roboto(
                                     fontSize: 11,
                                     color: Colors.grey.shade500,
@@ -1684,7 +1848,10 @@ class _TimelineRow extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${trip.durationHours} Hours',
+                                      UiTranslation.display(
+                                        context,
+                                        '${trip.durationHours} Hours',
+                                      ),
                                       style: roboto(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -1719,7 +1886,7 @@ class _TimelineRow extends StatelessWidget {
                                     ],
                                   ),
                                   child: Text(
-                                    'Details',
+                                    UiTranslation.display(context, 'Details'),
                                     style: roboto(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

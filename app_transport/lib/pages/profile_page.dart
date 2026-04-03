@@ -7,6 +7,7 @@ import 'sign_in_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/booking_service.dart';
+import '../services/language_service.dart';
 
 // ── Card brand SVG logos ────────────────────────────────────────────────────
 const _kVisaSvg = '''
@@ -41,7 +42,6 @@ class _ProfilePageState extends State<ProfilePage> {
   String _name = 'Omar Hossam';
   String _email = 'omar.hossam@email.com';
   String _phone = '+20 101 234 5678';
-  String _selectedLang = 'English';
   bool _didLoadUser = false;
 
   // ── Payment cards ──────────────────────────────────────────────────────────
@@ -60,6 +60,9 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _notifyOffers = false;
   bool _notifyReminder = true;
 
+  String _t(String en, String ar) =>
+      context.read<LanguageService>().isArabic ? ar : en;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -77,6 +80,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<LanguageService>();
     final topPad = MediaQuery.of(context).padding.top;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -108,7 +112,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Profile',
+                        _t('Profile', 'الملف الشخصي'),
                         style: roboto(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -143,21 +147,21 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 2. Account Settings ─────────────────────────────────
                     _SectionBlock(
                       icon: Icons.manage_accounts_rounded,
-                      title: 'Account Settings',
+                      title: _t('Account Settings', 'اعدادات الحساب'),
                       children: [
                         _SectionTile(
                           icon: Icons.lock_outline_rounded,
-                          label: 'Change Password',
+                          label: _t('Change Password', 'تغيير كلمة المرور'),
                           onTap: () => _showChangePassword(),
                         ),
                         _SectionTile(
                           icon: Icons.swap_horiz_rounded,
-                          label: 'Switch Account',
+                          label: _t('Switch Account', 'تبديل الحساب'),
                           onTap: () => _showSwitchAccount(),
                         ),
                         _SectionTile(
                           icon: Icons.logout_rounded,
-                          label: 'Log Out',
+                          label: _t('Log Out', 'تسجيل الخروج'),
                           labelColor: const Color(0xFFE02850),
                           iconColor: const Color(0xFFE02850),
                           onTap: () => _confirmLogout(),
@@ -171,7 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 3. Language ─────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.language_rounded,
-                      title: 'Language',
+                      title: _t('Language', 'اللغة'),
                       children: [
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -179,12 +183,19 @@ class _ProfilePageState extends State<ProfilePage> {
                             vertical: 12,
                           ),
                           child: _LanguageSelector(
-                            selected: _selectedLang,
-                            onChanged: (v) {
-                              setState(() => _selectedLang = v);
+                            selectedCode: language.isArabic ? 'ar' : 'en',
+                            onChanged: (code) async {
+                              await context
+                                  .read<LanguageService>()
+                                  .setLanguageCode(code);
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Language set to $v'),
+                                  content: Text(
+                                    code == 'ar'
+                                        ? 'تم تغيير اللغة إلى العربية'
+                                        : 'Language changed to English',
+                                  ),
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: kBlue,
                                 ),
@@ -200,9 +211,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 4. Payment Methods ──────────────────────────────────
                     _SectionBlock(
                       icon: Icons.credit_card_rounded,
-                      title: 'Payment Methods',
+                      title: _t('Payment Methods', 'طرق الدفع'),
                       trailing: _smallBtn(
-                        'Add Card',
+                        _t('Add Card', 'اضافة بطاقة'),
                         Icons.add,
                         onTap: () => _showAddCard(),
                       ),
@@ -224,7 +235,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         if (_cards.isEmpty)
                           _emptyRow(
-                            'No saved cards yet',
+                            _t(
+                              'No saved cards yet',
+                              'لا توجد بطاقات محفوظة بعد',
+                            ),
                             Icons.credit_card_off_rounded,
                           ),
                       ],
@@ -235,23 +249,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 5. Preferences ──────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.tune_rounded,
-                      title: 'Preferences',
+                      title: _t('Preferences', 'التفضيلات'),
                       children: [
                         _ToggleTile(
                           icon: Icons.flight_takeoff_rounded,
-                          label: 'Trip Notifications',
+                          label: _t('Trip Notifications', 'اشعارات الرحلات'),
                           value: _notifyTrips,
                           onChanged: (v) => setState(() => _notifyTrips = v),
                         ),
                         _ToggleTile(
                           icon: Icons.local_offer_rounded,
-                          label: 'Deals & Discounts',
+                          label: _t('Deals & Discounts', 'العروض والخصومات'),
                           value: _notifyOffers,
                           onChanged: (v) => setState(() => _notifyOffers = v),
                         ),
                         _ToggleTile(
                           icon: Icons.alarm_rounded,
-                          label: 'Trip Reminder',
+                          label: _t('Trip Reminder', 'تذكير الرحلة'),
                           value: _notifyReminder,
                           onChanged: (v) => setState(() => _notifyReminder = v),
                           showDivider: false,
@@ -264,23 +278,32 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 6. Support ──────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.support_agent_rounded,
-                      title: 'Support',
+                      title: _t('Support', 'الدعم'),
                       children: [
                         _SectionTile(
                           icon: Icons.help_outline_rounded,
-                          label: 'Help Center',
-                          onTap: () => _snack('Help Center coming soon'),
+                          label: _t('Help Center', 'مركز المساعدة'),
+                          onTap: () => _snack(
+                            _t(
+                              'Help Center coming soon',
+                              'مركز المساعدة قريبا',
+                            ),
+                          ),
                         ),
                         _SectionTile(
                           icon: Icons.mail_outline_rounded,
-                          label: 'Contact Us',
+                          label: _t('Contact Us', 'تواصل معنا'),
                           sub: 'support@apptransport.com',
-                          onTap: () => _snack('Opening mail...'),
+                          onTap: () => _snack(
+                            _t('Opening mail...', 'جاري فتح البريد...'),
+                          ),
                         ),
                         _SectionTile(
                           icon: Icons.quiz_outlined,
-                          label: 'FAQs',
-                          onTap: () => _snack('FAQs coming soon'),
+                          label: _t('FAQs', 'الاسئلة الشائعة'),
+                          onTap: () => _snack(
+                            _t('FAQs coming soon', 'الاسئلة الشائعة قريبا'),
+                          ),
                           showDivider: false,
                         ),
                       ],
@@ -291,17 +314,24 @@ class _ProfilePageState extends State<ProfilePage> {
                     // ── 7. Legal ────────────────────────────────────────────
                     _SectionBlock(
                       icon: Icons.gavel_rounded,
-                      title: 'Legal',
+                      title: _t('Legal', 'القانونية'),
                       children: [
                         _SectionTile(
                           icon: Icons.privacy_tip_outlined,
-                          label: 'Privacy Policy',
-                          onTap: () => _snack('Opening Privacy Policy...'),
+                          label: _t('Privacy Policy', 'سياسة الخصوصية'),
+                          onTap: () => _snack(
+                            _t(
+                              'Opening Privacy Policy...',
+                              'جاري فتح سياسة الخصوصية...',
+                            ),
+                          ),
                         ),
                         _SectionTile(
                           icon: Icons.description_outlined,
-                          label: 'Terms & Conditions',
-                          onTap: () => _snack('Opening Terms...'),
+                          label: _t('Terms & Conditions', 'الشروط والاحكام'),
+                          onTap: () => _snack(
+                            _t('Opening Terms...', 'جاري فتح الشروط...'),
+                          ),
                           showDivider: false,
                         ),
                       ],
@@ -390,7 +420,8 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
   );
 
-  void _showSettingsSnack() => _snack('Settings page coming soon');
+  void _showSettingsSnack() =>
+      _snack(_t('Settings page coming soon', 'صفحة الاعدادات قريبا'));
 
   // ── Edit Profile ───────────────────────────────────────────────────────────
   void _showEditProfile() {
@@ -416,9 +447,11 @@ class _ProfilePageState extends State<ProfilePage> {
               _phone = phone;
             });
             Navigator.pop(ctx);
-            _snack('Profile updated successfully');
+            _snack(
+              _t('Profile updated successfully', 'تم تحديث الملف الشخصي بنجاح'),
+            );
           } else {
-            _snack('Failed to update profile');
+            _snack(_t('Failed to update profile', 'فشل تحديث الملف الشخصي'));
           }
         },
       ),
@@ -431,7 +464,9 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => const _ChangePasswordSheet(),
+      builder: (ctx) => _ChangePasswordSheet(
+        isArabic: context.read<LanguageService>().isArabic,
+      ),
     );
   }
 
@@ -443,9 +478,12 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (ctx) => _ConfirmSheet(
         icon: Icons.swap_horiz_rounded,
         iconColor: kBlue,
-        title: 'Switch Account',
-        body: 'You will be logged out of your current account. Continue?',
-        confirmLabel: 'Switch',
+        title: _t('Switch Account', 'تبديل الحساب'),
+        body: _t(
+          'You will be logged out of your current account. Continue?',
+          'سيتم تسجيل الخروج من حسابك الحالي. هل تريد المتابعة؟',
+        ),
+        confirmLabel: _t('Switch', 'تبديل'),
         confirmColor: kBlue,
         onConfirm: () async {
           final auth = context.read<AuthService>();
@@ -477,9 +515,12 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (ctx) => _ConfirmSheet(
         icon: Icons.logout_rounded,
         iconColor: const Color(0xFFE02850),
-        title: 'Log Out',
-        body: 'Are you sure you want to log out of App Transport?',
-        confirmLabel: 'Log Out',
+        title: _t('Log Out', 'تسجيل الخروج'),
+        body: _t(
+          'Are you sure you want to log out of App Transport?',
+          'هل انت متأكد انك تريد تسجيل الخروج من التطبيق؟',
+        ),
+        confirmLabel: _t('Log Out', 'تسجيل الخروج'),
         confirmColor: const Color(0xFFE02850),
         onConfirm: () async {
           final auth = context.read<AuthService>();
@@ -515,7 +556,7 @@ class _ProfilePageState extends State<ProfilePage> {
         onSave: (card) {
           setState(() => _cards.add(card));
           Navigator.pop(ctx);
-          _snack('Card added successfully');
+          _snack(_t('Card added successfully', 'تمت اضافة البطاقة بنجاح'));
         },
       ),
     );
@@ -537,6 +578,7 @@ class _UserInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -619,19 +661,19 @@ class _UserInfoCard extends StatelessWidget {
             children: [
               _InfoChip(
                 icon: Icons.flight_rounded,
-                label: '12 Trips',
+                label: isArabic ? '12 رحلة' : '12 Trips',
                 color: kBlue,
               ),
               const SizedBox(width: 10),
               _InfoChip(
                 icon: Icons.star_rounded,
-                label: '4.8 Rating',
+                label: isArabic ? 'تقييم 4.8' : '4.8 Rating',
                 color: const Color(0xFFFFC107),
               ),
               const SizedBox(width: 10),
               _InfoChip(
                 icon: Icons.calendar_month_rounded,
-                label: 'Since 2024',
+                label: isArabic ? 'منذ 2024' : 'Since 2024',
                 color: const Color(0xFF4CAF50),
               ),
             ],
@@ -664,7 +706,7 @@ class _UserInfoCard extends StatelessWidget {
                   const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    'Edit Profile',
+                    isArabic ? 'تعديل الملف الشخصي' : 'Edit Profile',
                     style: roboto(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -940,16 +982,19 @@ class _ToggleTile extends StatelessWidget {
 //  Language Selector
 // ═════════════════════════════════════════════════════════════════════════════
 class _LanguageSelector extends StatelessWidget {
-  final String selected;
+  final String selectedCode;
   final ValueChanged<String> onChanged;
-  const _LanguageSelector({required this.selected, required this.onChanged});
+  const _LanguageSelector({
+    required this.selectedCode,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const langs = [('English', '🇬🇧'), ('العربية', '🇪🇬')];
+    const langs = [('en', 'English', '🇬🇧'), ('ar', 'العربية', '🇪🇬')];
     return Row(
       children: langs.map((l) {
-        final active = selected == l.$1;
+        final active = selectedCode == l.$1;
         return Expanded(
           child: GestureDetector(
             onTap: () => onChanged(l.$1),
@@ -965,10 +1010,10 @@ class _LanguageSelector extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Text(l.$2, style: const TextStyle(fontSize: 22)),
+                  Text(l.$3, style: const TextStyle(fontSize: 22)),
                   const SizedBox(height: 4),
                   Text(
-                    l.$1,
+                    l.$2,
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1004,6 +1049,7 @@ class _PaymentCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     final isVisa = card['type'] == 'Visa';
     return Column(
       children: [
@@ -1050,7 +1096,7 @@ class _PaymentCardTile extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'Default',
+                              isArabic ? 'افتراضي' : 'Default',
                               style: roboto(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -1062,7 +1108,9 @@ class _PaymentCardTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Expires ${card['expiry']}',
+                      isArabic
+                          ? 'ينتهي ${card['expiry']}'
+                          : 'Expires ${card['expiry']}',
                       style: roboto(fontSize: 11, color: Colors.grey.shade500),
                     ),
                   ],
@@ -1094,7 +1142,10 @@ class _PaymentCardTile extends StatelessWidget {
                             color: kBlue,
                           ),
                           const SizedBox(width: 8),
-                          Text('Set as Default', style: roboto(fontSize: 13)),
+                          Text(
+                            isArabic ? 'تعيين كافتراضي' : 'Set as Default',
+                            style: roboto(fontSize: 13),
+                          ),
                         ],
                       ),
                     ),
@@ -1109,7 +1160,7 @@ class _PaymentCardTile extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Remove',
+                          isArabic ? 'حذف' : 'Remove',
                           style: roboto(
                             fontSize: 13,
                             color: const Color(0xFFE02850),
@@ -1148,6 +1199,7 @@ class _EditProfileSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     final btm = MediaQuery.of(context).viewInsets.bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(20, 20, 20, btm + 24),
@@ -1161,7 +1213,7 @@ class _EditProfileSheet extends StatelessWidget {
           _SheetHandle(),
           const SizedBox(height: 16),
           Text(
-            'Edit Profile',
+            isArabic ? 'تعديل الملف الشخصي' : 'Edit Profile',
             style: roboto(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1191,7 +1243,7 @@ class _EditProfileSheet extends StatelessWidget {
             onPressed: () {},
             icon: const Icon(Icons.camera_alt_rounded, size: 15, color: kBlue),
             label: Text(
-              'Change Photo',
+              isArabic ? 'تغيير الصورة' : 'Change Photo',
               style: roboto(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -1202,19 +1254,19 @@ class _EditProfileSheet extends StatelessWidget {
           const SizedBox(height: 10),
           _SheetField(
             controller: nameCtrl,
-            label: 'Full Name',
+            label: isArabic ? 'الاسم الكامل' : 'Full Name',
             icon: Icons.person_outline_rounded,
           ),
           const SizedBox(height: 12),
           _SheetField(
             controller: phoneCtrl,
-            label: 'Phone Number',
+            label: isArabic ? 'رقم الهاتف' : 'Phone Number',
             icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 20),
           _SheetPrimaryBtn(
-            label: 'Save Changes',
+            label: isArabic ? 'حفظ التغييرات' : 'Save Changes',
             onTap: () => onSave(nameCtrl.text.trim(), phoneCtrl.text.trim()),
           ),
         ],
@@ -1227,7 +1279,8 @@ class _EditProfileSheet extends StatelessWidget {
 //  Change Password Sheet
 // ═════════════════════════════════════════════════════════════════════════════
 class _ChangePasswordSheet extends StatefulWidget {
-  const _ChangePasswordSheet();
+  final bool isArabic;
+  const _ChangePasswordSheet({required this.isArabic});
 
   @override
   State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
@@ -1249,8 +1302,12 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
 
     if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all password fields'),
+        SnackBar(
+          content: Text(
+            widget.isArabic
+                ? 'برجاء ملء كل حقول كلمة المرور'
+                : 'Please fill all password fields',
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1259,8 +1316,12 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     }
     if (next != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('New password and confirmation do not match'),
+        SnackBar(
+          content: Text(
+            widget.isArabic
+                ? 'كلمة المرور الجديدة وتأكيدها غير متطابقين'
+                : 'New password and confirmation do not match',
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1269,8 +1330,12 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     }
     if (next.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 6 characters'),
+        SnackBar(
+          content: Text(
+            widget.isArabic
+                ? 'كلمة المرور يجب ان تكون 6 حروف على الاقل'
+                : 'Password must be at least 6 characters',
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1290,8 +1355,12 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     if (ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password updated and saved to database'),
+        SnackBar(
+          content: Text(
+            widget.isArabic
+                ? 'تم تحديث كلمة المرور وحفظها في قاعدة البيانات'
+                : 'Password updated and saved to database',
+          ),
           backgroundColor: kBlue,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1299,7 +1368,11 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
       return;
     }
 
-    final err = auth.errorMessage ?? 'Failed to update password';
+    final err =
+        auth.errorMessage ??
+        (widget.isArabic
+            ? 'فشل تحديث كلمة المرور'
+            : 'Failed to update password');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -1339,7 +1412,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           _SheetHandle(),
           const SizedBox(height: 16),
           Text(
-            'Change Password',
+            widget.isArabic ? 'تغيير كلمة المرور' : 'Change Password',
             style: roboto(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1349,7 +1422,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           const SizedBox(height: 20),
           _SheetField(
             controller: _currentCtrl,
-            label: 'Current Password',
+            label: widget.isArabic ? 'كلمة المرور الحالية' : 'Current Password',
             icon: Icons.lock_outline_rounded,
             obscure: _obscureCur,
             suffix: IconButton(
@@ -1366,7 +1439,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           const SizedBox(height: 12),
           _SheetField(
             controller: _newCtrl,
-            label: 'New Password',
+            label: widget.isArabic ? 'كلمة المرور الجديدة' : 'New Password',
             icon: Icons.lock_rounded,
             obscure: _obscureNew,
             suffix: IconButton(
@@ -1383,7 +1456,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           const SizedBox(height: 12),
           _SheetField(
             controller: _confirmCtrl,
-            label: 'Confirm New Password',
+            label: widget.isArabic
+                ? 'تأكيد كلمة المرور الجديدة'
+                : 'Confirm New Password',
             icon: Icons.lock_reset_rounded,
             obscure: _obscureConf,
             suffix: IconButton(
@@ -1399,7 +1474,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           ),
           const SizedBox(height: 20),
           _SheetPrimaryBtn(
-            label: _isSaving ? 'Updating...' : 'Update Password',
+            label: _isSaving
+                ? (widget.isArabic ? 'جاري التحديث...' : 'Updating...')
+                : (widget.isArabic ? 'تحديث كلمة المرور' : 'Update Password'),
             onTap: _isSaving ? () {} : _handleUpdatePassword,
           ),
         ],
@@ -1417,6 +1494,7 @@ class _AddCardSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     final btm = MediaQuery.of(context).viewInsets.bottom;
     final numberCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
@@ -1450,7 +1528,7 @@ class _AddCardSheet extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Add Payment Card',
+                isArabic ? 'اضافة بطاقة دفع' : 'Add Payment Card',
                 style: roboto(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -1462,14 +1540,14 @@ class _AddCardSheet extends StatelessWidget {
           const SizedBox(height: 20),
           _SheetField(
             controller: numberCtrl,
-            label: 'Card Number',
+            label: isArabic ? 'رقم البطاقة' : 'Card Number',
             icon: Icons.credit_card_rounded,
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 12),
           _SheetField(
             controller: nameCtrl,
-            label: 'Card Holder Name',
+            label: isArabic ? 'اسم حامل البطاقة' : 'Card Holder Name',
             icon: Icons.person_outline_rounded,
           ),
           const SizedBox(height: 12),
@@ -1478,7 +1556,7 @@ class _AddCardSheet extends StatelessWidget {
               Expanded(
                 child: _SheetField(
                   controller: expiryCtrl,
-                  label: 'MM/YY',
+                  label: isArabic ? 'شهر/سنة' : 'MM/YY',
                   icon: Icons.calendar_today_outlined,
                   keyboardType: TextInputType.number,
                 ),
@@ -1497,7 +1575,7 @@ class _AddCardSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _SheetPrimaryBtn(
-            label: 'Save Card',
+            label: isArabic ? 'حفظ البطاقة' : 'Save Card',
             onTap: () {
               final num = numberCtrl.text.trim();
               onSave({
@@ -1537,6 +1615,7 @@ class _ConfirmSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = context.watch<LanguageService>().isArabic;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       decoration: const BoxDecoration(
@@ -1590,7 +1669,7 @@ class _ConfirmSheet extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        'Cancel',
+                        isArabic ? 'الغاء' : 'Cancel',
                         style: roboto(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
