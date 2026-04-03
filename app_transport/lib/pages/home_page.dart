@@ -103,7 +103,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _suggestionTitle(int index) {
     switch (index) {
       case 0:
-        return _t('Find the best trip for my time', 'ابحث عن افضل رحلة حسب وقتي');
+        return _t(
+          'Find the best trip for my time',
+          'ابحث عن افضل رحلة حسب وقتي',
+        );
       case 1:
         return _t('3-hour Giza Tour', 'جولة الجيزة 3 ساعات');
       case 2:
@@ -843,47 +846,50 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
         const SizedBox(height: 16),
-            // Grid two-column
-            if (tripsToShow.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                child: Text(
-                  isSearching
-                      ? _t('No trips matched your search', 'لا توجد رحلات مطابقة للبحث')
-                      : _t('No trips available yet', 'لا توجد رحلات متاحة حاليا'),
-                  style: roboto(color: Colors.grey.shade500),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final crossAxisCount = width >= 980
-                        ? 4
-                        : width >= 700
-                        ? 3
-                        : width <= 340
-                        ? 1
-                        : 2;
-                    final ratio = crossAxisCount == 1 ? 1.22 : 0.78;
+        // Grid two-column
+        if (tripsToShow.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: Text(
+              isSearching
+                  ? _t(
+                      'No trips matched your search',
+                      'لا توجد رحلات مطابقة للبحث',
+                    )
+                  : _t('No trips available yet', 'لا توجد رحلات متاحة حاليا'),
+              style: roboto(color: Colors.grey.shade500),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final crossAxisCount = width >= 980
+                    ? 4
+                    : width >= 700
+                    ? 3
+                    : width <= 340
+                    ? 1
+                    : 2;
+                final ratio = crossAxisCount == 1 ? 1.22 : 0.78;
 
-                    return GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: ratio,
-                      ),
-                      itemCount: tripsToShow.length,
-                      itemBuilder: (context, i) => _TripCard(trip: tripsToShow[i]),
-                    );
-                  },
-                ),
-              ),
+                return GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: ratio,
+                  ),
+                  itemCount: tripsToShow.length,
+                  itemBuilder: (context, i) => _TripCard(trip: tripsToShow[i]),
+                );
+              },
+            ),
+          ),
       ],
     );
   }
@@ -1280,7 +1286,10 @@ class _TripCard extends StatelessWidget {
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
-                                UiTranslation.display(context, trip.locationLabel),
+                                UiTranslation.display(
+                                  context,
+                                  trip.locationLabel,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: roboto(
