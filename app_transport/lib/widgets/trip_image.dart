@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../services/trip_image_cache_manager.dart';
 
 class TripImage extends StatelessWidget {
   final String imageUrl;
@@ -49,9 +50,11 @@ class TripImage extends StatelessWidget {
 
     return CachedNetworkImage(
       imageUrl: url,
+      cacheManager: TripImageCacheManager.instance,
       width: width,
       height: height,
       fit: fit,
+      useOldImageOnUrlChange: true,
       fadeInDuration: const Duration(milliseconds: 160),
       placeholderFadeInDuration: const Duration(milliseconds: 120),
       placeholder: (ctx, _) => _placeholder(ctx),

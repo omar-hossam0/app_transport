@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../data/default_trips.dart';
 import '../models/trip_model.dart';
+import 'trip_image_cache_manager.dart';
 
 class TripService extends ChangeNotifier {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -12,6 +12,16 @@ class TripService extends ChangeNotifier {
   StreamSubscription<DatabaseEvent>? _sub;
   final Set<String> _warmedImageUrls = <String>{};
   Timer? _warmupDebounce;
+  late final Map<String, String> _defaultCoverById = {
+    for (final trip in defaultTrips)
+      if (trip.id.trim().isNotEmpty && trip.imageUrl.trim().isNotEmpty)
+        trip.id.trim(): trip.imageUrl.trim(),
+  };
+  late final Map<String, String> _defaultCoverByName = {
+    for (final trip in defaultTrips)
+      if (trip.name.trim().isNotEmpty && trip.imageUrl.trim().isNotEmpty)
+        _normalizeName(trip.name): trip.imageUrl.trim(),
+  };
 
   List<TripModel> get trips => List.unmodifiable(_trips);
   List<TripModel> get activeTrips =>
@@ -160,6 +170,8 @@ class TripService extends ChangeNotifier {
     _trips.clear();
     if (snap.exists && snap.value != null) {
       final data = Map<String, dynamic>.from(snap.value as Map);
+      var missingRawCoverCount = 0;
+      var fallbackAppliedCount = 0;
       for (final entry in data.entries) {
         final raw = entry.value;
         if (raw is! Map) {
@@ -169,15 +181,48 @@ class TripService extends ChangeNotifier {
           continue;
         }
         final map = Map<String, dynamic>.from(raw);
-        final trip = TripModel.fromMap(map);
+        final rawCover = (map['imageUrl'] as String? ?? '').trim();
+        map['id'] = (map['id'] as String?)?.trim().isNotEmpty == true
+            ? map['id']
+            : entry.key;
+        var trip = TripModel.fromMap(map);
+        if (rawCover.isEmpty) {
+          missingRawCoverCount++;
+        }
+
+        if (trip.imageUrl.trim().isEmpty) {
+          final fallback = _fallbackCoverUrl(trip);
+          if (fallback.isNotEmpty) {
+            trip = trip.copyWith(imageUrl: fallback);
+            fallbackAppliedCount++;
+          }
+        }
+
         if (trip.id.isNotEmpty && !_isBlockedTripName(trip.name)) {
           _trips.add(trip);
         }
       }
       _trips.sort((a, b) => a.name.compareTo(b.name));
+      debugPrint(
+        '[TripService] Image audit: total=${_trips.length}, '
+        'missingRawCover=$missingRawCoverCount, '
+        'fallbackApplied=$fallbackAppliedCount',
+      );
     }
     _scheduleImageWarmup();
     notifyListeners();
+  }
+
+  String _fallbackCoverUrl(TripModel trip) {
+    final fromGallery = trip.galleryImageUrls
+        .map((url) => url.trim())
+        .firstWhere((url) => url.isNotEmpty, orElse: () => '');
+    if (fromGallery.isNotEmpty) return fromGallery;
+
+    final byId = _defaultCoverById[trip.id.trim()] ?? '';
+    if (byId.isNotEmpty) return byId;
+
+    return _defaultCoverByName[_normalizeName(trip.name)] ?? '';
   }
 
   void _scheduleImageWarmup() {
@@ -212,7 +257,7 @@ class TripService extends ChangeNotifier {
 
     if (pending.isEmpty) return;
 
-    final cache = DefaultCacheManager();
+    final cache = TripImageCacheManager.instance;
     for (final url in pending) {
       try {
         await cache.downloadFile(url, key: url);

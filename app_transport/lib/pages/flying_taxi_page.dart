@@ -8,6 +8,7 @@ import '../services/ui_translation.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
+import '../widgets/trip_image.dart';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -508,6 +509,9 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 
     // Add live trips from Firebase
     for (final lt in liveTrips) {
+      final liveImageUrl = lt.imageUrl.trim().isNotEmpty
+          ? lt.imageUrl
+          : (lt.galleryImageUrls.isNotEmpty ? lt.galleryImageUrls.first : '');
       allTrips.add(
         FlyingTaxiTrip(
           name: isArabic ? UiTranslation.toArabic(lt.name) : lt.name,
@@ -530,7 +534,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
               : (lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel),
           cardColor: lt.accentColor,
           icon: Icons.flight_rounded,
-          imageUrl: lt.imageUrl,
+          imageUrl: liveImageUrl,
         ),
       );
     }
@@ -715,12 +719,10 @@ class _FlyingTripCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Real image from network
-                  Image.network(
-                    trip.imageUrl,
+                  TripImage(
+                    imageUrl: trip.imageUrl,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
+                    placeholderBuilder: (_) {
                       return Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -740,7 +742,7 @@ class _FlyingTripCard extends StatelessWidget {
                         ),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) {
+                    errorBuilder: (_) {
                       return Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
