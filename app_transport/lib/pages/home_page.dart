@@ -1072,6 +1072,7 @@ FlyingTaxiTrip _asFlyingTaxiTrip(TripModel trip) {
       : (durationMinutes / 3).round().clamp(10, 40);
 
   return FlyingTaxiTrip(
+    id: trip.id,
     name: trip.name,
     durationMinutes: durationMinutes,
     flightMinutes: flightMinutes,
@@ -1104,6 +1105,7 @@ TransitTrip _asTransitTrip(TripModel trip) {
       .toList();
 
   return TransitTrip(
+    id: trip.id,
     name: trip.name,
     shortDescription: trip.shortDescription.isNotEmpty
         ? trip.shortDescription

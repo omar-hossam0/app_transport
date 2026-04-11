@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
 import '../models/booking_model.dart';
 import '../services/auth_service.dart';
@@ -28,7 +30,10 @@ class TripDetailPage extends StatefulWidget {
 class _TripDetailPageState extends State<TripDetailPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  bool _liked = false;
+  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  StreamSubscription<DatabaseEvent>? _reviewsSub;
+  List<Review> _dbReviews = [];
+  bool _reviewsLoading = true;
 
   String _t(String en, String ar) =>
       context.read<LanguageService>().isArabic ? ar : en;
@@ -42,12 +47,106 @@ class _TripDetailPageState extends State<TripDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..forward();
+    _listenToReviews();
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _reviewsSub?.cancel();
     super.dispose();
+  }
+
+  void _listenToReviews() {
+    final tripId = widget.trip.id.trim();
+    if (tripId.isEmpty) {
+      debugPrint('[Review] ❌ Trip ID is empty, skipping review listener');
+      _reviewsLoading = false;
+      return;
+    }
+
+    debugPrint('[Review] 📡 Starting to listen for reviews: $tripId');
+
+    _reviewsSub = _db
+        .ref('trip_reviews/$tripId')
+        .orderByChild('createdAtEpoch')
+        .onValue
+        .listen(
+          (event) {
+            debugPrint('[Review] 📨 Received data: ${event.snapshot.exists}');
+            final rawReviews = <Map<String, dynamic>>[];
+            if (event.snapshot.exists && event.snapshot.value != null) {
+              final data = Map<String, dynamic>.from(
+                event.snapshot.value as Map,
+              );
+              debugPrint('[Review] Found ${data.length} reviews');
+              for (final entry in data.entries) {
+                final raw = entry.value;
+                if (raw is! Map) continue;
+                rawReviews.add(Map<String, dynamic>.from(raw));
+              }
+            }
+
+            rawReviews.sort((a, b) {
+              final aEpoch = (a['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              final bEpoch = (b['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              return bEpoch.compareTo(aEpoch);
+            });
+
+            final nextReviews = rawReviews.map(_reviewFromMap).toList();
+
+            if (!mounted) return;
+            setState(() {
+              _dbReviews = nextReviews;
+              _reviewsLoading = false;
+            });
+
+            debugPrint('[Review] ✅ Loaded ${_dbReviews.length} reviews');
+          },
+          onError: (error) {
+            debugPrint('[Review] ❌ Error listening to reviews: $error');
+            if (!mounted) return;
+            setState(() {
+              _reviewsLoading = false;
+            });
+          },
+        );
+  }
+
+  String _formatDuration(int minutes, {required bool isArabic}) {
+    if (minutes <= 0) return isArabic ? 'غير محدد' : 'N/A';
+    if (minutes >= 60) {
+      final h = minutes ~/ 60;
+      final m = minutes % 60;
+      if (isArabic) return m == 0 ? '${h}س' : '${h}س ${m}د';
+      return m == 0 ? '${h}h' : '${h}h ${m}m';
+    }
+    return isArabic ? '${minutes} د' : '${minutes} min';
+  }
+
+  String _formatReviewDate(int? epoch) {
+    if (epoch == null || epoch <= 0) return _t('Just now', 'الان');
+    final now = DateTime.now();
+    final dt = DateTime.fromMillisecondsSinceEpoch(epoch);
+    final days = now.difference(dt).inDays;
+    if (days <= 0) return _t('Today', 'اليوم');
+    if (days == 1) return _t('Yesterday', 'امس');
+    return _t('$days days ago', 'منذ $days يوم');
+  }
+
+  Review _reviewFromMap(Map<String, dynamic> map) {
+    final name = (map['userName'] as String? ?? '').trim();
+    final rating = ((map['rating'] ?? 0) as num).toInt();
+    final comment = (map['comment'] as String? ?? '').trim();
+    final epoch = (map['createdAtEpoch'] as num?)?.toInt();
+    return Review(
+      name: name.isEmpty ? _t('Traveler', 'مسافر') : name,
+      rating: rating <= 0 ? 5 : rating,
+      date: _formatReviewDate(epoch),
+      comment: comment.isEmpty
+          ? _t('No comment provided.', 'لا يوجد تعليق.')
+          : comment,
+    );
   }
 
   Animation<double> _fade(double start, double end) =>
@@ -69,6 +168,7 @@ class _TripDetailPageState extends State<TripDetailPage>
   @override
   Widget build(BuildContext context) {
     final t = widget.trip;
+    final isArabic = context.watch<LanguageService>().isArabic;
     final screenH = MediaQuery.of(context).size.height;
     final topPad = MediaQuery.of(context).padding.top;
 
@@ -294,18 +394,26 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.22, 0.52),
                             child: SlideTransition(
                               position: _slide(0.22, 0.52),
-                              child: Row(
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
                                 children: [
                                   _InfoTag(
-                                    icon: Icons.schedule_rounded,
-                                    label: t.durationLabel,
+                                    icon: Icons.flight_rounded,
+                                    label: isArabic
+                                        ? 'طيران ${t.flightMinutes} د'
+                                        : '${t.flightMinutes} min flight',
                                   ),
-                                  const SizedBox(width: 12),
+                                  _InfoTag(
+                                    icon: Icons.schedule_rounded,
+                                    label: isArabic
+                                        ? 'المدة الكلية ${_formatDuration(t.durationMinutes, isArabic: true)}'
+                                        : 'Total ${_formatDuration(t.durationMinutes, isArabic: false)}',
+                                  ),
                                   _InfoTag(
                                     icon: Icons.attach_money_rounded,
                                     label: t.priceLabel,
                                   ),
-                                  const SizedBox(width: 12),
                                   const _InfoTag(
                                     icon: Icons.headset_mic_rounded,
                                     label: 'دليل ذكي',
@@ -389,8 +497,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                         Consumer2<AuthService, FavoritesService>(
                           builder: (context, auth, favorites, _) {
                             final uid = auth.currentUser?.uid ?? '';
-                            final tripId =
-                                'flying_${widget.trip.name.hashCode}';
+                            final tripId = widget.trip.id;
                             final isFav =
                                 uid.isNotEmpty && favorites.isFavorite(tripId);
                             return _CircleBtn(
@@ -449,32 +556,63 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                     child: Row(
                       children: [
-                        // Heart button
-                        GestureDetector(
-                          onTap: () => setState(() => _liked = !_liked),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: _liked
-                                  ? _kRed.withValues(alpha: 0.10)
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: _liked
-                                    ? _kRed.withValues(alpha: 0.30)
-                                    : Colors.grey.shade200,
+                        // Heart button - Linked to favorites
+                        Consumer2<AuthService, FavoritesService>(
+                          builder: (context, auth, favorites, _) {
+                            final uid = auth.currentUser?.uid ?? '';
+                            final tripId = widget.trip.id;
+                            final isFav =
+                                uid.isNotEmpty && favorites.isFavorite(tripId);
+                            return GestureDetector(
+                              onTap: uid.isEmpty
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await favorites.toggleFavorite(
+                                          uid,
+                                          tripId,
+                                        );
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              _t(
+                                                'Error saving favorite',
+                                                'خطأ في حفظ المفضلة',
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: isFav
+                                      ? _kRed.withValues(alpha: 0.10)
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isFav
+                                        ? _kRed.withValues(alpha: 0.30)
+                                        : Colors.grey.shade200,
+                                  ),
+                                ),
+                                child: Icon(
+                                  isFav
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFav ? _kRed : Colors.grey.shade500,
+                                  size: 24,
+                                ),
                               ),
-                            ),
-                            child: Icon(
-                              _liked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: _liked ? _kRed : Colors.grey.shade500,
-                              size: 24,
-                            ),
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(width: 16),
                         // Book button
@@ -652,56 +790,6 @@ class _TripDetailPageState extends State<TripDetailPage>
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Travelers ──
-                  Text(
-                    _t('Passengers', 'الركاب'),
-                    style: roboto(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _CircleBtn(
-                        icon: Icons.remove_rounded,
-                        onTap: travelers > 1
-                            ? () => setS(() => travelers--)
-                            : null,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          '$travelers',
-                          style: roboto(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      _CircleBtn(
-                        icon: Icons.add_rounded,
-                        onTap: travelers < 10
-                            ? () => setS(() => travelers++)
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        _t(
-                          'Total: \$${trip.priceUsd * travelers}',
-                          'الاجمالي: \$${trip.priceUsd * travelers}',
-                        ),
-                        style: roboto(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: kBlue,
-                        ),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -935,6 +1023,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Reviews Section ──────────────────────────────────────────────────────
   Widget _buildReviewsSection(FlyingTaxiTrip t) {
+    final allReviews = [..._dbReviews, ...t.reviews];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -946,14 +1035,14 @@ class _TripDetailPageState extends State<TripDetailPage>
             ),
             const SizedBox(width: 8),
             Text(
-              '(${t.reviews.length})',
+              _reviewsLoading ? '(...)' : '(${allReviews.length})',
               style: roboto(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 16),
         // Display reviews from trip data
-        ...t.reviews.map(
+        ...allReviews.map(
           (review) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: _ReviewCard(
@@ -1003,6 +1092,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Show Add Review Dialog ──────────────────────────────────────────────
   void _showAddReviewDialog() {
+    final pageContext = context;
     final reviewController = TextEditingController();
     int selectedRating = 5;
 
@@ -1080,21 +1170,117 @@ class _TripDetailPageState extends State<TripDetailPage>
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _t('Thank you for your review!', 'شكرا على تقييمك!'),
-                          style: roboto(color: Colors.white),
+                  onPressed: () async {
+                    final auth = pageContext.read<AuthService>();
+                    if (!auth.isLoggedIn) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Please sign in to leave a review.',
+                              'يرجى تسجيل الدخول لترك تقييم.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                      );
+                      return;
+                    }
+
+                    final review = reviewController.text.trim();
+                    if (review.isEmpty) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Please write a review before submitting.',
+                              'من فضلك اكتب تقييم قبل الارسال.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                      ),
-                    );
+                      );
+                      return;
+                    }
+
+                    final tripId = widget.trip.id.trim();
+                    if (tripId.isEmpty) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Unable to submit review for this trip.',
+                              'لا يمكن ارسال تقييم لهذه الرحلة.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final nowEpoch = DateTime.now().millisecondsSinceEpoch;
+                    final payload = {
+                      'userId': auth.currentUser!.uid,
+                      'userName': auth.currentUser!.name,
+                      'rating': selectedRating,
+                      'comment': review,
+                      'createdAtEpoch': nowEpoch,
+                    };
+
+                    try {
+                      debugPrint('[Review] Saving review for trip: $tripId');
+                      debugPrint('[Review] Payload: $payload');
+
+                      await _db
+                          .ref('trip_reviews/$tripId')
+                          .push()
+                          .set(payload)
+                          .timeout(const Duration(seconds: 10));
+
+                      debugPrint('[Review] ✅ Review saved successfully!');
+
+                      if (Navigator.of(dialogContext).canPop()) {
+                        Navigator.of(dialogContext).pop();
+                      }
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Thank you for your review!',
+                              'شكرا على تقييمك!',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      debugPrint('[Review] ❌ Error saving review: $e');
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t('Error: $e', 'خطأ: $e'),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kBlue,

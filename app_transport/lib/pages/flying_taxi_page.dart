@@ -5,6 +5,8 @@ import '../models/trip_model.dart';
 import '../services/trip_service.dart';
 import '../services/language_service.dart';
 import '../services/ui_translation.dart';
+import '../services/auth_service.dart';
+import '../services/favorites_service.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
@@ -30,6 +32,7 @@ class Review {
 
 // ── Trip model ───────────────────────────────────────────────────────────────
 class FlyingTaxiTrip {
+  final String id;
   final String name;
   final int durationMinutes;
   final int flightMinutes;
@@ -42,6 +45,7 @@ class FlyingTaxiTrip {
   final List<Review> reviews;
 
   const FlyingTaxiTrip({
+    required this.id,
     required this.name,
     required this.durationMinutes,
     required this.flightMinutes,
@@ -71,6 +75,7 @@ class FlyingTaxiTrip {
 const flyingTrips = <FlyingTaxiTrip>[
   // 1 ─ جولة جوية فوق القلعة والنيل (15 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_citadel_nile',
     name: 'جولة جوية فوق القلعة والنيل',
     durationMinutes: 70,
     flightMinutes: 15,
@@ -107,6 +112,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 2 ─ جولة جوية قصيرة فوق النيل والكورنيش (13 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_corniche_short',
     name: 'جولة جوية فوق النيل والكورنيش',
     durationMinutes: 40,
     flightMinutes: 13,
@@ -143,6 +149,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 3 ─ جولة جوية شاملة فوق الأهرامات وأبرز المعالم (30 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_pyramids_highlights',
     name: 'جولة شاملة فوق الأهرامات والمعالم',
     durationMinutes: 120,
     flightMinutes: 30,
@@ -180,6 +187,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 4 ─ جولة جوية سريعة فوق النيل وبرج القاهرة (10 دقائق طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_tower_quick',
     name: 'جولة سريعة فوق النيل وبرج القاهرة',
     durationMinutes: 60,
     flightMinutes: 10,
@@ -217,6 +225,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 5 ─ جولة بانورامية ممتدة فوق أحياء القاهرة الحديثة (18 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_modern_cairo_panorama',
     name: 'جولة بانورامية فوق أحياء القاهرة',
     durationMinutes: 75,
     flightMinutes: 18,
@@ -254,6 +263,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 6 ─ جولة جوية فوق النيل وبرج القاهرة ودار الأوبرا (22 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_opera_tower',
     name: 'جولة فوق النيل والأوبرا وبرج القاهرة',
     durationMinutes: 100,
     flightMinutes: 22,
@@ -291,6 +301,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 7 ─ جولة جوية فوق القاهرة الجديدة والعاصمة الإدارية (25 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_new_cairo_capital',
     name: 'جولة فوق القاهرة الجديدة والعاصمة الإدارية',
     durationMinutes: 90,
     flightMinutes: 25,
@@ -329,6 +340,7 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 8 ─ جولة جوية فوق القاهرة والنيل والمناطق العمرانية (30 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_cairo_nile_30min',
     name: 'جولة جوية فوق القاهرة والنيل',
     durationMinutes: 120,
     flightMinutes: 30,
@@ -386,6 +398,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
   FlyingTaxiTrip _forLocale(FlyingTaxiTrip trip, int index, bool isArabic) {
     if (isArabic) {
       return FlyingTaxiTrip(
+        id: trip.id,
         name: UiTranslation.toArabic(trip.name),
         durationMinutes: trip.durationMinutes,
         flightMinutes: trip.flightMinutes,
@@ -414,6 +427,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
         'Cairo Airport route with key aerial landmarks and return transfer.';
 
     return FlyingTaxiTrip(
+      id: trip.id,
       name: _containsArabic(trip.name) ? fallbackName : trip.name,
       durationMinutes: trip.durationMinutes,
       flightMinutes: trip.flightMinutes,
@@ -514,6 +528,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
           : (lt.galleryImageUrls.isNotEmpty ? lt.galleryImageUrls.first : '');
       allTrips.add(
         FlyingTaxiTrip(
+          id: lt.id,
           name: isArabic ? UiTranslation.toArabic(lt.name) : lt.name,
           durationMinutes: lt.durationMinutes,
           flightMinutes: lt.flightMinutes,
@@ -686,6 +701,10 @@ class _FlyingTripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
+    final isArabic = context.watch<LanguageService>().isArabic;
+    final flightLabel = isArabic
+        ? 'طيران ${trip.flightMinutes} د'
+        : '${trip.flightMinutes} min flight';
     // ── Responsive card values for Samsung M31 (~411 lp) ──
     final nameFs = (w * 0.030).clamp(11.0, 15.0); // ~12.3
     final subFs = (w * 0.024).clamp(9.0, 12.0); // ~10
@@ -806,7 +825,7 @@ class _FlyingTripCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            UiTranslation.display(context, trip.durationLabel),
+                            UiTranslation.display(context, flightLabel),
                             style: roboto(
                               fontSize: 10,
                               color: Colors.white,
@@ -821,18 +840,43 @@ class _FlyingTripCard extends StatelessWidget {
                   Positioned(
                     top: 10,
                     right: 10,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.favorite_border_rounded,
-                        color: _kRed,
-                        size: 16,
-                      ),
+                    child: Consumer2<AuthService, FavoritesService>(
+                      builder: (context, auth, favorites, _) {
+                        final uid = auth.currentUser?.uid ?? '';
+                        final isFav =
+                            uid.isNotEmpty && favorites.isFavorite(trip.id);
+                        return GestureDetector(
+                          onTap: uid.isEmpty
+                              ? null
+                              : () async {
+                                  try {
+                                    await favorites.toggleFavorite(
+                                      uid,
+                                      trip.id,
+                                    );
+                                  } catch (e) {
+                                    debugPrint('Error toggling favorite: $e');
+                                  }
+                                },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: isFav
+                                  ? _kRed.withValues(alpha: 0.15)
+                                  : Colors.white.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFav ? _kRed : _kRed,
+                              size: 16,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

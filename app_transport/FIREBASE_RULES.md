@@ -18,6 +18,18 @@
       }
     },
 
+    // Trip reviews - public read, authenticated write
+    "trip_reviews": {
+      ".read": true,
+      "$tripId": {
+        ".read": true,
+        "$reviewId": {
+          ".write": "auth != null && newData.child('userId').val() === auth.uid",
+          ".validate": "newData.hasChildren(['userId', 'userName', 'rating', 'comment', 'createdAtEpoch']) && newData.child('rating').isNumber() && newData.child('rating').val() > 0 && newData.child('rating').val() <= 5"
+        }
+      }
+    },
+
     // User data - private
     "users": {
       "$uid": {
