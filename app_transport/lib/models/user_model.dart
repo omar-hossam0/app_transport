@@ -4,6 +4,7 @@ class UserModel {
   final String email; // User email
   final String name; // Full name
   final String phoneNumber; // Phone number (optional)
+  final String photoUrl; // Profile photo URL
   final bool isAdmin; // Admin role flag
   final DateTime createdAt; // Account creation timestamp
   final DateTime lastLogin; // Last login timestamp
@@ -13,6 +14,7 @@ class UserModel {
     required this.email,
     required this.name,
     this.phoneNumber = '',
+    this.photoUrl = '',
     this.isAdmin = false,
     required this.createdAt,
     required this.lastLogin,
@@ -25,6 +27,7 @@ class UserModel {
       'email': email,
       'name': name,
       'phoneNumber': phoneNumber,
+      'photoUrl': photoUrl,
       'isAdmin': isAdmin,
       'createdAt': createdAt.toIso8601String(),
       'lastLogin': lastLogin.toIso8601String(),
@@ -38,6 +41,7 @@ class UserModel {
       email: map['email'] ?? '',
       name: map['name'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
+      photoUrl: map['photoUrl'] ?? '',
       isAdmin: map['isAdmin'] == true,
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'])
@@ -54,6 +58,7 @@ class UserModel {
     String? email,
     String? name,
     String? phoneNumber,
+    String? photoUrl,
     bool? isAdmin,
     DateTime? createdAt,
     DateTime? lastLogin,
@@ -63,6 +68,7 @@ class UserModel {
       email: email ?? this.email,
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      photoUrl: photoUrl ?? this.photoUrl,
       isAdmin: isAdmin ?? this.isAdmin,
       createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,

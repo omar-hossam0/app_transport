@@ -1092,21 +1092,6 @@ class _TransitTripsPageState extends State<TransitTripsPage>
     super.dispose();
   }
 
-  List<TransitTrip> get _filtered {
-    switch (_filterIndex) {
-      case 1:
-        return transitTrips.where((t) => t.durationHours <= 4).toList();
-      case 2:
-        return transitTrips
-            .where((t) => t.durationHours > 4 && t.durationHours <= 8)
-            .toList();
-      case 3:
-        return transitTrips.where((t) => t.durationHours > 8).toList();
-      default:
-        return transitTrips;
-    }
-  }
-
   Animation<double> _fade(int i) {
     final start = (i * 0.10).clamp(0.0, 0.6);
     final end = (start + 0.45).clamp(0.0, 1.0);

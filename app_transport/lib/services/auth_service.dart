@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ import '../models/user_model.dart';
 class AuthService extends ChangeNotifier {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -208,6 +210,19 @@ class AuthService extends ChangeNotifier {
   // Load User from Database
   // ─────────────────────────────────────────────────
 
+  Future<String> _loadPhotoUrlFromFirestore(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        return (data?['photoUrl'] as String?) ?? '';
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error loading photo url: $e');
+    }
+    return '';
+  }
+
   Future<void> _loadUserFromDatabase(String uid) async {
     try {
       final snapshot = await _database
@@ -217,7 +232,9 @@ class AuthService extends ChangeNotifier {
 
       if (snapshot.exists) {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
-        _currentUser = UserModel.fromMap(data);
+        final baseUser = UserModel.fromMap(data);
+        final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+        _currentUser = baseUser.copyWith(photoUrl: photoUrl);
         notifyListeners();
         debugPrint('[Auth] Session restored for: ${_currentUser!.email}');
       }
@@ -247,7 +264,9 @@ class AuthService extends ChangeNotifier {
         data['lastLogin'] = now.toIso8601String();
         await userRef.update({'lastLogin': data['lastLogin']});
       }
-      return UserModel.fromMap(data);
+      final baseUser = UserModel.fromMap(data);
+      final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+      return baseUser.copyWith(photoUrl: photoUrl);
     }
 
     final profile = UserModel(
@@ -269,7 +288,8 @@ class AuthService extends ChangeNotifier {
         .set({'uid': uid})
         .timeout(const Duration(seconds: 10));
 
-    return profile;
+    final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+    return profile.copyWith(photoUrl: photoUrl);
   }
 
   // ─────────────────────────────────────────────────
@@ -955,6 +975,24 @@ class AuthService extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('[Auth] Error updating profile: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateUserPhotoUrl(String photoUrl) async {
+    if (_currentUser == null) return false;
+
+    try {
+      await _firestore.collection('users').doc(_currentUser!.uid).set({
+        'photoUrl': photoUrl.trim(),
+        'photoUpdatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+
+      _currentUser = _currentUser!.copyWith(photoUrl: photoUrl.trim());
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[Auth] Error updating profile photo: $e');
       return false;
     }
   }

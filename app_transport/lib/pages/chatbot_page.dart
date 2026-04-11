@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import '../config.dart';
 import '../services/smooth_navigation.dart';
 import '../services/ui_translation.dart';
+import '../services/trip_service.dart';
+import '../models/trip_model.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
@@ -49,7 +52,7 @@ MANDATORY RULES:
 class _GeminiChat {
   final List<Map<String, String>> _history = [];
 
-  Future<String> send(String message) async {
+  Future<String> send(String message, {required String tripContext}) async {
     _history.add({'role': 'user', 'content': message});
     try {
       final response = await http.post(
@@ -61,11 +64,11 @@ class _GeminiChat {
         body: jsonEncode({
           'model': _kGroqModel,
           'messages': [
-            {'role': 'system', 'content': _kSystemPrompt},
+            {'role': 'system', 'content': '$_kSystemPrompt\n\n$tripContext'},
             ..._history,
           ],
-          'temperature': 0.7,
-          'max_tokens': 1024,
+          'temperature': 0.2,
+          'max_tokens': 700,
         }),
       );
       if (response.statusCode == 200) {
@@ -92,6 +95,28 @@ const _kChips = [
   (Icons.place_rounded, 'Popular Places'),
   (Icons.attach_money_rounded, 'Prices'),
 ];
+
+String _buildTripContext(List<TripModel> trips) {
+  if (trips.isEmpty) {
+    return 'AVAILABLE TRIPS: none. If asked about trips, say that no trips are available right now.';
+  }
+
+  final buffer = StringBuffer(
+    'AVAILABLE TRIPS (only mention these; do not invent):\n',
+  );
+  for (final trip in trips) {
+    buffer.writeln(
+      '- ${trip.name} | type: ${trip.type.name} | duration: ${trip.durationLabel} | price: ${trip.priceLabel} | route: ${trip.routeLabel}',
+    );
+    if (trip.shortDescription.trim().isNotEmpty) {
+      buffer.writeln('  info: ${trip.shortDescription}');
+    }
+  }
+  buffer.writeln(
+    'RULES: If user asks about a trip not in the list, say it is not available in the app. Use only the list for prices/durations.',
+  );
+  return buffer.toString();
+}
 
 // ── (Keyword responses replaced by Gemini AI) ───────────────────────────────
 const kResponses = {
@@ -187,6 +212,10 @@ class _ChatBotPageState extends State<ChatBotPage> {
   void initState() {
     super.initState();
     widget.controller?._sendFn = _send;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<TripService>().loadTrips();
+    });
   }
 
   @override
@@ -207,7 +236,9 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
     _scrollToBottom();
 
-    final reply = await _gemini.send(msg);
+    final tripService = context.read<TripService>();
+    final tripContext = _buildTripContext(tripService.activeTrips);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -231,6 +262,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<TripService>();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FC),
       body: Column(
@@ -300,6 +332,15 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<TripService>().loadTrips();
+    });
+  }
+
+  @override
   void dispose() {
     _ctrl.dispose();
     _scroll.dispose();
@@ -316,7 +357,9 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
     });
     _scrollToBottom();
 
-    final reply = await _gemini.send(msg);
+    final tripService = context.read<TripService>();
+    final tripContext = _buildTripContext(tripService.activeTrips);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -340,6 +383,7 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<TripService>();
     final btm = MediaQuery.of(context).viewInsets.bottom;
     final height = MediaQuery.of(context).size.height * 0.74;
 

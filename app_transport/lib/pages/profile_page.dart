@@ -1,8 +1,17 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
+import 'help_center_page.dart';
+import 'contact_us_page.dart';
+import 'privacy_policy_page.dart';
+import 'terms_conditions_page.dart';
 import 'sign_in_page.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
@@ -42,7 +51,9 @@ class _ProfilePageState extends State<ProfilePage> {
   String _name = 'Omar Hossam';
   String _email = 'omar.hossam@email.com';
   String _phone = '+20 101 234 5678';
+  String _photoUrl = '';
   bool _didLoadUser = false;
+  bool _isUploadingPhoto = false;
 
   // ── Payment cards ──────────────────────────────────────────────────────────
   final List<Map<String, String>> _cards = [
@@ -73,9 +84,72 @@ class _ProfilePageState extends State<ProfilePage> {
         _name = user.name;
         _email = user.email;
         _phone = user.phoneNumber;
+        _photoUrl = user.photoUrl;
       });
     }
     _didLoadUser = true;
+  }
+
+  Future<String?> _handleChangePhoto() async {
+    if (_isUploadingPhoto) return null;
+    final auth = context.read<AuthService>();
+    final user = auth.currentUser;
+    if (user == null) return null;
+
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 720,
+    );
+    if (file == null) return null;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final bytes = await file.readAsBytes();
+      const maxBytes = 700 * 1024;
+      if (bytes.length > maxBytes) {
+        _snack(
+          _t(
+            'Image too large. Please choose a smaller photo',
+            'الصورة كبيرة جدا. من فضلك اختر صورة اصغر',
+          ),
+        );
+        return null;
+      }
+
+      final base64Url = _bytesToDataUrl(bytes, file.name);
+      final ok = await auth.updateUserPhotoUrl(base64Url);
+      if (!mounted) return null;
+      if (ok) {
+        setState(() => _photoUrl = base64Url);
+        _snack(_t('Profile photo updated', 'تم تحديث الصورة الشخصية'));
+        return base64Url;
+      }
+      _snack(_t('Failed to update photo', 'فشل تحديث الصورة'));
+      return null;
+    } catch (e) {
+      debugPrint('[Profile] Failed to upload photo: $e');
+      if (mounted) {
+        _snack(_t('Failed to update photo', 'فشل تحديث الصورة'));
+      }
+      return null;
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
+  }
+
+  String _bytesToDataUrl(Uint8List bytes, String fileName) {
+    final lower = fileName.toLowerCase();
+    final mime = lower.endsWith('.png')
+        ? 'image/png'
+        : lower.endsWith('.webp')
+        ? 'image/webp'
+        : lower.endsWith('.gif')
+        ? 'image/gif'
+        : 'image/jpeg';
+    final encoded = base64Encode(bytes);
+    return 'data:$mime;base64,$encoded';
   }
 
   @override
@@ -139,6 +213,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       name: _name,
                       email: _email,
                       phone: _phone,
+                      photoUrl: _photoUrl,
+                      onChangePhoto: _handleChangePhoto,
                       onEdit: () => _showEditProfile(),
                     ),
 
@@ -283,27 +359,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         _SectionTile(
                           icon: Icons.help_outline_rounded,
                           label: _t('Help Center', 'مركز المساعدة'),
-                          onTap: () => _snack(
-                            _t(
-                              'Help Center coming soon',
-                              'مركز المساعدة قريبا',
-                            ),
-                          ),
+                          onTap: _openHelpCenter,
                         ),
                         _SectionTile(
                           icon: Icons.mail_outline_rounded,
                           label: _t('Contact Us', 'تواصل معنا'),
                           sub: 'support@apptransport.com',
-                          onTap: () => _snack(
-                            _t('Opening mail...', 'جاري فتح البريد...'),
-                          ),
-                        ),
-                        _SectionTile(
-                          icon: Icons.quiz_outlined,
-                          label: _t('FAQs', 'الاسئلة الشائعة'),
-                          onTap: () => _snack(
-                            _t('FAQs coming soon', 'الاسئلة الشائعة قريبا'),
-                          ),
+                          onTap: _openContactUs,
                           showDivider: false,
                         ),
                       ],
@@ -319,19 +381,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         _SectionTile(
                           icon: Icons.privacy_tip_outlined,
                           label: _t('Privacy Policy', 'سياسة الخصوصية'),
-                          onTap: () => _snack(
-                            _t(
-                              'Opening Privacy Policy...',
-                              'جاري فتح سياسة الخصوصية...',
-                            ),
-                          ),
+                          onTap: _openPrivacyPolicy,
                         ),
                         _SectionTile(
                           icon: Icons.description_outlined,
                           label: _t('Terms & Conditions', 'الشروط والاحكام'),
-                          onTap: () => _snack(
-                            _t('Opening Terms...', 'جاري فتح الشروط...'),
-                          ),
+                          onTap: _openTerms,
                           showDivider: false,
                         ),
                       ],
@@ -423,6 +478,30 @@ class _ProfilePageState extends State<ProfilePage> {
   void _showSettingsSnack() =>
       _snack(_t('Settings page coming soon', 'صفحة الاعدادات قريبا'));
 
+  void _openHelpCenter() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const HelpCenterPage()));
+  }
+
+  void _openContactUs() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ContactUsPage()));
+  }
+
+  void _openPrivacyPolicy() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()));
+  }
+
+  void _openTerms() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TermsConditionsPage()));
+  }
+
   // ── Edit Profile ───────────────────────────────────────────────────────────
   void _showEditProfile() {
     final nameCtrl = TextEditingController(text: _name);
@@ -434,6 +513,8 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (ctx) => _EditProfileSheet(
         nameCtrl: nameCtrl,
         phoneCtrl: phoneCtrl,
+        photoUrl: _photoUrl,
+        onChangePhoto: _handleChangePhoto,
         onSave: (name, phone) async {
           final auth = context.read<AuthService>();
           final ok = await auth.updateUserProfile(
@@ -568,11 +649,15 @@ class _ProfilePageState extends State<ProfilePage> {
 // ═════════════════════════════════════════════════════════════════════════════
 class _UserInfoCard extends StatelessWidget {
   final String name, email, phone;
+  final String photoUrl;
+  final Future<String?> Function() onChangePhoto;
   final VoidCallback onEdit;
   const _UserInfoCard({
     required this.name,
     required this.email,
     required this.phone,
+    required this.photoUrl,
+    required this.onChangePhoto,
     required this.onEdit,
   });
 
@@ -616,14 +701,23 @@ class _UserInfoCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 44,
+                child: ClipOval(
+                  child: photoUrl.isEmpty
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white,
+                          size: 44,
+                        )
+                      : TripImage(
+                          imageUrl: photoUrl,
+                          fit: BoxFit.cover,
+                          width: 86,
+                          height: 86,
+                        ),
                 ),
               ),
               GestureDetector(
-                onTap: onEdit,
+                onTap: onChangePhoto,
                 child: Container(
                   width: 28,
                   height: 28,
@@ -1187,15 +1281,44 @@ class _PaymentCardTile extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 //  Edit Profile Sheet
 // ═════════════════════════════════════════════════════════════════════════════
-class _EditProfileSheet extends StatelessWidget {
+class _EditProfileSheet extends StatefulWidget {
   final TextEditingController nameCtrl;
   final TextEditingController phoneCtrl;
+  final String photoUrl;
+  final Future<String?> Function() onChangePhoto;
   final void Function(String name, String phone) onSave;
   const _EditProfileSheet({
     required this.nameCtrl,
     required this.phoneCtrl,
+    required this.photoUrl,
+    required this.onChangePhoto,
     required this.onSave,
   });
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late String _photoUrl;
+  bool _isChangingPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _photoUrl = widget.photoUrl;
+  }
+
+  Future<void> _changePhoto() async {
+    if (_isChangingPhoto) return;
+    setState(() => _isChangingPhoto = true);
+    final url = await widget.onChangePhoto();
+    if (!mounted) return;
+    if (url != null && url.isNotEmpty) {
+      setState(() => _photoUrl = url);
+    }
+    setState(() => _isChangingPhoto = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1221,7 +1344,6 @@ class _EditProfileSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // Avatar
           Container(
             width: 74,
             height: 74,
@@ -1233,15 +1355,30 @@ class _EditProfileSheet extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: Colors.white,
-              size: 38,
+            child: ClipOval(
+              child: _photoUrl.isEmpty
+                  ? const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 38,
+                    )
+                  : TripImage(
+                      imageUrl: _photoUrl,
+                      fit: BoxFit.cover,
+                      width: 74,
+                      height: 74,
+                    ),
             ),
           ),
           TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.camera_alt_rounded, size: 15, color: kBlue),
+            onPressed: _isChangingPhoto ? null : _changePhoto,
+            icon: _isChangingPhoto
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.camera_alt_rounded, size: 15, color: kBlue),
             label: Text(
               isArabic ? 'تغيير الصورة' : 'Change Photo',
               style: roboto(
@@ -1253,13 +1390,13 @@ class _EditProfileSheet extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SheetField(
-            controller: nameCtrl,
+            controller: widget.nameCtrl,
             label: isArabic ? 'الاسم الكامل' : 'Full Name',
             icon: Icons.person_outline_rounded,
           ),
           const SizedBox(height: 12),
           _SheetField(
-            controller: phoneCtrl,
+            controller: widget.phoneCtrl,
             label: isArabic ? 'رقم الهاتف' : 'Phone Number',
             icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
@@ -1267,7 +1404,10 @@ class _EditProfileSheet extends StatelessWidget {
           const SizedBox(height: 20),
           _SheetPrimaryBtn(
             label: isArabic ? 'حفظ التغييرات' : 'Save Changes',
-            onTap: () => onSave(nameCtrl.text.trim(), phoneCtrl.text.trim()),
+            onTap: () => widget.onSave(
+              widget.nameCtrl.text.trim(),
+              widget.phoneCtrl.text.trim(),
+            ),
           ),
         ],
       ),

@@ -57,6 +57,7 @@ dependencies:
   uuid: ^4.5.1 # Generate unique user IDs
   google_generative_ai: ^0.4.6 # Gemini AI chatbot
   http: ^1.2.2 # HTTP client for Groq API
+  url_launcher: ^6.3.0 # Open email and external links
 
 dev_dependencies:
   flutter_test:

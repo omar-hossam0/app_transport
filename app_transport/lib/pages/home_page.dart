@@ -243,56 +243,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _openHoursSuggestionFlow() async {
-    final hoursCtrl = TextEditingController();
-    final hours = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          _t('How many hours do you have?', 'كم ساعة متاحة معك؟'),
-          style: roboto(fontSize: 18, fontWeight: FontWeight.w800),
-        ),
-        content: TextField(
-          controller: hoursCtrl,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            hintText: _t('Example: 4', 'مثال: 4'),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(_t('Cancel', 'الغاء')),
-          ),
-          FilledButton(
-            onPressed: () {
-              final raw = hoursCtrl.text.trim();
-              final parsed = double.tryParse(raw);
-              if (parsed == null || parsed <= 0) return;
-              Navigator.pop(ctx, parsed);
-            },
-            child: Text(_t('Get Suggestion', 'احصل على اقتراح')),
-          ),
-        ],
-      ),
-    );
-    hoursCtrl.dispose();
-
-    if (!mounted || hours == null) return;
-    final hoursLabel = hours == hours.roundToDouble()
-        ? hours.toInt().toString()
-        : hours.toStringAsFixed(1);
-    final isArabic = context.read<LanguageService>().isArabic;
-
-    _openChatWithMessage(
-      isArabic
-          ? 'عندي ترانزيت لمدة $hoursLabel ساعة في القاهرة. اقترح أفضل رحلة مناسبة للمدة دي مع السعر وخطة سريعة.'
-          : 'I have a $hoursLabel-hour layover in Cairo. Suggest the best trip for this time with price and a quick plan.',
-    );
-  }
-
   TripModel? _pickTripFromBackend({
     required bool flying,
     List<String> keywords = const [],
@@ -526,26 +476,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             const SizedBox(width: 12),
             // Profile avatar on the right
             GestureDetector(
-              onTap: () => setState(() => _navIndex = 5),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [kBlue, kLightBlue]),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kBlue.withValues(alpha: 0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+              onTap: () => _switchTab(5),
+              child: Consumer<AuthService>(
+                builder: (context, auth, _) {
+                  final photoUrl = auth.currentUser?.photoUrl ?? '';
+                  return Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [kBlue, kLightBlue],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kBlue.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                    child: ClipOval(
+                      child: photoUrl.isEmpty
+                          ? const Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            )
+                          : TripImage(
+                              imageUrl: photoUrl,
+                              fit: BoxFit.cover,
+                              width: 58,
+                              height: 58,
+                            ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
