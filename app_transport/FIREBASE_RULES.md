@@ -18,6 +18,18 @@
       }
     },
 
+    // Trip reviews - public read, authenticated write
+    "trip_reviews": {
+      ".read": true,
+      "$tripId": {
+        ".read": true,
+        "$reviewId": {
+          ".write": "auth != null && newData.child('userId').val() === auth.uid",
+          ".validate": "newData.hasChildren(['userId', 'userName', 'rating', 'comment', 'createdAtEpoch']) && newData.child('rating').isNumber() && newData.child('rating').val() > 0 && newData.child('rating').val() <= 5"
+        }
+      }
+    },
+
     // User data - private
     "users": {
       "$uid": {
@@ -77,16 +89,16 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Admin uploads only
+    // Trip media
     match /trips/{tripId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(project_id)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      allow write: if request.auth != null;
     }
 
-    // User uploads
+    // User profile photos
     match /users/{userId}/{allPaths=**} {
-      allow read: if request.auth.uid == userId || get(/databases/$(project_id)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-      allow write: if request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
@@ -135,20 +147,7 @@ gsutil cors set cors.json gs://YOUR_BUCKET_NAME
 ### 2. Storage Rules
 
 1. اذهب إلى: Storage → Rules
-2. استبدل الكود الحالي بـ:
-
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /trips/{tripId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-  }
-}
-```
-
+2. استبدل الكود الحالي بالقواعد في قسم Storage Rules أعلاه
 3. اضغط Publish
 
 ### 3. التحقق

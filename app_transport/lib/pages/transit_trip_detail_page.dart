@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,8 +8,9 @@ import '../models/booking_model.dart';
 import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
 import 'transit_trips_page.dart';
 
@@ -27,6 +30,15 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   late final AnimationController _ctrl;
   late final PageController _galleryController;
   int _currentGalleryIndex = 0;
+  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  StreamSubscription<DatabaseEvent>? _reviewsSub;
+  List<Review> _dbReviews = [];
+  bool _reviewsLoading = true;
+
+  String _t(String en, String ar) =>
+      context.read<LanguageService>().isArabic ? ar : en;
+
+  String _display(String text) => UiTranslation.display(context, text);
 
   @override
   void initState() {
@@ -36,26 +48,100 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..forward();
+    _listenToReviews();
   }
 
   @override
   void dispose() {
+    _reviewsSub?.cancel();
     _galleryController.dispose();
     _ctrl.dispose();
     super.dispose();
   }
 
+  void _listenToReviews() {
+    final tripId = widget.trip.id.trim();
+    if (tripId.isEmpty) {
+      _reviewsLoading = false;
+      return;
+    }
+
+    _reviewsSub = _db
+        .ref('trip_reviews/$tripId')
+        .orderByChild('createdAtEpoch')
+        .onValue
+        .listen(
+          (event) {
+            final rawReviews = <Map<String, dynamic>>[];
+            if (event.snapshot.exists && event.snapshot.value != null) {
+              final data = Map<String, dynamic>.from(
+                event.snapshot.value as Map,
+              );
+              for (final entry in data.entries) {
+                final raw = entry.value;
+                if (raw is! Map) continue;
+                rawReviews.add(Map<String, dynamic>.from(raw));
+              }
+            }
+
+            rawReviews.sort((a, b) {
+              final aEpoch = (a['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              final bEpoch = (b['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              return bEpoch.compareTo(aEpoch);
+            });
+
+            final nextReviews = rawReviews.map(_reviewFromMap).toList();
+
+            if (!mounted) return;
+            setState(() {
+              _dbReviews = nextReviews;
+              _reviewsLoading = false;
+            });
+          },
+          onError: (_) {
+            if (!mounted) return;
+            setState(() {
+              _reviewsLoading = false;
+            });
+          },
+        );
+  }
+
+  String _formatReviewDate(int? epoch) {
+    if (epoch == null || epoch <= 0) return _t('Just now', 'الان');
+    final now = DateTime.now();
+    final dt = DateTime.fromMillisecondsSinceEpoch(epoch);
+    final days = now.difference(dt).inDays;
+    if (days <= 0) return _t('Today', 'اليوم');
+    if (days == 1) return _t('Yesterday', 'امس');
+    return _t('$days days ago', 'منذ $days يوم');
+  }
+
+  Review _reviewFromMap(Map<String, dynamic> map) {
+    final name = (map['userName'] as String? ?? '').trim();
+    final rating = ((map['rating'] ?? 0) as num).toInt();
+    final comment = (map['comment'] as String? ?? '').trim();
+    final epoch = (map['createdAtEpoch'] as num?)?.toInt();
+    return Review(
+      name: name.isEmpty ? _t('Traveler', 'مسافر') : name,
+      rating: rating <= 0 ? 5 : rating,
+      date: _formatReviewDate(epoch),
+      comment: comment.isEmpty
+          ? _t('No comment provided.', 'لا يوجد تعليق.')
+          : comment,
+    );
+  }
+
   // ── Booking sheet ─────────────────────────────────────────────────────────
 
   void _showBookingSheet(TransitTrip trip) {
-    final isAr = context.read<LanguageProvider>().isArabic;
     DateTime? selectedDate;
     int travelers = 1;
     int paymentIdx = 0;
     const methods = [
       'Visa •••• 4242',
       'Mastercard •••• 7890',
-      'Cash on pickup',
+      'الدفع نقدا عند الاستلام',
     ];
 
     showModalBottomSheet(
@@ -79,7 +165,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             'Dec',
           ];
           final dateLabel = selectedDate == null
-              ? S.tr('select_date', isAr)
+              ? _t('Select a date', 'اختر تاريخا')
               : '${selectedDate!.day} ${months[selectedDate!.month - 1]} ${selectedDate!.year}';
 
           return Padding(
@@ -109,18 +195,18 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                     ),
                   ),
                   Text(
-                    S.tr('book_trip', isAr),
+                    _t('Book Trip', 'احجز الرحلة'),
                     style: roboto(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    trip.localizedName(isAr),
+                    _display(trip.name),
                     style: roboto(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 22),
 
                   // ── Date ──────────────────────────────────────────────
                   Text(
-                    S.tr('travel_date', isAr),
+                    _t('Travel Date', 'تاريخ الرحلة'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -180,7 +266,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
 
                   // ── Travelers ─────────────────────────────────────────
                   Text(
-                    S.tr('travelers', isAr),
+                    _t('Travelers', 'المسافرون'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -214,7 +300,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        '${S.tr('total_label', isAr)} \$${trip.priceUsd * travelers}',
+                        _t(
+                          'Total: \$${trip.priceUsd * travelers}',
+                          'الاجمالي: \$${trip.priceUsd * travelers}',
+                        ),
                         style: roboto(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -227,7 +316,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
 
                   // ── Payment ───────────────────────────────────────────
                   Text(
-                    S.tr('payment', isAr),
+                    _t('Payment', 'طريقة الدفع'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -291,8 +380,11 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       ),
                       child: Text(
                         selectedDate == null
-                            ? S.tr('select_date_first', isAr)
-                            : '${S.tr('confirm_booking_btn', isAr)}  \$${trip.priceUsd * travelers}',
+                            ? _t('Select a date first', 'اختر التاريخ اولا')
+                            : _t(
+                                'Confirm Booking  \$${trip.priceUsd * travelers}',
+                                'تأكيد الحجز  \$${trip.priceUsd * travelers}',
+                              ),
                         style: roboto(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -319,12 +411,14 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
     String paymentMethod,
   ) async {
     final auth = context.read<AuthService>();
-    final isAr = context.read<LanguageProvider>().isArabic;
     if (!auth.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            S.tr('sign_in_to_book_trip', isAr),
+            _t(
+              'Please sign in to book a trip.',
+              'يرجى تسجيل الدخول لحجز رحلة.',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -343,12 +437,12 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       tripName: trip.name,
       tripImage: trip.imageUrl,
       date: date,
-      time: '10:00 AM',
+      time: _t('10:00 AM', '10:00 ص'),
       travelers: travelers,
       pricePerPerson: trip.priceUsd.toDouble(),
       paymentMethod: paymentMethod,
-      pickupLocation: 'Cairo International Airport',
-      dropoffLocation: 'Cairo International Airport',
+      pickupLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
+      dropoffLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
       routeLabel: trip.routeLabel,
       accentColor: trip.accentColor,
     );
@@ -359,7 +453,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${S.tr('booking_confirmed_msg', isAr)} 🎉  Ref: $bookingId',
+            _t(
+              'Booking confirmed! Ref: $bookingId',
+              'تم تأكيد الحجز! المرجع: $bookingId',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.green,
@@ -375,7 +472,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            S.tr('failed_save_booking', isAr),
+            _t(
+              'Failed to save booking. Check your connection.',
+              'تعذر حفظ الحجز. تحقق من الاتصال.',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -402,7 +502,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       );
 
   void _showAddReviewDialog() {
-    final isAr = context.read<LanguageProvider>().isArabic;
+    final pageContext = context;
     final reviewCtrl = TextEditingController();
     int star = 5;
 
@@ -414,7 +514,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            S.tr('write_your_review', isAr),
+            _t('Write Your Review', 'اكتب تقييمك'),
             style: roboto(fontWeight: FontWeight.w700),
           ),
           content: Column(
@@ -422,7 +522,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                S.tr('rating_label', isAr),
+                _t('Rating', 'التقييم'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -441,7 +541,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
               ),
               const SizedBox(height: 16),
               Text(
-                S.tr('comment_label', isAr),
+                _t('Comment', 'التعليق'),
                 style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -449,7 +549,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                 controller: reviewCtrl,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  hintText: S.tr('share_experience', isAr),
+                  hintText: _t('Share your experience…', 'شارك تجربتك...'),
                   hintStyle: roboto(color: Colors.grey.shade400),
                   filled: true,
                   fillColor: const Color(0xFFF5F7FA),
@@ -464,24 +564,114 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(S.tr('cancel', isAr), style: roboto(color: Colors.grey.shade600)),
+              child: Text(
+                _t('Cancel', 'الغاء'),
+                style: roboto(color: Colors.grey.shade600),
+              ),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      S.tr('thank_review', isAr),
-                      style: roboto(color: Colors.white),
+              onPressed: () async {
+                final auth = pageContext.read<AuthService>();
+                if (!auth.isLoggedIn) {
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _t(
+                          'Please sign in to leave a review.',
+                          'يرجى تسجيل الدخول لترك تقييم.',
+                        ),
+                        style: roboto(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  );
+                  return;
+                }
+
+                final review = reviewCtrl.text.trim();
+                if (review.isEmpty) {
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _t(
+                          'Please write a review before submitting.',
+                          'من فضلك اكتب تقييم قبل الارسال.',
+                        ),
+                        style: roboto(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
                     ),
-                  ),
-                );
+                  );
+                  return;
+                }
+
+                final tripId = widget.trip.id.trim();
+                if (tripId.isEmpty) {
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _t(
+                          'Unable to submit review for this trip.',
+                          'لا يمكن ارسال تقييم لهذه الرحلة.',
+                        ),
+                        style: roboto(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+
+                final nowEpoch = DateTime.now().millisecondsSinceEpoch;
+                final payload = {
+                  'userId': auth.currentUser!.uid,
+                  'userName': auth.currentUser!.name,
+                  'rating': star,
+                  'comment': review,
+                  'createdAtEpoch': nowEpoch,
+                };
+
+                try {
+                  await _db
+                      .ref('trip_reviews/$tripId')
+                      .push()
+                      .set(payload)
+                      .timeout(const Duration(seconds: 10));
+
+                  if (Navigator.of(ctx).canPop()) {
+                    Navigator.of(ctx).pop();
+                  }
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _t('Thank you for your review!', 'شكرا على تقييمك!'),
+                        style: roboto(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _t('Error: $e', 'خطأ: $e'),
+                        style: roboto(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBlue,
@@ -494,7 +684,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   vertical: 12,
                 ),
               ),
-              child: Text(S.tr('submit', isAr), style: roboto(fontWeight: FontWeight.w600)),
+              child: Text(
+                _t('Submit', 'ارسال'),
+                style: roboto(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -505,7 +698,6 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   @override
   Widget build(BuildContext context) {
     final t = widget.trip;
-    final isAr = context.watch<LanguageProvider>().isArabic;
     final mq = MediaQuery.of(context);
     final heroH = mq.size.height * 0.40;
     final bottomPad = mq.padding.bottom;
@@ -533,29 +725,26 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.network(
-                            t.imageUrl,
+                          TripImage(
+                            imageUrl: t.imageUrl,
                             fit: BoxFit.cover,
-                            loadingBuilder: (ctx, child, prog) {
-                              if (prog == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.accentColor,
-                                      t.accentColor.withValues(alpha: 0.5),
-                                    ],
-                                  ),
+                            placeholderBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.accentColor,
+                                    t.accentColor.withValues(alpha: 0.5),
+                                  ],
                                 ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            errorBuilder: (c, e, s) => Container(
+                              ),
+                            ),
+                            errorBuilder: (_) => Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -622,8 +811,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                 Consumer2<AuthService, FavoritesService>(
                                   builder: (context, auth, favorites, _) {
                                     final uid = auth.currentUser?.uid ?? '';
-                                    final tripId =
-                                        'transit_${widget.trip.name.hashCode}';
+                                    final tripId = widget.trip.id;
                                     final isFav =
                                         uid.isNotEmpty &&
                                         favorites.isFavorite(tripId);
@@ -701,7 +889,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    S.tr('cairo_intl_airport', isAr),
+                                    _t(
+                                      'Cairo International Airport',
+                                      'مطار القاهرة الدولي',
+                                    ),
                                     style: roboto(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -741,7 +932,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            t.localizedName(isAr),
+                                            t.name,
                                             style: roboto(
                                               fontSize: 20,
                                               fontWeight: FontWeight.w800,
@@ -757,8 +948,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                           builder: (ctx, auth, favorites, _) {
                                             final uid =
                                                 auth.currentUser?.uid ?? '';
-                                            final tripId =
-                                                'transit_${t.name.hashCode}';
+                                            final tripId = t.id;
                                             final isFav =
                                                 uid.isNotEmpty &&
                                                 favorites.isFavorite(tripId);
@@ -853,7 +1043,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          '(${t.durationHours * 10 + 50} ${S.tr('n_reviews', isAr)})',
+                                          _t(
+                                            '(${t.durationHours * 10 + 50} reviews)',
+                                            '(${t.durationHours * 10 + 50} تقييم)',
+                                          ),
                                           style: roboto(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -878,22 +1071,25 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   children: [
                                     _InfoTag(
                                       Icons.access_time_rounded,
-                                      '${t.durationHours} ${S.tr('hours_label', isAr)}',
+                                      _t(
+                                        '${t.durationHours} Hours',
+                                        '${t.durationHours} ساعات',
+                                      ),
                                       kBlue,
                                     ),
                                     _InfoTag(
                                       Icons.attach_money_rounded,
-                                      '${t.priceLabel} ${S.tr('usd_label', isAr)}',
+                                      '${t.priceLabel} USD',
                                       const Color(0xFF0D7377),
                                     ),
                                     _InfoTag(
                                       Icons.flight_land_rounded,
-                                      S.tr('cairo_airport', isAr),
+                                      _t('Cairo Airport', 'مطار القاهرة'),
                                       const Color(0xFFE87832),
                                     ),
                                     _InfoTag(
                                       Icons.group_rounded,
-                                      S.tr('private_tour', isAr),
+                                      _t('Private Tour', 'جولة خاصة'),
                                       const Color(0xFF4A44AA),
                                     ),
                                   ],
@@ -907,7 +1103,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               opacity: _fade(0.15, 0.45),
                               child: SlideTransition(
                                 position: _slide(0.15, 0.45),
-                                child: _buildItinerary(t, isAr),
+                                child: _buildItinerary(t),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -917,7 +1113,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               opacity: _fade(0.20, 0.50),
                               child: SlideTransition(
                                 position: _slide(0.20, 0.50),
-                                child: _buildStopImageCarousel(t, isAr),
+                                child: _buildStopImageCarousel(t),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -927,7 +1123,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               opacity: _fade(0.25, 0.55),
                               child: SlideTransition(
                                 position: _slide(0.25, 0.55),
-                                child: _buildRouteMap(t, isAr),
+                                child: _buildRouteMap(t),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -937,7 +1133,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               opacity: _fade(0.32, 0.62),
                               child: SlideTransition(
                                 position: _slide(0.32, 0.62),
-                                child: _buildIncluded(t, isAr),
+                                child: _buildIncluded(t),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -947,7 +1143,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               opacity: _fade(0.40, 0.70),
                               child: SlideTransition(
                                 position: _slide(0.40, 0.70),
-                                child: _buildReviews(t, isAr),
+                                child: _buildReviews(t),
                               ),
                             ),
 
@@ -987,7 +1183,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            S.tr('total_price', isAr),
+                            _t('Total Price', 'السعر الاجمالي'),
                             style: roboto(
                               fontSize: 12,
                               color: Colors.grey.shade500,
@@ -1025,7 +1221,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                             ),
                             child: Center(
                               child: Text(
-                                S.tr('book_this_trip', isAr),
+                                _t('Book This Trip', 'احجز هذه الرحلة'),
                                 style: roboto(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -1048,12 +1244,12 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Itinerary ─────────────────────────────────────────────────────────────
-  Widget _buildItinerary(TransitTrip t, bool isAr) {
+  Widget _buildItinerary(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          S.tr('full_itinerary', isAr),
+          _t('Full Itinerary', 'البرنامج الكامل'),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 16),
@@ -1140,7 +1336,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                stop.localizedTitle(isAr),
+                                _display(stop.title),
                                 style: roboto(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -1148,7 +1344,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                stop.localizedSubtitle(isAr),
+                                _display(stop.subtitle),
                                 style: roboto(
                                   fontSize: 12,
                                   color: Colors.grey.shade500,
@@ -1169,7 +1365,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            stop.duration,
+                            _display(stop.duration),
                             style: roboto(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -1190,7 +1386,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Stop Image Carousel (GPS-style navigation) ────────────────────────────
-  Widget _buildStopImageCarousel(TransitTrip t, bool isAr) {
+  Widget _buildStopImageCarousel(TransitTrip t) {
     // Filter stops that have images
     final stopsWithImages = t.itinerary
         .where((s) => s.imageUrl.isNotEmpty)
@@ -1213,7 +1409,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             ),
             const SizedBox(width: 10),
             Text(
-              S.tr('gallery', isAr),
+              _t('Gallery', 'المعرض'),
               style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const Spacer(),
@@ -1224,7 +1420,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '${stopsWithImages.length} ${S.tr('stops_label', isAr)}',
+                _t(
+                  '${stopsWithImages.length} stops',
+                  '${stopsWithImages.length} محطات',
+                ),
                 style: roboto(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -1270,22 +1469,19 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                       fit: StackFit.expand,
                       children: [
                         // Image
-                        Image.network(
-                          stop.imageUrl,
+                        TripImage(
+                          imageUrl: stop.imageUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, prog) {
-                            if (prog == null) return child;
-                            return Container(
-                              color: stop.color.withValues(alpha: 0.15),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: stop.color,
-                                  strokeWidth: 2,
-                                ),
+                          placeholderBuilder: (_) => Container(
+                            color: stop.color.withValues(alpha: 0.15),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: stop.color,
+                                strokeWidth: 2,
                               ),
-                            );
-                          },
-                          errorBuilder: (c, e, s) => Container(
+                            ),
+                          ),
+                          errorBuilder: (_) => Container(
                             color: stop.color.withValues(alpha: 0.15),
                             child: Center(
                               child: Icon(
@@ -1386,7 +1582,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  stop.duration,
+                                  _display(stop.duration),
                                   style: roboto(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
@@ -1415,7 +1611,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                                   const SizedBox(width: 5),
                                   Expanded(
                                     child: Text(
-                                      stop.localizedTitle(isAr),
+                                      _display(stop.title),
                                       style: roboto(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
@@ -1429,7 +1625,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                stop.localizedSubtitle(isAr),
+                                _display(stop.subtitle),
                                 style: roboto(
                                   fontSize: 10.5,
                                   color: Colors.white.withValues(alpha: 0.8),
@@ -1473,12 +1669,12 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Route Map ──────────────────────────────────────────────────────────────
-  Widget _buildRouteMap(TransitTrip t, bool isAr) {
+  Widget _buildRouteMap(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          S.tr('route_map', isAr),
+          _t('Route Map', 'خريطة المسار'),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
@@ -1543,7 +1739,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              stop.localizedTitle(isAr).split(' ').first.replaceAll('–', ''),
+                              stop.title.split(' ').first.replaceAll('–', ''),
                               style: roboto(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
@@ -1567,12 +1763,12 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Included Services ──────────────────────────────────────────────────────
-  Widget _buildIncluded(TransitTrip t, bool isAr) {
+  Widget _buildIncluded(TransitTrip t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          S.tr('whats_included', isAr),
+          _t('What\'s Included', 'ما يشمله الحجز'),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
@@ -1592,7 +1788,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: t.localizedIncluded(isAr).map((item) {
+            children: t.included.map((item) {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1611,7 +1807,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    item,
+                    _display(item),
                     style: roboto(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -1624,26 +1820,27 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
   }
 
   // ── Reviews ────────────────────────────────────────────────────────────────
-  Widget _buildReviews(TransitTrip t, bool isAr) {
+  Widget _buildReviews(TransitTrip t) {
+    final allReviews = [..._dbReviews, ...t.reviews];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              S.tr('reviews', isAr),
+              _t('Reviews', 'التقييمات'),
               style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Text(
-              '(${t.reviews.length})',
+              _reviewsLoading ? '(...)' : '(${allReviews.length})',
               style: roboto(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 14),
         // Display reviews from trip data
-        ...t.reviews.asMap().entries.map((e) {
+        ...allReviews.asMap().entries.map((e) {
           final review = e.value;
           final isFirst = e.key == 0;
 
@@ -1686,7 +1883,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '"${review.comment}"',
+                    '"${_display(review.comment)}"',
                     style: roboto(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -1696,7 +1893,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '— ${review.name}  •  ${review.date}',
+                    '— ${_display(review.name)}  •  ${_display(review.date)}',
                     style: roboto(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ],
@@ -1707,10 +1904,10 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _ReviewTile(
-                name: review.name,
+                name: _display(review.name),
                 rating: review.rating,
-                date: review.date,
-                comment: review.comment,
+                date: _display(review.date),
+                comment: _display(review.comment),
               ),
             );
           }
@@ -1735,7 +1932,7 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
                 Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Write a Review',
+                  _t('Write a Review', 'اكتب تقييما'),
                   style: roboto(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

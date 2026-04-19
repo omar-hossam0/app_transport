@@ -5,8 +5,9 @@ import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
 import '../config.dart';
 import '../services/smooth_navigation.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../services/ui_translation.dart';
+import '../services/trip_service.dart';
+import '../models/trip_model.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
 class ChatBotController {
@@ -51,7 +52,7 @@ MANDATORY RULES:
 class _GeminiChat {
   final List<Map<String, String>> _history = [];
 
-  Future<String> send(String message) async {
+  Future<String> send(String message, {required String tripContext}) async {
     _history.add({'role': 'user', 'content': message});
     try {
       final response = await http.post(
@@ -63,11 +64,11 @@ class _GeminiChat {
         body: jsonEncode({
           'model': _kGroqModel,
           'messages': [
-            {'role': 'system', 'content': _kSystemPrompt},
+            {'role': 'system', 'content': '$_kSystemPrompt\n\n$tripContext'},
             ..._history,
           ],
-          'temperature': 0.7,
-          'max_tokens': 1024,
+          'temperature': 0.2,
+          'max_tokens': 700,
         }),
       );
       if (response.statusCode == 200) {
@@ -87,14 +88,35 @@ class _GeminiChat {
 }
 
 // ── Quick suggestion chips ─────────────────────────────────────────────────
-// Chip keys for localization
-const _kChipKeys = [
-  (Icons.flight_rounded, 'chip_flying_taxi'),
-  (Icons.directions_bus_rounded, 'chip_transit_trips'),
-  (Icons.calendar_today_rounded, 'chip_my_bookings'),
-  (Icons.place_rounded, 'chip_popular_places'),
-  (Icons.attach_money_rounded, 'chip_prices'),
+const _kChips = [
+  (Icons.flight_rounded, 'Flying Taxi'),
+  (Icons.directions_bus_rounded, 'Transit Trips'),
+  (Icons.calendar_today_rounded, 'My Bookings'),
+  (Icons.place_rounded, 'Popular Places'),
+  (Icons.attach_money_rounded, 'Prices'),
 ];
+
+String _buildTripContext(List<TripModel> trips) {
+  if (trips.isEmpty) {
+    return 'AVAILABLE TRIPS: none. If asked about trips, say that no trips are available right now.';
+  }
+
+  final buffer = StringBuffer(
+    'AVAILABLE TRIPS (only mention these; do not invent):\n',
+  );
+  for (final trip in trips) {
+    buffer.writeln(
+      '- ${trip.name} | type: ${trip.type.name} | duration: ${trip.durationLabel} | price: ${trip.priceLabel} | route: ${trip.routeLabel}',
+    );
+    if (trip.shortDescription.trim().isNotEmpty) {
+      buffer.writeln('  info: ${trip.shortDescription}');
+    }
+  }
+  buffer.writeln(
+    'RULES: If user asks about a trip not in the list, say it is not available in the app. Use only the list for prices/durations.',
+  );
+  return buffer.toString();
+}
 
 // ── (Keyword responses replaced by Gemini AI) ───────────────────────────────
 const kResponses = {
@@ -178,24 +200,22 @@ class _ChatBotPageState extends State<ChatBotPage> {
   bool _typing = false;
   final _gemini = _GeminiChat();
 
-  final List<_ChatMsg> _msgs = [];
+  final List<_ChatMsg> _msgs = [
+    _ChatMsg(
+      text:
+          'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
+      isUser: false,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     widget.controller?._sendFn = _send;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_msgs.isEmpty) {
-      final isAr = context.read<LanguageProvider>().isArabic;
-      _msgs.add(_ChatMsg(
-        text: S.tr('chatbot_welcome', isAr),
-        isUser: false,
-      ));
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<TripService>().loadTrips();
+    });
   }
 
   @override
@@ -216,7 +236,9 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
     _scrollToBottom();
 
-    final reply = await _gemini.send(msg);
+    final tripService = context.read<TripService>();
+    final tripContext = _buildTripContext(tripService.activeTrips);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -240,6 +262,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<TripService>();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FC),
       body: Column(
@@ -249,10 +272,9 @@ class _ChatBotPageState extends State<ChatBotPage> {
             onClose: widget.onBack ?? () => Navigator.pop(context),
             fullPage: true,
             useBackStyle: true,
-            isAr: context.watch<LanguageProvider>().isArabic,
           ),
           // Chips
-          _ChipsRow(onChip: _send, isAr: context.watch<LanguageProvider>().isArabic),
+          _ChipsRow(onChip: _send),
           // Messages
           Expanded(
             child: ListView.builder(
@@ -269,7 +291,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
             ),
           ),
           // Input
-          _InputBar(controller: _ctrl, onSend: _send, isAr: context.watch<LanguageProvider>().isArabic),
+          _InputBar(controller: _ctrl, onSend: _send),
         ],
       ),
     );
@@ -301,25 +323,28 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
   bool _typing = false;
   final _gemini = _GeminiChat();
 
-  final List<_ChatMsg> _msgs = [];
+  final List<_ChatMsg> _msgs = [
+    _ChatMsg(
+      text:
+          'Hello! 👋 Welcome to App Transport, your Egypt travel companion.\nAsk me about tours, landmarks, transportation, or bookings across Egypt!',
+      isUser: false,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<TripService>().loadTrips();
+    });
+  }
 
   @override
   void dispose() {
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_msgs.isEmpty) {
-      final isAr = context.read<LanguageProvider>().isArabic;
-      _msgs.add(_ChatMsg(
-        text: S.tr('chatbot_welcome', isAr),
-        isUser: false,
-      ));
-    }
   }
 
   Future<void> _send(String text) async {
@@ -332,7 +357,9 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
     });
     _scrollToBottom();
 
-    final reply = await _gemini.send(msg);
+    final tripService = context.read<TripService>();
+    final tripContext = _buildTripContext(tripService.activeTrips);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -356,6 +383,7 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<TripService>();
     final btm = MediaQuery.of(context).viewInsets.bottom;
     final height = MediaQuery.of(context).size.height * 0.74;
 
@@ -388,9 +416,9 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
                   ),
                 ),
                 // Header
-                _Header(onClose: () => Navigator.pop(context), isAr: context.watch<LanguageProvider>().isArabic),
+                _Header(onClose: () => Navigator.pop(context)),
                 // Chips
-                _ChipsRow(onChip: _send, isAr: context.watch<LanguageProvider>().isArabic),
+                _ChipsRow(onChip: _send),
                 // Messages
                 Expanded(
                   child: ListView.builder(
@@ -407,7 +435,7 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
                   ),
                 ),
                 // Input
-                _InputBar(controller: _ctrl, onSend: _send, isAr: context.watch<LanguageProvider>().isArabic),
+                _InputBar(controller: _ctrl, onSend: _send),
               ],
             ),
           ),
@@ -422,12 +450,10 @@ class _Header extends StatelessWidget {
   final VoidCallback onClose;
   final bool fullPage;
   final bool useBackStyle;
-  final bool isAr;
   const _Header({
     required this.onClose,
     this.fullPage = false,
     this.useBackStyle = false,
-    this.isAr = false,
   });
 
   @override
@@ -473,7 +499,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  S.tr('app_assistant', isAr),
+                  UiTranslation.display(context, 'App Assistant'),
                   style: roboto(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -493,7 +519,10 @@ class _Header extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      S.tr('online_ai_guide', isAr),
+                      UiTranslation.display(
+                        context,
+                        'Online - AI Travel Guide',
+                      ),
                       style: roboto(
                         fontSize: 11,
                         color: Colors.white.withValues(alpha: 0.80),
@@ -559,8 +588,7 @@ class _Header extends StatelessWidget {
 // ─── Chips row ────────────────────────────────────────────────────────────────
 class _ChipsRow extends StatelessWidget {
   final void Function(String) onChip;
-  final bool isAr;
-  const _ChipsRow({required this.onChip, this.isAr = false});
+  const _ChipsRow({required this.onChip});
 
   @override
   Widget build(BuildContext context) {
@@ -571,10 +599,9 @@ class _ChipsRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         child: Row(
-          children: _kChipKeys.map((c) {
-            final label = S.tr(c.$2, isAr);
+          children: _kChips.map((c) {
             return GestureDetector(
-              onTap: () => onChip(label),
+              onTap: () => onChip(c.$2),
               child: Container(
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(
@@ -592,7 +619,7 @@ class _ChipsRow extends StatelessWidget {
                     Icon(c.$1, size: 13, color: kBlue),
                     const SizedBox(width: 5),
                     Text(
-                      label,
+                      UiTranslation.display(context, c.$2),
                       style: roboto(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -678,7 +705,7 @@ class _Bubble extends StatelessWidget {
                 ],
               ),
               child: Text(
-                msg.text,
+                isUser ? msg.text : UiTranslation.display(context, msg.text),
                 style: roboto(
                   fontSize: 13,
                   color: isUser ? Colors.white : const Color(0xFF1A1A2E),
@@ -797,8 +824,7 @@ class _TypingBubbleState extends State<_TypingBubble>
 class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final void Function(String) onSend;
-  final bool isAr;
-  const _InputBar({required this.controller, required this.onSend, this.isAr = false});
+  const _InputBar({required this.controller, required this.onSend});
 
   @override
   Widget build(BuildContext context) {
@@ -831,7 +857,7 @@ class _InputBar extends StatelessWidget {
                 onSubmitted: onSend,
                 style: roboto(fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: S.tr('chat_here', isAr),
+                  hintText: UiTranslation.display(context, 'Chat here...'),
                   hintStyle: roboto(fontSize: 13, color: Colors.grey.shade400),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(

@@ -3,16 +3,66 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import '../data/default_trips.dart';
 import '../models/trip_model.dart';
+import 'trip_image_cache_manager.dart';
 
 class TripService extends ChangeNotifier {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
   final List<TripModel> _trips = [];
   bool _isLoading = false;
   StreamSubscription<DatabaseEvent>? _sub;
+  final Set<String> _warmedImageUrls = <String>{};
+  Timer? _warmupDebounce;
+  late final Map<String, String> _defaultCoverById = {
+    for (final trip in defaultTrips)
+      if (trip.id.trim().isNotEmpty && trip.imageUrl.trim().isNotEmpty)
+        trip.id.trim(): trip.imageUrl.trim(),
+  };
+  late final Map<String, String> _defaultCoverByName = {
+    for (final trip in defaultTrips)
+      if (trip.name.trim().isNotEmpty && trip.imageUrl.trim().isNotEmpty)
+        _normalizeName(trip.name): trip.imageUrl.trim(),
+  };
 
   List<TripModel> get trips => List.unmodifiable(_trips);
-  List<TripModel> get activeTrips => _trips.where((t) => t.isActive).toList();
+  List<TripModel> get activeTrips =>
+      _trips.where((t) => t.isActive && !_isBlockedTripName(t.name)).toList();
   bool get isLoading => _isLoading;
+
+  String _normalizeName(String value) {
+    final lower = value.toLowerCase();
+    final cleaned = lower.replaceAll(RegExp(r'[^a-z0-9\s\u0600-\u06FF]'), ' ');
+    return cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  bool _isBlockedTripName(String nameRaw) {
+    final name = _normalizeName(nameRaw);
+
+    final isSunsetDelta =
+        name.contains('sunset') &&
+        name.contains('nile') &&
+        name.contains('delta');
+
+    final isBaronPharaonic =
+        (name.contains('baron') && name.contains('pharaonic')) ||
+        (name.contains('قصر البارون') && name.contains('القرية الفرعونية'));
+
+    final isOldCairoKhan =
+        (name.contains('old cairo') && name.contains('khan el khalili')) ||
+        (name.contains('القاهرة القديمة') && name.contains('خان الخليلي'));
+
+    final isPyramidsMuseumExpress =
+        (name.contains('pyramids') &&
+            name.contains('egyptian museum') &&
+            name.contains('express')) ||
+        (name.contains('الاهرامات') &&
+            name.contains('المتحف المصري') &&
+            name.contains('express'));
+
+    return isSunsetDelta ||
+        isBaronPharaonic ||
+        isOldCairoKhan ||
+        isPyramidsMuseumExpress;
+  }
 
   Future<void> loadTrips() async {
     if (_sub != null) return;
@@ -52,7 +102,6 @@ class TripService extends ChangeNotifier {
     _sub = null;
     await loadTrips();
   }
-
 
   Future<String> createTrip(TripModel trip) async {
     final now = DateTime.now();
@@ -110,20 +159,118 @@ class TripService extends ChangeNotifier {
     _sub = null;
   }
 
+  @override
+  void dispose() {
+    _warmupDebounce?.cancel();
+    disposeListener();
+    super.dispose();
+  }
+
   void _applySnapshot(DataSnapshot snap) {
     _trips.clear();
     if (snap.exists && snap.value != null) {
       final data = Map<String, dynamic>.from(snap.value as Map);
+      var missingRawCoverCount = 0;
+      var fallbackAppliedCount = 0;
       for (final entry in data.entries) {
-        final map = Map<String, dynamic>.from(entry.value as Map);
-        final trip = TripModel.fromMap(map);
-        if (trip.id.isNotEmpty) {
+        final raw = entry.value;
+        if (raw is! Map) {
+          debugPrint(
+            '[TripService] Skipping non-map trip payload at key: ${entry.key}',
+          );
+          continue;
+        }
+        final map = Map<String, dynamic>.from(raw);
+        final rawCover = (map['imageUrl'] as String? ?? '').trim();
+        map['id'] = (map['id'] as String?)?.trim().isNotEmpty == true
+            ? map['id']
+            : entry.key;
+        var trip = TripModel.fromMap(map);
+        if (rawCover.isEmpty) {
+          missingRawCoverCount++;
+        }
+
+        if (trip.imageUrl.trim().isEmpty) {
+          final fallback = _fallbackCoverUrl(trip);
+          if (fallback.isNotEmpty) {
+            trip = trip.copyWith(imageUrl: fallback);
+            fallbackAppliedCount++;
+          }
+        }
+
+        if (trip.id.isNotEmpty && !_isBlockedTripName(trip.name)) {
           _trips.add(trip);
         }
       }
       _trips.sort((a, b) => a.name.compareTo(b.name));
+      debugPrint(
+        '[TripService] Image audit: total=${_trips.length}, '
+        'missingRawCover=$missingRawCoverCount, '
+        'fallbackApplied=$fallbackAppliedCount',
+      );
     }
+    _scheduleImageWarmup();
     notifyListeners();
+  }
+
+  String _fallbackCoverUrl(TripModel trip) {
+    final fromGallery = trip.galleryImageUrls
+        .map((url) => url.trim())
+        .firstWhere((url) => url.isNotEmpty, orElse: () => '');
+    if (fromGallery.isNotEmpty) return fromGallery;
+
+    final byId = _defaultCoverById[trip.id.trim()] ?? '';
+    if (byId.isNotEmpty) return byId;
+
+    return _defaultCoverByName[_normalizeName(trip.name)] ?? '';
+  }
+
+  void _scheduleImageWarmup() {
+    _warmupDebounce?.cancel();
+    _warmupDebounce = Timer(const Duration(milliseconds: 250), () {
+      unawaited(_warmTripImageCache());
+    });
+  }
+
+  Future<void> _warmTripImageCache() async {
+    final urls = <String>{};
+
+    for (final trip in _trips) {
+      final cover = trip.imageUrl.trim();
+      if (_isCacheableUrl(cover)) urls.add(cover);
+
+      for (final url in trip.galleryImageUrls) {
+        final normalized = url.trim();
+        if (_isCacheableUrl(normalized)) urls.add(normalized);
+      }
+
+      for (final stop in trip.itinerary) {
+        final stopUrl = stop.imageUrl.trim();
+        if (_isCacheableUrl(stopUrl)) urls.add(stopUrl);
+      }
+    }
+
+    final pending = urls
+        .where((url) => !_warmedImageUrls.contains(url))
+        .take(60)
+        .toList();
+
+    if (pending.isEmpty) return;
+
+    final cache = TripImageCacheManager.instance;
+    for (final url in pending) {
+      try {
+        await cache.downloadFile(url, key: url);
+        _warmedImageUrls.add(url);
+      } catch (e) {
+        debugPrint('[TripService] Cache warmup skipped for $url: $e');
+      }
+    }
+  }
+
+  bool _isCacheableUrl(String value) {
+    if (value.isEmpty || value.startsWith('data:image')) return false;
+    return value.startsWith('http://') || value.startsWith('https://');
   }
 
   /// Resets the seed flag and re-seeds all default trips into Firebase.
@@ -162,41 +309,33 @@ class TripService extends ChangeNotifier {
 
   Future<void> _ensureSeeded() async {
     try {
-      // Always write default trips to ensure new ones are present
+      final seededSnap = await _db
+          .ref('system/trips_seeded')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (seededSnap.exists && seededSnap.value == true) return;
+
+      final tripsSnap = await _db
+          .ref('trips')
+          .get()
+          .timeout(const Duration(seconds: 8));
+      if (tripsSnap.exists && tripsSnap.value != null) {
+        await _db
+            .ref('system/trips_seeded')
+            .set(true)
+            .timeout(const Duration(seconds: 8));
+        return;
+      }
+
       for (final trip in defaultTrips) {
         final id = trip.id.isEmpty ? _db.ref('trips').push().key : trip.id;
         if (id == null) continue;
-        final existsSnap = await _db
+        await _db
             .ref('trips/$id')
-            .get()
+            .set(trip.copyWith(id: id).toMap())
             .timeout(const Duration(seconds: 8));
-        if (!existsSnap.exists) {
-          await _db
-              .ref('trips/$id')
-              .set(trip.copyWith(id: id).toMap())
-              .timeout(const Duration(seconds: 8));
-          debugPrint('[TripService] Seeded trip: $id');
-        }
       }
-
-      // Clean up any stale trips not in default set
-      try {
-        final snap = await _db
-            .ref('trips')
-            .get()
-            .timeout(const Duration(seconds: 8));
-        if (snap.exists && snap.value != null) {
-          final data = Map<String, dynamic>.from(snap.value as Map);
-          final defaultIds = defaultTrips.map((t) => t.id).toSet();
-          for (final key in data.keys) {
-            if (!defaultIds.contains(key)) {
-              // Remove ALL non-default trips (stale seeded data)
-              await _db.ref('trips/$key').remove();
-              debugPrint('[TripService] Removed stale trip: $key');
-            }
-          }
-        }
-      } catch (_) {}
 
       await _db
           .ref('system/trips_seeded')

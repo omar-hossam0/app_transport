@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ import '../models/user_model.dart';
 class AuthService extends ChangeNotifier {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -208,6 +210,19 @@ class AuthService extends ChangeNotifier {
   // Load User from Database
   // ─────────────────────────────────────────────────
 
+  Future<String> _loadPhotoUrlFromFirestore(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        return (data?['photoUrl'] as String?) ?? '';
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error loading photo url: $e');
+    }
+    return '';
+  }
+
   Future<void> _loadUserFromDatabase(String uid) async {
     try {
       final snapshot = await _database
@@ -217,7 +232,9 @@ class AuthService extends ChangeNotifier {
 
       if (snapshot.exists) {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
-        _currentUser = UserModel.fromMap(data);
+        final baseUser = UserModel.fromMap(data);
+        final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+        _currentUser = baseUser.copyWith(photoUrl: photoUrl);
         notifyListeners();
         debugPrint('[Auth] Session restored for: ${_currentUser!.email}');
       }
@@ -247,7 +264,9 @@ class AuthService extends ChangeNotifier {
         data['lastLogin'] = now.toIso8601String();
         await userRef.update({'lastLogin': data['lastLogin']});
       }
-      return UserModel.fromMap(data);
+      final baseUser = UserModel.fromMap(data);
+      final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+      return baseUser.copyWith(photoUrl: photoUrl);
     }
 
     final profile = UserModel(
@@ -269,7 +288,8 @@ class AuthService extends ChangeNotifier {
         .set({'uid': uid})
         .timeout(const Duration(seconds: 10));
 
-    return profile;
+    final photoUrl = await _loadPhotoUrlFromFirestore(uid);
+    return profile.copyWith(photoUrl: photoUrl);
   }
 
   // ─────────────────────────────────────────────────
@@ -589,7 +609,16 @@ class AuthService extends ChangeNotifier {
       return false;
     } on PlatformException catch (e) {
       final raw = '${e.code} ${e.message ?? ''} ${e.details ?? ''}';
-      if (_looksLikeGoogleConfigError(raw)) {
+      final txt = raw.toLowerCase();
+
+      // User-cancelled flows should not be shown as setup/config errors.
+      if (e.code == 'sign_in_canceled' ||
+          txt.contains('12501') ||
+          txt.contains('canceled')) {
+        _setError('Google sign in was cancelled');
+      } else if (txt.contains('network_error')) {
+        _setError('Network error during Google sign in. Please try again');
+      } else if (_looksLikeGoogleConfigError(raw)) {
         _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: ${e.message ?? e.code}');
@@ -597,7 +626,15 @@ class AuthService extends ChangeNotifier {
       return false;
     } catch (e) {
       final raw = e.toString();
-      if (_looksLikeAuthConfigError(raw) || _looksLikeGoogleConfigError(raw)) {
+      final txt = raw.toLowerCase();
+      if (txt.contains('permission_denied') ||
+          txt.contains('permission denied')) {
+        _setError(
+          'Google sign-in succeeded, but Database rules blocked profile sync (PERMISSION_DENIED).\n'
+          'Check Realtime Database rules for users/{uid} read/write with auth.uid.',
+        );
+      } else if (_looksLikeAuthConfigError(raw) ||
+          _looksLikeGoogleConfigError(raw)) {
         _setError(_googleAuthSetupMessage());
       } else {
         _setError('Google sign in failed: $e');
@@ -942,6 +979,24 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateUserPhotoUrl(String photoUrl) async {
+    if (_currentUser == null) return false;
+
+    try {
+      await _firestore.collection('users').doc(_currentUser!.uid).set({
+        'photoUrl': photoUrl.trim(),
+        'photoUpdatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+
+      _currentUser = _currentUser!.copyWith(photoUrl: photoUrl.trim());
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[Auth] Error updating profile photo: $e');
+      return false;
+    }
+  }
+
   // ─────────────────────────────────────────────────
   // Change Password
   // ─────────────────────────────────────────────────
@@ -1134,7 +1189,6 @@ class AuthService extends ChangeNotifier {
         txt.contains('api exception: 10') ||
         txt.contains('sign_in_failed') ||
         txt.contains('12500') ||
-        txt.contains('12501') ||
         txt.contains('oauth') ||
         txt.contains('sha-1') ||
         txt.contains('sha1') ||

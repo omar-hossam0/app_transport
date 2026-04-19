@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
 import '../models/booking_model.dart';
 import '../services/auth_service.dart';
 import '../services/booking_service.dart';
 import '../services/favorites_service.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
+import '../widgets/trip_image.dart';
 import 'auth_widgets.dart';
 import 'flying_taxi_page.dart';
 
@@ -27,7 +30,15 @@ class TripDetailPage extends StatefulWidget {
 class _TripDetailPageState extends State<TripDetailPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  bool _liked = false;
+  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  StreamSubscription<DatabaseEvent>? _reviewsSub;
+  List<Review> _dbReviews = [];
+  bool _reviewsLoading = true;
+
+  String _t(String en, String ar) =>
+      context.read<LanguageService>().isArabic ? ar : en;
+
+  String _display(String text) => UiTranslation.display(context, text);
 
   @override
   void initState() {
@@ -36,12 +47,106 @@ class _TripDetailPageState extends State<TripDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..forward();
+    _listenToReviews();
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _reviewsSub?.cancel();
     super.dispose();
+  }
+
+  void _listenToReviews() {
+    final tripId = widget.trip.id.trim();
+    if (tripId.isEmpty) {
+      debugPrint('[Review] ❌ Trip ID is empty, skipping review listener');
+      _reviewsLoading = false;
+      return;
+    }
+
+    debugPrint('[Review] 📡 Starting to listen for reviews: $tripId');
+
+    _reviewsSub = _db
+        .ref('trip_reviews/$tripId')
+        .orderByChild('createdAtEpoch')
+        .onValue
+        .listen(
+          (event) {
+            debugPrint('[Review] 📨 Received data: ${event.snapshot.exists}');
+            final rawReviews = <Map<String, dynamic>>[];
+            if (event.snapshot.exists && event.snapshot.value != null) {
+              final data = Map<String, dynamic>.from(
+                event.snapshot.value as Map,
+              );
+              debugPrint('[Review] Found ${data.length} reviews');
+              for (final entry in data.entries) {
+                final raw = entry.value;
+                if (raw is! Map) continue;
+                rawReviews.add(Map<String, dynamic>.from(raw));
+              }
+            }
+
+            rawReviews.sort((a, b) {
+              final aEpoch = (a['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              final bEpoch = (b['createdAtEpoch'] as num?)?.toInt() ?? 0;
+              return bEpoch.compareTo(aEpoch);
+            });
+
+            final nextReviews = rawReviews.map(_reviewFromMap).toList();
+
+            if (!mounted) return;
+            setState(() {
+              _dbReviews = nextReviews;
+              _reviewsLoading = false;
+            });
+
+            debugPrint('[Review] ✅ Loaded ${_dbReviews.length} reviews');
+          },
+          onError: (error) {
+            debugPrint('[Review] ❌ Error listening to reviews: $error');
+            if (!mounted) return;
+            setState(() {
+              _reviewsLoading = false;
+            });
+          },
+        );
+  }
+
+  String _formatDuration(int minutes, {required bool isArabic}) {
+    if (minutes <= 0) return isArabic ? 'غير محدد' : 'N/A';
+    if (minutes >= 60) {
+      final h = minutes ~/ 60;
+      final m = minutes % 60;
+      if (isArabic) return m == 0 ? '${h}س' : '${h}س ${m}د';
+      return m == 0 ? '${h}h' : '${h}h ${m}m';
+    }
+    return isArabic ? '${minutes} د' : '${minutes} min';
+  }
+
+  String _formatReviewDate(int? epoch) {
+    if (epoch == null || epoch <= 0) return _t('Just now', 'الان');
+    final now = DateTime.now();
+    final dt = DateTime.fromMillisecondsSinceEpoch(epoch);
+    final days = now.difference(dt).inDays;
+    if (days <= 0) return _t('Today', 'اليوم');
+    if (days == 1) return _t('Yesterday', 'امس');
+    return _t('$days days ago', 'منذ $days يوم');
+  }
+
+  Review _reviewFromMap(Map<String, dynamic> map) {
+    final name = (map['userName'] as String? ?? '').trim();
+    final rating = ((map['rating'] ?? 0) as num).toInt();
+    final comment = (map['comment'] as String? ?? '').trim();
+    final epoch = (map['createdAtEpoch'] as num?)?.toInt();
+    return Review(
+      name: name.isEmpty ? _t('Traveler', 'مسافر') : name,
+      rating: rating <= 0 ? 5 : rating,
+      date: _formatReviewDate(epoch),
+      comment: comment.isEmpty
+          ? _t('No comment provided.', 'لا يوجد تعليق.')
+          : comment,
+    );
   }
 
   Animation<double> _fade(double start, double end) =>
@@ -63,7 +168,7 @@ class _TripDetailPageState extends State<TripDetailPage>
   @override
   Widget build(BuildContext context) {
     final t = widget.trip;
-    final isAr = context.watch<LanguageProvider>().isArabic;
+    final isArabic = context.watch<LanguageService>().isArabic;
     final screenH = MediaQuery.of(context).size.height;
     final topPad = MediaQuery.of(context).padding.top;
 
@@ -91,51 +196,46 @@ class _TripDetailPageState extends State<TripDetailPage>
                         fit: StackFit.expand,
                         children: [
                           // Real image from network
-                          Image.network(
-                            t.imageUrl,
+                          TripImage(
+                            imageUrl: t.imageUrl,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.cardColor,
-                                      t.cardColor.withValues(alpha: 0.55),
-                                    ],
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.topRight,
-                                  ),
+                            placeholderBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.cardColor,
+                                    t.cardColor.withValues(alpha: 0.55),
+                                  ],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topRight,
                                 ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      t.cardColor,
-                                      t.cardColor.withValues(alpha: 0.55),
-                                    ],
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.topRight,
-                                  ),
+                              ),
+                            ),
+                            errorBuilder: (_) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    t.cardColor,
+                                    t.cardColor.withValues(alpha: 0.55),
+                                  ],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topRight,
                                 ),
-                                child: Center(
-                                  child: Icon(
-                                    t.icon,
-                                    color: Colors.white.withValues(alpha: 0.20),
-                                    size: 90,
-                                  ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  t.icon,
+                                  color: Colors.white.withValues(alpha: 0.20),
+                                  size: 90,
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
                           // Top gradient for status bar readability
                           Positioned(
@@ -200,7 +300,10 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
-                                    S.tr('cairo_intl_airport', isAr),
+                                    _t(
+                                      'Cairo International Airport',
+                                      'مطار القاهرة الدولي',
+                                    ),
                                     style: roboto(
                                       fontSize: 13,
                                       color: Colors.grey.shade500,
@@ -219,7 +322,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.08, 0.38),
                               child: Text(
-                                t.localizedName(isAr),
+                                _display(t.name),
                                 style: roboto(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w800,
@@ -236,7 +339,10 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.12, 0.42),
                               child: Text(
-                                S.tr('cairo_intl_airport_egypt', isAr),
+                                _t(
+                                  'Cairo International Airport, Egypt',
+                                  'مطار القاهرة الدولي، مصر',
+                                ),
                                 style: roboto(
                                   fontSize: 13,
                                   color: Colors.grey.shade500,
@@ -268,7 +374,10 @@ class _TripDetailPageState extends State<TripDetailPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '(${(t.flightMinutes * 3 + 50)} reviews)',
+                                    _t(
+                                      '(${(t.flightMinutes * 3 + 50)} reviews)',
+                                      '(${(t.flightMinutes * 3 + 50)} تقييم)',
+                                    ),
                                     style: roboto(
                                       fontSize: 13,
                                       color: Colors.grey.shade500,
@@ -285,22 +394,29 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.22, 0.52),
                             child: SlideTransition(
                               position: _slide(0.22, 0.52),
-                              child: Row(
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
                                 children: [
                                   _InfoTag(
-                                    icon: Icons.schedule_rounded,
-                                    label: t.durationLabel,
+                                    icon: Icons.flight_rounded,
+                                    label: isArabic
+                                        ? 'طيران ${t.flightMinutes} د'
+                                        : '${t.flightMinutes} min flight',
                                   ),
-                                  const SizedBox(width: 12),
+                                  _InfoTag(
+                                    icon: Icons.schedule_rounded,
+                                    label: isArabic
+                                        ? 'المدة الكلية ${_formatDuration(t.durationMinutes, isArabic: true)}'
+                                        : 'Total ${_formatDuration(t.durationMinutes, isArabic: false)}',
+                                  ),
                                   _InfoTag(
                                     icon: Icons.attach_money_rounded,
                                     label: t.priceLabel,
                                   ),
-                                  const SizedBox(width: 12),
                                   const _InfoTag(
                                     icon: Icons.headset_mic_rounded,
-                                    label: 'AI Guide',
-                                    labelKey: 'ai_guide',
+                                    label: 'دليل ذكي',
                                   ),
                                 ],
                               ),
@@ -314,8 +430,8 @@ class _TripDetailPageState extends State<TripDetailPage>
                             child: SlideTransition(
                               position: _slide(0.28, 0.58),
                               child: Text(
-                                t.localizedDescription(isAr),
-                                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+                                _display(t.description),
+                                textDirection: TextDirection.rtl,
                                 style: roboto(
                                   fontSize: 14,
                                   color: Colors.grey.shade700,
@@ -331,7 +447,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.34, 0.64),
                             child: SlideTransition(
                               position: _slide(0.34, 0.64),
-                              child: _RouteCard(trip: t, isAr: isAr),
+                              child: _RouteCard(trip: t),
                             ),
                           ),
                           const SizedBox(height: 26),
@@ -341,7 +457,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.40, 0.70),
                             child: SlideTransition(
                               position: _slide(0.40, 0.70),
-                              child: _buildHighlights(t, isAr),
+                              child: _buildHighlights(t),
                             ),
                           ),
                           const SizedBox(height: 30),
@@ -351,7 +467,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                             opacity: _fade(0.46, 0.76),
                             child: SlideTransition(
                               position: _slide(0.46, 0.76),
-                              child: _buildReviewsSection(t, isAr),
+                              child: _buildReviewsSection(t),
                             ),
                           ),
 
@@ -381,8 +497,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                         Consumer2<AuthService, FavoritesService>(
                           builder: (context, auth, favorites, _) {
                             final uid = auth.currentUser?.uid ?? '';
-                            final tripId =
-                                'flying_${widget.trip.name.hashCode}';
+                            final tripId = widget.trip.id;
                             final isFav =
                                 uid.isNotEmpty && favorites.isFavorite(tripId);
                             return _CircleBtn(
@@ -398,6 +513,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                                           tripId,
                                         );
                                       } catch (e) {
+                                        if (!context.mounted) return;
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
@@ -440,32 +556,63 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                     child: Row(
                       children: [
-                        // Heart button
-                        GestureDetector(
-                          onTap: () => setState(() => _liked = !_liked),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: _liked
-                                  ? _kRed.withValues(alpha: 0.10)
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: _liked
-                                    ? _kRed.withValues(alpha: 0.30)
-                                    : Colors.grey.shade200,
+                        // Heart button - Linked to favorites
+                        Consumer2<AuthService, FavoritesService>(
+                          builder: (context, auth, favorites, _) {
+                            final uid = auth.currentUser?.uid ?? '';
+                            final tripId = widget.trip.id;
+                            final isFav =
+                                uid.isNotEmpty && favorites.isFavorite(tripId);
+                            return GestureDetector(
+                              onTap: uid.isEmpty
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await favorites.toggleFavorite(
+                                          uid,
+                                          tripId,
+                                        );
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              _t(
+                                                'Error saving favorite',
+                                                'خطأ في حفظ المفضلة',
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: isFav
+                                      ? _kRed.withValues(alpha: 0.10)
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isFav
+                                        ? _kRed.withValues(alpha: 0.30)
+                                        : Colors.grey.shade200,
+                                  ),
+                                ),
+                                child: Icon(
+                                  isFav
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFav ? _kRed : Colors.grey.shade500,
+                                  size: 24,
+                                ),
                               ),
-                            ),
-                            child: Icon(
-                              _liked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: _liked ? _kRed : Colors.grey.shade500,
-                              size: 24,
-                            ),
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(width: 16),
                         // Book button
@@ -489,7 +636,10 @@ class _TripDetailPageState extends State<TripDetailPage>
                               ),
                               child: Center(
                                 child: Text(
-                                  S.tr('book_this_flight', isAr),
+                                  _t(
+                                    'Book This Flight',
+                                    'احجز هذه الرحلة الجوية',
+                                  ),
                                   style: roboto(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
@@ -515,14 +665,13 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Booking sheet ──────────────────────────────────────────────────────────────────
   void _showBookingSheet(FlyingTaxiTrip trip) {
-    final isAr = context.read<LanguageProvider>().isArabic;
     DateTime? selectedDate;
     int travelers = 1;
     int paymentIdx = 0;
     const methods = [
       'Visa •••• 4242',
       'Mastercard •••• 7890',
-      'Cash on pickup',
+      'الدفع نقدا عند الاستلام',
     ];
 
     showModalBottomSheet(
@@ -546,7 +695,7 @@ class _TripDetailPageState extends State<TripDetailPage>
             'Dec',
           ];
           final dateLabel = selectedDate == null
-              ? S.tr('select_date', isAr)
+              ? _t('Select a date', 'اختر تاريخا')
               : '${selectedDate!.day} ${months[selectedDate!.month - 1]} ${selectedDate!.year}';
 
           return Padding(
@@ -575,18 +724,18 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                   ),
                   Text(
-                    S.tr('book_flight', isAr),
+                    _t('Book Flight', 'احجز الرحلة الجوية'),
                     style: roboto(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    trip.localizedName(isAr),
+                    _display(trip.name),
                     style: roboto(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 22),
 
                   // ── Date ──
                   Text(
-                    S.tr('flight_date', isAr),
+                    _t('Flight Date', 'تاريخ الرحلة الجوية'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -644,56 +793,9 @@ class _TripDetailPageState extends State<TripDetailPage>
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Travelers ──
-                  Text(
-                    S.tr('passengers', isAr),
-                    style: roboto(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _CircleBtn(
-                        icon: Icons.remove_rounded,
-                        onTap: travelers > 1
-                            ? () => setS(() => travelers--)
-                            : null,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          '$travelers',
-                          style: roboto(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      _CircleBtn(
-                        icon: Icons.add_rounded,
-                        onTap: travelers < 10
-                            ? () => setS(() => travelers++)
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        '${S.tr('total_label', isAr)} \$${trip.priceUsd * travelers}',
-                        style: roboto(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: kBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
                   // ── Payment ──
                   Text(
-                    S.tr('payment', isAr),
+                    _t('Payment', 'طريقة الدفع'),
                     style: roboto(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -757,8 +859,11 @@ class _TripDetailPageState extends State<TripDetailPage>
                       ),
                       child: Text(
                         selectedDate == null
-                            ? S.tr('select_date_first', isAr)
-                            : '${S.tr('confirm_booking_btn', isAr)}  \$${trip.priceUsd * travelers}',
+                            ? _t('Select a date first', 'اختر التاريخ اولا')
+                            : _t(
+                                'Confirm Booking  \$${trip.priceUsd * travelers}',
+                                'تأكيد الحجز  \$${trip.priceUsd * travelers}',
+                              ),
                         style: roboto(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -785,12 +890,14 @@ class _TripDetailPageState extends State<TripDetailPage>
     String paymentMethod,
   ) async {
     final auth = context.read<AuthService>();
-    final isAr = context.read<LanguageProvider>().isArabic;
     if (!auth.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            S.tr('sign_in_to_book_flight', isAr),
+            _t(
+              'Please sign in to book a flight.',
+              'يرجى تسجيل الدخول لحجز رحلة جوية.',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -806,15 +913,15 @@ class _TripDetailPageState extends State<TripDetailPage>
 
     final booking = Booking(
       id: bookingId,
-      tripName: trip.name,
+      tripName: _display(trip.name),
       tripImage: trip.imageUrl,
       date: date,
-      time: '10:00 AM',
+      time: _t('10:00 AM', '10:00 ص'),
       travelers: travelers,
       pricePerPerson: trip.priceUsd.toDouble(),
       paymentMethod: paymentMethod,
-      pickupLocation: 'Cairo International Airport',
-      dropoffLocation: 'Cairo International Airport',
+      pickupLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
+      dropoffLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
       routeLabel: trip.mapHint,
       accentColor: trip.cardColor,
     );
@@ -825,7 +932,10 @@ class _TripDetailPageState extends State<TripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${S.tr('flight_booked', isAr)} 🎉  Ref: $bookingId',
+            _t(
+              'Flight booked! Ref: $bookingId',
+              'تم حجز الرحلة! المرجع: $bookingId',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.green,
@@ -841,7 +951,10 @@ class _TripDetailPageState extends State<TripDetailPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            S.tr('booking_failed', isAr),
+            _t(
+              'Failed to save booking. Check your connection.',
+              'تعذر حفظ الحجز. تحقق من الاتصال.',
+            ),
             style: roboto(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -851,18 +964,26 @@ class _TripDetailPageState extends State<TripDetailPage>
     }
   }
 
-  Widget _buildHighlights(FlyingTaxiTrip t, bool isAr) {
+  Widget _buildHighlights(FlyingTaxiTrip t) {
     final highlights = [
-      (S.tr('scenic_views', isAr), Icons.visibility_rounded, kBlue),
-      (S.tr('ai_audio_guide', isAr), Icons.headset_mic_rounded, _kDarkBlue),
-      (S.tr('photo_spots', isAr), Icons.camera_alt_rounded, const Color(0xFFE02850)),
+      (_t('Scenic Views', 'مناظر بانورامية'), Icons.visibility_rounded, kBlue),
+      (
+        _t('AI Audio Guide', 'دليل صوتي ذكي'),
+        Icons.headset_mic_rounded,
+        _kDarkBlue,
+      ),
+      (
+        _t('Photo Spots', 'نقاط تصوير'),
+        Icons.camera_alt_rounded,
+        const Color(0xFFE02850),
+      ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          S.tr('trip_highlights', isAr),
+          _t('Trip Highlights', 'ابرز مميزات الرحلة'),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 14),
@@ -901,33 +1022,34 @@ class _TripDetailPageState extends State<TripDetailPage>
   }
 
   // ── Reviews Section ──────────────────────────────────────────────────────
-  Widget _buildReviewsSection(FlyingTaxiTrip t, bool isAr) {
+  Widget _buildReviewsSection(FlyingTaxiTrip t) {
+    final allReviews = [..._dbReviews, ...t.reviews];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              S.tr('reviews', isAr),
+              _t('Reviews', 'التقييمات'),
               style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Text(
-              '(${t.reviews.length})',
+              _reviewsLoading ? '(...)' : '(${allReviews.length})',
               style: roboto(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 16),
         // Display reviews from trip data
-        ...t.reviews.map(
+        ...allReviews.map(
           (review) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: _ReviewCard(
-              name: review.name,
+              name: _display(review.name),
               rating: review.rating,
-              date: review.date,
-              comment: review.comment,
+              date: _display(review.date),
+              comment: _display(review.comment),
             ),
           ),
         ),
@@ -953,7 +1075,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 Icon(Icons.rate_review_rounded, color: kBlue, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  S.tr('write_review', isAr),
+                  _t('Write a Review', 'اكتب تقييما'),
                   style: roboto(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -970,7 +1092,7 @@ class _TripDetailPageState extends State<TripDetailPage>
 
   // ── Show Add Review Dialog ──────────────────────────────────────────────
   void _showAddReviewDialog() {
-    final isAr = context.read<LanguageProvider>().isArabic;
+    final pageContext = context;
     final reviewController = TextEditingController();
     int selectedRating = 5;
 
@@ -984,7 +1106,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(
-                S.tr('write_your_review', isAr),
+                _t('Write Your Review', 'اكتب تقييمك'),
                 style: roboto(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               content: Column(
@@ -992,7 +1114,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    S.tr('rating_label', isAr),
+                    _t('Rating', 'التقييم'),
                     style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -1016,7 +1138,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    S.tr('your_comment', isAr),
+                    _t('Your Comment', 'تعليقك'),
                     style: roboto(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -1024,7 +1146,10 @@ class _TripDetailPageState extends State<TripDetailPage>
                     controller: reviewController,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: S.tr('share_experience', isAr),
+                      hintText: _t(
+                        'Share your experience...',
+                        'شارك تجربتك...',
+                      ),
                       hintStyle: roboto(color: Colors.grey.shade400),
                       filled: true,
                       fillColor: const Color(0xFFF5F7FA),
@@ -1040,26 +1165,122 @@ class _TripDetailPageState extends State<TripDetailPage>
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(
-                    S.tr('cancel', isAr),
+                    _t('Cancel', 'الغاء'),
                     style: roboto(color: Colors.grey.shade600),
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          S.tr('thank_review', isAr),
-                          style: roboto(color: Colors.white),
+                  onPressed: () async {
+                    final auth = pageContext.read<AuthService>();
+                    if (!auth.isLoggedIn) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Please sign in to leave a review.',
+                              'يرجى تسجيل الدخول لترك تقييم.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                      );
+                      return;
+                    }
+
+                    final review = reviewController.text.trim();
+                    if (review.isEmpty) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Please write a review before submitting.',
+                              'من فضلك اكتب تقييم قبل الارسال.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                      ),
-                    );
+                      );
+                      return;
+                    }
+
+                    final tripId = widget.trip.id.trim();
+                    if (tripId.isEmpty) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Unable to submit review for this trip.',
+                              'لا يمكن ارسال تقييم لهذه الرحلة.',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final nowEpoch = DateTime.now().millisecondsSinceEpoch;
+                    final payload = {
+                      'userId': auth.currentUser!.uid,
+                      'userName': auth.currentUser!.name,
+                      'rating': selectedRating,
+                      'comment': review,
+                      'createdAtEpoch': nowEpoch,
+                    };
+
+                    try {
+                      debugPrint('[Review] Saving review for trip: $tripId');
+                      debugPrint('[Review] Payload: $payload');
+
+                      await _db
+                          .ref('trip_reviews/$tripId')
+                          .push()
+                          .set(payload)
+                          .timeout(const Duration(seconds: 10));
+
+                      debugPrint('[Review] ✅ Review saved successfully!');
+
+                      if (Navigator.of(dialogContext).canPop()) {
+                        Navigator.of(dialogContext).pop();
+                      }
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t(
+                              'Thank you for your review!',
+                              'شكرا على تقييمك!',
+                            ),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      debugPrint('[Review] ❌ Error saving review: $e');
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _t('Error: $e', 'خطأ: $e'),
+                            style: roboto(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kBlue,
@@ -1073,7 +1294,7 @@ class _TripDetailPageState extends State<TripDetailPage>
                     ),
                   ),
                   child: Text(
-                    S.tr('submit', isAr),
+                    _t('Submit', 'ارسال'),
                     style: roboto(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1189,13 +1410,10 @@ class _ReviewCard extends StatelessWidget {
 class _InfoTag extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String? labelKey;
-  const _InfoTag({required this.icon, required this.label, this.labelKey});
+  const _InfoTag({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageProvider>().isArabic;
-    final displayLabel = labelKey != null ? S.tr(labelKey!, isAr) : label;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -1208,7 +1426,7 @@ class _InfoTag extends StatelessWidget {
           Icon(icon, size: 15, color: Colors.grey.shade600),
           const SizedBox(width: 5),
           Text(
-            displayLabel,
+            label,
             style: roboto(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1226,8 +1444,7 @@ class _InfoTag extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 class _RouteCard extends StatelessWidget {
   final FlyingTaxiTrip trip;
-  final bool isAr;
-  const _RouteCard({required this.trip, this.isAr = false});
+  const _RouteCard({required this.trip});
 
   @override
   Widget build(BuildContext context) {
@@ -1235,7 +1452,7 @@ class _RouteCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          S.tr('flight_route', isAr),
+          UiTranslation.display(context, 'Flight Route'),
           style: roboto(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),

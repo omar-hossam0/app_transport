@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../services/ui_translation.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});
@@ -10,57 +8,56 @@ class ServicesPage extends StatelessWidget {
   static const _services = [
     (
       Icons.wifi_rounded,
-      'airport_wifi',
-      'airport_wifi_desc',
+      'Airport WiFi',
+      'Free high-speed internet at Cairo Airport',
       Color(0xFF187BCD),
     ),
     (
       Icons.local_taxi_rounded,
-      'private_car',
-      'private_car_desc',
+      'Private Car Hire',
+      'Comfortable private transfers around Cairo',
       Color(0xFF4A44AA),
     ),
     (
       Icons.language_rounded,
-      'tour_guide',
-      'tour_guide_desc',
+      'Tour Guide',
+      'Certified multilingual guides for your tour',
       Color(0xFF0D7377),
     ),
     (
       Icons.photo_camera_rounded,
-      'photography_tour',
-      'photography_desc',
+      'Photography Tour',
+      'Professional photo sessions at landmarks',
       Color(0xFFE02850),
     ),
     (
       Icons.luggage_rounded,
-      'luggage_storage',
-      'luggage_desc',
+      'Luggage Storage',
+      'Safe storage at the airport during your tour',
       Color(0xFFFF6B35),
     ),
     (
       Icons.local_dining_rounded,
-      'egyptian_dining',
-      'dining_desc',
+      'Egyptian Dining',
+      'Traditional meal experiences included',
       Color(0xFF2E7D32),
     ),
     (
       Icons.sim_card_rounded,
-      'sim_card',
-      'sim_card_desc',
+      'SIM Card',
+      'Local Egyptian SIM with data package',
       Color(0xFF6A1B9A),
     ),
     (
       Icons.medical_services_rounded,
-      'travel_insurance',
-      'travel_insurance_desc',
+      'Travel Insurance',
+      'Full coverage for all our tour packages',
       Color(0xFF00838F),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageProvider>().isArabic;
     final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4F8),
@@ -105,7 +102,7 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    isAr ? 'خدماتنا' : 'Our Services',
+                    UiTranslation.display(context, 'Our Services'),
                     style: roboto(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -114,7 +111,10 @@ class ServicesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isAr ? 'كل اللي محتاجه لجولة مصر المثالية' : 'Everything you need for the perfect Egypt tour',
+                    UiTranslation.display(
+                      context,
+                      'Everything you need for the perfect Egypt tour',
+                    ),
                     style: roboto(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -162,7 +162,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        S.tr(s.$2, isAr),
+                        UiTranslation.display(context, s.$2),
                         style: roboto(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -170,7 +170,7 @@ class ServicesPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        S.tr(s.$3, isAr),
+                        UiTranslation.display(context, s.$3),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: roboto(

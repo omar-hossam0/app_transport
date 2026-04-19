@@ -7,8 +7,6 @@ import 'email_verification_pending_page.dart';
 import 'sign_up_page.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -85,8 +83,7 @@ class _SignInPageState extends State<SignInPage>
 
   Future<void> _handleSignIn() async {
     if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
-      final isAr = context.read<LanguageProvider>().isArabic;
-      _showErrorSnackBar(S.tr('email_pass_required', isAr));
+      _showErrorSnackBar('Email and password are required');
       return;
     }
 
@@ -104,7 +101,7 @@ class _SignInPageState extends State<SignInPage>
       if (user != null) {
         await context.read<NotificationService>().registerForUser(user.uid);
       }
-      _showSuccessSnackBar(S.tr('welcome_back_msg', context.read<LanguageProvider>().isArabic));
+      _showSuccessSnackBar('Welcome back!');
       Future.delayed(
         const Duration(milliseconds: 500),
         () => _goToHome(isAdmin: user?.isAdmin == true),
@@ -118,7 +115,7 @@ class _SignInPageState extends State<SignInPage>
         );
         return;
       }
-      _showErrorSnackBar(authService.errorMessage ?? S.tr('sign_in_failed', context.read<LanguageProvider>().isArabic));
+      _showErrorSnackBar(authService.errorMessage ?? 'Sign in failed');
     }
   }
 
@@ -142,7 +139,7 @@ class _SignInPageState extends State<SignInPage>
       return;
     }
 
-    _showErrorSnackBar(authService.errorMessage ?? S.tr('google_sign_in_failed', context.read<LanguageProvider>().isArabic));
+    _showErrorSnackBar(authService.errorMessage ?? 'Google sign in failed');
   }
 
   void _showErrorSnackBar(String message) {
@@ -201,15 +198,14 @@ class _SignInPageState extends State<SignInPage>
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageProvider>().isArabic;
     return Scaffold(
       backgroundColor: kAuthHeaderEdgeBlue,
       body: Column(
         children: [
-          // ── Gradient header ─────────────────────────────────────────────
+          // ── Gradient header ──────────────────────────────────────────
           AuthHeader(
-            trailingText: S.tr('dont_have_account_header', isAr),
-            actionLabel: S.tr('sign_up', isAr),
+            trailingText: "Don't have an account?",
+            actionLabel: 'Sign Up',
             onActionTap: _goToSignUp,
           ),
 
@@ -240,7 +236,7 @@ class _SignInPageState extends State<SignInPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  S.tr('welcome_back', isAr),
+                                  'Welcome Back',
                                   style: roboto(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800,
@@ -248,7 +244,7 @@ class _SignInPageState extends State<SignInPage>
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  S.tr('enter_details', isAr),
+                                  'Enter your details below',
                                   style: roboto(
                                     fontSize: 14,
                                     color: Colors.grey.shade500,
@@ -257,13 +253,13 @@ class _SignInPageState extends State<SignInPage>
                                 const SizedBox(height: 30),
                                 AuthInputField(
                                   controller: _emailCtrl,
-                                  label: S.tr('email_address', isAr),
+                                  label: 'Email Address',
                                   keyboardType: TextInputType.emailAddress,
                                 ),
                                 const SizedBox(height: 16),
                                 AuthInputField(
                                   controller: _passCtrl,
-                                  label: S.tr('password', isAr),
+                                  label: 'Password',
                                   obscure: _obscure,
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -282,8 +278,8 @@ class _SignInPageState extends State<SignInPage>
                                   builder: (context, authService, _) {
                                     return AuthGradientButton(
                                       label: authService.isLoading
-                                          ? S.tr('sign_in_loading', isAr)
-                                          : S.tr('sign_in', isAr),
+                                          ? 'Sign In...'
+                                          : 'Sign In',
                                       onTap: authService.isLoading
                                           ? () {}
                                           : _handleSignIn,
@@ -304,12 +300,12 @@ class _SignInPageState extends State<SignInPage>
                                       if (ok) {
                                         _showSuccessSnackBar(
                                           authService.errorMessage ??
-                                              S.tr('reset_email_sent', isAr),
+                                              'Reset email sent successfully.',
                                         );
                                       } else {
                                         _showErrorSnackBar(
                                           authService.errorMessage ??
-                                              S.tr('reset_email_failed', isAr),
+                                              'Failed to send reset email.',
                                         );
                                       }
                                     },
@@ -317,7 +313,7 @@ class _SignInPageState extends State<SignInPage>
                                       padding: EdgeInsets.zero,
                                     ),
                                     child: Text(
-                                      S.tr('forgot_password_link', isAr),
+                                      'Forgot your password?',
                                       style: roboto(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -334,7 +330,7 @@ class _SignInPageState extends State<SignInPage>
                         // ── Bottom section: pinned ──────────────────
                         Column(
                           children: [
-                            AuthOrDivider(label: S.tr('or_sign_in_with', isAr)),
+                            const AuthOrDivider(label: 'Or sign in with'),
                             const SizedBox(height: 18),
                             AuthSocialRow(onGoogleTap: _handleGoogleSignIn),
                           ],

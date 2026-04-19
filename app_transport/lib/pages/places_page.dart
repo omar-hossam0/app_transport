@@ -1,73 +1,71 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../services/ui_translation.dart';
 
 class PlacesPage extends StatelessWidget {
   const PlacesPage({super.key});
 
   static const _places = [
     (
-      'giza_pyramids',
-      'giza_pyramids_loc',
-      'giza_pyramids_desc',
+      'Giza Pyramids & Sphinx',
+      'Giza, Cairo',
+      'The last remaining wonder of the ancient world — a must-see landmark in Egypt.',
       Icons.account_balance_rounded,
       Color(0xFFFF8C00),
       '8h',
     ),
     (
-      'khan_khalili',
-      'khan_khalili_loc',
-      'khan_khalili_desc',
+      'Khan El-Khalili Bazaar',
+      'Islamic Cairo',
+      'A medieval bazaar full of spices, crafts, jewellery, and authentic Egyptian culture.',
       Icons.store_rounded,
       Color(0xFF187BCD),
       '3h',
     ),
     (
-      'egyptian_museum',
-      'egyptian_museum_loc',
-      'egyptian_museum_desc',
+      'Egyptian Museum',
+      'Tahrir Square, Cairo',
+      'Home to the largest collection of ancient Egyptian antiquities, including Tutankhamun\'s treasures.',
       Icons.museum_rounded,
       Color(0xFF4A44AA),
       '3h',
     ),
     (
-      'nile_cruise',
-      'nile_cruise_loc',
-      'nile_cruise_desc',
+      'Nile River Cruise',
+      'Downtown Cairo',
+      'A relaxing felucca sail along the world\'s longest river with stunning Cairo skyline views.',
       Icons.sailing_rounded,
       Color(0xFF0D7377),
       '2h',
     ),
     (
-      'saladin_citadel',
-      'saladin_citadel_loc',
-      'saladin_citadel_desc',
+      'Saladin Citadel',
+      'Mokattam Hill, Cairo',
+      'A medieval Islamic fortress overlooking Cairo with the stunning Mohamed Ali Mosque inside.',
       Icons.castle_rounded,
       Color(0xFFE02850),
       '3h',
     ),
     (
-      'grand_museum',
-      'grand_museum_loc',
-      'grand_museum_desc',
+      'Grand Egyptian Museum',
+      'Giza',
+      'The world\'s largest archaeological museum, home to over 100,000 ancient Egyptian artifacts.',
       Icons.account_balance_rounded,
       Color(0xFF2E7D32),
       '4h',
     ),
     (
-      'memphis_saqqara',
-      'memphis_saqqara_loc',
-      'memphis_saqqara_desc',
+      'Memphis & Saqqara',
+      'South of Cairo',
+      'Ancient capital of Egypt with the Step Pyramid — one of the earliest stone structures ever built.',
       Icons.landscape_rounded,
       Color(0xFF6A1B9A),
       '4h',
     ),
     (
-      'cairo_tower',
-      'cairo_tower_loc',
-      'cairo_tower_desc',
+      'Cairo Tower',
+      'Gezira Island, Cairo',
+      'A 187-metre concrete tower offering a panoramic 360° view of Cairo and the Nile.',
       Icons.cell_tower_rounded,
       Color(0xFF00838F),
       '1h',
@@ -76,7 +74,6 @@ class PlacesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageProvider>().isArabic;
     final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4F8),
@@ -121,7 +118,7 @@ class PlacesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    isAr ? 'أماكن مشهورة' : 'Popular Places',
+                    UiTranslation.display(context, 'Popular Places'),
                     style: roboto(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -130,7 +127,10 @@ class PlacesPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isAr ? 'أشهر المعالم السياحية في مصر' : 'Top tourist landmarks across Egypt',
+                    UiTranslation.display(
+                      context,
+                      'Top tourist landmarks across Egypt',
+                    ),
                     style: roboto(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -176,7 +176,7 @@ class PlacesPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              S.tr(p.$1, isAr),
+                              UiTranslation.display(context, p.$1),
                               style: roboto(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -192,7 +192,7 @@ class PlacesPage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  S.tr(p.$2, isAr),
+                                  UiTranslation.display(context, p.$2),
                                   style: roboto(
                                     fontSize: 11,
                                     color: Colors.grey.shade500,
@@ -202,7 +202,7 @@ class PlacesPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              S.tr(p.$3, isAr),
+                              UiTranslation.display(context, p.$3),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: roboto(
@@ -227,7 +227,7 @@ class PlacesPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              p.$6,
+                              UiTranslation.display(context, p.$6),
                               style: roboto(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,

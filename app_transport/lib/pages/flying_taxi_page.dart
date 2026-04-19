@@ -3,11 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
+import '../services/language_service.dart';
+import '../services/ui_translation.dart';
+import '../services/auth_service.dart';
+import '../services/favorites_service.dart';
 import 'auth_widgets.dart';
 import 'trip_detail_page.dart';
 import '../services/smooth_navigation.dart';
-import '../services/language_provider.dart';
-import '../services/app_localizations.dart';
+import '../widgets/trip_image.dart';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const _kDarkBlue = Color(0xFF4A44AA);
@@ -29,13 +32,12 @@ class Review {
 
 // ── Trip model ───────────────────────────────────────────────────────────────
 class FlyingTaxiTrip {
+  final String id;
   final String name;
-  final String nameEn;
   final int durationMinutes;
   final int flightMinutes;
   final int priceUsd;
   final String description;
-  final String descriptionEn;
   final String mapHint;
   final Color cardColor;
   final IconData icon;
@@ -43,22 +45,18 @@ class FlyingTaxiTrip {
   final List<Review> reviews;
 
   const FlyingTaxiTrip({
+    required this.id,
     required this.name,
-    this.nameEn = '',
     required this.durationMinutes,
     required this.flightMinutes,
     required this.priceUsd,
     required this.description,
-    this.descriptionEn = '',
     required this.mapHint,
     required this.cardColor,
     required this.icon,
     required this.imageUrl,
     this.reviews = const [],
   });
-
-  String localizedName(bool isAr) => isAr ? name : (nameEn.isEmpty ? name : nameEn);
-  String localizedDescription(bool isAr) => isAr ? description : (descriptionEn.isEmpty ? description : descriptionEn);
 
   String get durationLabel {
     if (durationMinutes >= 120) {
@@ -77,8 +75,8 @@ class FlyingTaxiTrip {
 const flyingTrips = <FlyingTaxiTrip>[
   // 1 ─ جولة جوية فوق القلعة والنيل (15 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_citadel_nile',
     name: 'جولة جوية فوق القلعة والنيل',
-    nameEn: 'Citadel & Nile Aerial Tour',
     durationMinutes: 70,
     flightMinutes: 15,
     priceUsd: 120,
@@ -114,8 +112,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 2 ─ جولة جوية قصيرة فوق النيل والكورنيش (13 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_corniche_short',
     name: 'جولة جوية فوق النيل والكورنيش',
-    nameEn: 'Nile & Corniche Flight',
     durationMinutes: 40,
     flightMinutes: 13,
     priceUsd: 100,
@@ -151,8 +149,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 3 ─ جولة جوية شاملة فوق الأهرامات وأبرز المعالم (30 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_pyramids_highlights',
     name: 'جولة شاملة فوق الأهرامات والمعالم',
-    nameEn: 'Pyramids & Landmarks Flight',
     durationMinutes: 120,
     flightMinutes: 30,
     priceUsd: 240,
@@ -189,8 +187,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 4 ─ جولة جوية سريعة فوق النيل وبرج القاهرة (10 دقائق طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_tower_quick',
     name: 'جولة سريعة فوق النيل وبرج القاهرة',
-    nameEn: 'Quick Nile & Cairo Tower Flight',
     durationMinutes: 60,
     flightMinutes: 10,
     priceUsd: 85,
@@ -227,8 +225,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 5 ─ جولة بانورامية ممتدة فوق أحياء القاهرة الحديثة (18 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_modern_cairo_panorama',
     name: 'جولة بانورامية فوق أحياء القاهرة',
-    nameEn: 'Modern Cairo Panoramic Tour',
     durationMinutes: 75,
     flightMinutes: 18,
     priceUsd: 130,
@@ -265,8 +263,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 6 ─ جولة جوية فوق النيل وبرج القاهرة ودار الأوبرا (22 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_nile_opera_tower',
     name: 'جولة فوق النيل والأوبرا وبرج القاهرة',
-    nameEn: 'Nile, Opera & Cairo Tower Tour',
     durationMinutes: 100,
     flightMinutes: 22,
     priceUsd: 160,
@@ -303,8 +301,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 7 ─ جولة جوية فوق القاهرة الجديدة والعاصمة الإدارية (25 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_new_cairo_capital',
     name: 'جولة فوق القاهرة الجديدة والعاصمة الإدارية',
-    nameEn: 'New Capital Aerial Tour',
     durationMinutes: 90,
     flightMinutes: 25,
     priceUsd: 170,
@@ -342,8 +340,8 @@ const flyingTrips = <FlyingTaxiTrip>[
 
   // 8 ─ جولة جوية فوق القاهرة والنيل والمناطق العمرانية (30 دقيقة طيران)
   FlyingTaxiTrip(
+    id: 'ft_cairo_nile_30min',
     name: 'جولة جوية فوق القاهرة والنيل',
-    nameEn: 'Cairo & Nile Aerial Tour',
     durationMinutes: 120,
     flightMinutes: 30,
     priceUsd: 220,
@@ -382,7 +380,9 @@ const flyingTrips = <FlyingTaxiTrip>[
 
 // ─────────────────────────────────────────────────────────────────────────────
 class FlyingTaxiPage extends StatefulWidget {
-  const FlyingTaxiPage({super.key});
+  final VoidCallback? onBack;
+
+  const FlyingTaxiPage({super.key, this.onBack});
 
   @override
   State<FlyingTaxiPage> createState() => _FlyingTaxiPageState();
@@ -391,6 +391,71 @@ class FlyingTaxiPage extends StatefulWidget {
 class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+
+  bool _containsArabic(String value) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
+
+  FlyingTaxiTrip _forLocale(FlyingTaxiTrip trip, int index, bool isArabic) {
+    if (isArabic) {
+      return FlyingTaxiTrip(
+        id: trip.id,
+        name: UiTranslation.toArabic(trip.name),
+        durationMinutes: trip.durationMinutes,
+        flightMinutes: trip.flightMinutes,
+        priceUsd: trip.priceUsd,
+        description: UiTranslation.toArabic(trip.description),
+        mapHint: UiTranslation.toArabic(trip.mapHint),
+        cardColor: trip.cardColor,
+        icon: trip.icon,
+        imageUrl: trip.imageUrl,
+        reviews: [
+          for (final review in trip.reviews)
+            Review(
+              name: UiTranslation.toArabic(review.name),
+              rating: review.rating,
+              date: UiTranslation.toArabic(review.date),
+              comment: UiTranslation.toArabic(review.comment),
+            ),
+        ],
+      );
+    }
+
+    final fallbackName = 'Cairo Aerial Tour ${index + 1}';
+    final fallbackDescription =
+        'Scenic flying taxi experience over Cairo landmarks with airport pickup and return.';
+    final fallbackMapHint =
+        'Cairo Airport route with key aerial landmarks and return transfer.';
+
+    return FlyingTaxiTrip(
+      id: trip.id,
+      name: _containsArabic(trip.name) ? fallbackName : trip.name,
+      durationMinutes: trip.durationMinutes,
+      flightMinutes: trip.flightMinutes,
+      priceUsd: trip.priceUsd,
+      description: _containsArabic(trip.description)
+          ? fallbackDescription
+          : trip.description,
+      mapHint: _containsArabic(trip.mapHint) ? fallbackMapHint : trip.mapHint,
+      cardColor: trip.cardColor,
+      icon: trip.icon,
+      imageUrl: trip.imageUrl,
+      reviews: [
+        for (var i = 0; i < trip.reviews.length; i++)
+          Review(
+            name: _containsArabic(trip.reviews[i].name)
+                ? 'Traveler ${i + 1}'
+                : trip.reviews[i].name,
+            rating: trip.reviews[i].rating,
+            date: _containsArabic(trip.reviews[i].date)
+                ? 'Recently'
+                : trip.reviews[i].date,
+            comment: _containsArabic(trip.reviews[i].comment)
+                ? 'Great experience with amazing city views.'
+                : trip.reviews[i].comment,
+          ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -446,33 +511,52 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
     final topPad = mq.padding.top;
     final w = mq.size.width;
     final h = mq.size.height;
+    final isArabic = context.watch<LanguageService>().isArabic;
 
     final tripSvc = context.watch<TripService>();
-    final isAr = context.watch<LanguageProvider>().isArabic;
-    final liveTrips = tripSvc.activeTrips.where((t) => t.type == TripType.flying).toList();
+    final liveTrips = tripSvc.activeTrips
+        .where((t) => t.type == TripType.flying)
+        .toList();
 
     // Combine local data with live data, avoiding duplicates by name
     final allTrips = <FlyingTaxiTrip>[];
 
     // Add live trips from Firebase
     for (final lt in liveTrips) {
-      allTrips.add(FlyingTaxiTrip(
-        name: lt.nameAr.isNotEmpty ? lt.nameAr : lt.name,
-        nameEn: lt.name,
-        durationMinutes: lt.durationMinutes,
-        flightMinutes: lt.flightMinutes,
-        priceUsd: lt.priceUsd.toInt(),
-        description: lt.descriptionAr.isNotEmpty ? lt.descriptionAr : lt.description,
-        descriptionEn: lt.description,
-        mapHint: lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
-        cardColor: lt.accentColor,
-        icon: Icons.flight_rounded,
-        imageUrl: lt.imageUrl,
-      ));
+      final liveImageUrl = lt.imageUrl.trim().isNotEmpty
+          ? lt.imageUrl
+          : (lt.galleryImageUrls.isNotEmpty ? lt.galleryImageUrls.first : '');
+      allTrips.add(
+        FlyingTaxiTrip(
+          id: lt.id,
+          name: isArabic ? UiTranslation.toArabic(lt.name) : lt.name,
+          durationMinutes: lt.durationMinutes,
+          flightMinutes: lt.flightMinutes,
+          priceUsd: lt.priceUsd.toInt(),
+          description: isArabic
+              ? UiTranslation.toArabic(
+                  lt.description.isNotEmpty
+                      ? lt.description
+                      : lt.shortDescription,
+                )
+              : (lt.description.isNotEmpty
+                    ? lt.description
+                    : lt.shortDescription),
+          mapHint: isArabic
+              ? UiTranslation.toArabic(
+                  lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel,
+                )
+              : (lt.mapHint.isNotEmpty ? lt.mapHint : lt.routeLabel),
+          cardColor: lt.accentColor,
+          icon: Icons.flight_rounded,
+          imageUrl: liveImageUrl,
+        ),
+      );
     }
 
     // Add local trips that aren't in Firebase yet (by name)
-    for (final local in flyingTrips) {
+    for (var i = 0; i < flyingTrips.length; i++) {
+      final local = _forLocale(flyingTrips[i], i, isArabic);
       if (!allTrips.any((t) => t.name == local.name)) {
         allTrips.add(local);
       }
@@ -504,7 +588,12 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          final onBack = widget.onBack;
+                          if (onBack != null) {
+                            onBack();
+                          }
+                        },
                         child: Container(
                           width: 42,
                           height: 42,
@@ -529,7 +618,7 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          S.tr('flying_taxi_page_title', isAr),
+                          UiTranslation.display(context, 'Flying Taxi'),
                           style: roboto(
                             fontSize: titleFs,
                             fontWeight: FontWeight.w800,
@@ -553,7 +642,9 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Text(
-                    S.tr('flying_taxi_subtitle', isAr),
+                    isArabic
+                        ? 'رحلات داخل القاهرة – الانطلاق والعودة لمطار القاهرة الدولي'
+                        : 'Trips inside Cairo with airport pickup and return.',
                     style: roboto(
                       fontSize: subtitleFs,
                       color: Colors.grey.shade500,
@@ -583,7 +674,6 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
                         child: _FlyingTripCard(
                           trip: trip,
                           onTap: () => _openDetail(trip),
-                          isAr: isAr,
                         ),
                       ),
                     );
@@ -606,12 +696,15 @@ class _FlyingTaxiPageState extends State<FlyingTaxiPage>
 class _FlyingTripCard extends StatelessWidget {
   final FlyingTaxiTrip trip;
   final VoidCallback onTap;
-  final bool isAr;
-  const _FlyingTripCard({required this.trip, required this.onTap, this.isAr = true});
+  const _FlyingTripCard({required this.trip, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
+    final isArabic = context.watch<LanguageService>().isArabic;
+    final flightLabel = isArabic
+        ? 'طيران ${trip.flightMinutes} د'
+        : '${trip.flightMinutes} min flight';
     // ── Responsive card values for Samsung M31 (~411 lp) ──
     final nameFs = (w * 0.030).clamp(11.0, 15.0); // ~12.3
     final subFs = (w * 0.024).clamp(9.0, 12.0); // ~10
@@ -645,12 +738,10 @@ class _FlyingTripCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Real image from network
-                  Image.network(
-                    trip.imageUrl,
+                  TripImage(
+                    imageUrl: trip.imageUrl,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
+                    placeholderBuilder: (_) {
                       return Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -670,7 +761,7 @@ class _FlyingTripCard extends StatelessWidget {
                         ),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) {
+                    errorBuilder: (_) {
                       return Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -734,7 +825,7 @@ class _FlyingTripCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            trip.durationLabel,
+                            UiTranslation.display(context, flightLabel),
                             style: roboto(
                               fontSize: 10,
                               color: Colors.white,
@@ -749,18 +840,43 @@ class _FlyingTripCard extends StatelessWidget {
                   Positioned(
                     top: 10,
                     right: 10,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.favorite_border_rounded,
-                        color: _kRed,
-                        size: 16,
-                      ),
+                    child: Consumer2<AuthService, FavoritesService>(
+                      builder: (context, auth, favorites, _) {
+                        final uid = auth.currentUser?.uid ?? '';
+                        final isFav =
+                            uid.isNotEmpty && favorites.isFavorite(trip.id);
+                        return GestureDetector(
+                          onTap: uid.isEmpty
+                              ? null
+                              : () async {
+                                  try {
+                                    await favorites.toggleFavorite(
+                                      uid,
+                                      trip.id,
+                                    );
+                                  } catch (e) {
+                                    debugPrint('Error toggling favorite: $e');
+                                  }
+                                },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: isFav
+                                  ? _kRed.withValues(alpha: 0.15)
+                                  : Colors.white.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFav ? _kRed : _kRed,
+                              size: 16,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -780,7 +896,7 @@ class _FlyingTripCard extends StatelessWidget {
                   children: [
                     // Name
                     Text(
-                      trip.localizedName(isAr),
+                      UiTranslation.display(context, trip.name),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: roboto(
@@ -800,7 +916,7 @@ class _FlyingTripCard extends StatelessWidget {
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
-                            S.tr('cairo_intl_airport', isAr),
+                            'مطار القاهرة الدولي',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: roboto(

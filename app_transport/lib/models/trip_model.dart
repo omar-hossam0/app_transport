@@ -45,10 +45,8 @@ class TripModel {
   final String id;
   final TripType type;
   final String name;
-  final String nameAr;
   final String shortDescription;
   final String description;
-  final String descriptionAr;
   final int durationMinutes;
   final int flightMinutes;
   final double priceUsd;
@@ -58,7 +56,6 @@ class TripModel {
   final String routeLabel;
   final String mapHint;
   final String locationLabel;
-  final String locationLabelAr;
   final List<String> included;
   final List<TripStop> itinerary;
   final bool isActive;
@@ -69,10 +66,8 @@ class TripModel {
     required this.id,
     required this.type,
     required this.name,
-    this.nameAr = '',
     this.shortDescription = '',
     this.description = '',
-    this.descriptionAr = '',
     this.durationMinutes = 0,
     this.flightMinutes = 0,
     this.priceUsd = 0,
@@ -82,7 +77,6 @@ class TripModel {
     this.routeLabel = '',
     this.mapHint = '',
     this.locationLabel = 'Cairo International Airport',
-    this.locationLabelAr = 'مطار القاهرة الدولي',
     this.included = const [],
     this.itinerary = const [],
     this.isActive = true,
@@ -102,23 +96,17 @@ class TripModel {
       final isWhole = hours == hours.truncateToDouble();
       return isWhole ? '${hours.toInt()}h' : '${hours.toStringAsFixed(1)}h';
     }
-    return '${durationMinutes} min';
+    return '$durationMinutes min';
   }
 
   String get priceLabel => '\$${priceUsd.toInt()}';
-
-  String localizedName(bool isAr) => isAr && nameAr.isNotEmpty ? nameAr : name;
-  String localizedDescription(bool isAr) => isAr && descriptionAr.isNotEmpty ? descriptionAr : description;
-  String localizedLocation(bool isAr) => isAr && locationLabelAr.isNotEmpty ? locationLabelAr : locationLabel;
 
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type.name,
     'name': name,
-    'nameAr': nameAr,
     'shortDescription': shortDescription,
     'description': description,
-    'descriptionAr': descriptionAr,
     'durationMinutes': durationMinutes,
     'flightMinutes': flightMinutes,
     'priceUsd': priceUsd,
@@ -128,7 +116,6 @@ class TripModel {
     'routeLabel': routeLabel,
     'mapHint': mapHint,
     'locationLabel': locationLabel,
-    'locationLabelAr': locationLabelAr,
     'included': included,
     'itinerary': itinerary.map((s) => s.toMap()).toList(),
     'isActive': isActive,
@@ -150,28 +137,30 @@ class TripModel {
 
     final includedRaw = map['included'] as List? ?? const [];
     final galleryRaw = map['galleryImageUrls'] as List? ?? const [];
-    final coverUrl =
-      map['imageUrl'] as String? ?? map['coverImageUrl'] as String? ?? '';
+    final galleryUrls = galleryRaw.map((e) => e.toString()).toList();
+    var coverUrl =
+        map['imageUrl'] as String? ?? map['coverImageUrl'] as String? ?? '';
+    if (coverUrl.trim().isEmpty && galleryUrls.isNotEmpty) {
+      coverUrl = galleryUrls.first;
+    }
 
     return TripModel(
       id: map['id'] as String? ?? '',
       type: type,
       name: map['name'] as String? ?? '',
-      nameAr: map['nameAr'] as String? ?? '',
       shortDescription: map['shortDescription'] as String? ?? '',
       description: map['description'] as String? ?? '',
-      descriptionAr: map['descriptionAr'] as String? ?? '',
       durationMinutes: ((map['durationMinutes'] ?? 0) as num).toInt(),
       flightMinutes: ((map['flightMinutes'] ?? 0) as num).toInt(),
       priceUsd: ((map['priceUsd'] ?? 0) as num).toDouble(),
       imageUrl: coverUrl,
-      galleryImageUrls: galleryRaw.map((e) => e.toString()).toList(),
-        accentColorValue: ((map['accentColorValue'] ?? 0xFF187BCD) as num)
+      galleryImageUrls: galleryUrls,
+      accentColorValue: ((map['accentColorValue'] ?? 0xFF187BCD) as num)
           .toInt(),
       routeLabel: map['routeLabel'] as String? ?? '',
       mapHint: map['mapHint'] as String? ?? '',
-      locationLabel: map['locationLabel'] as String? ?? 'Cairo International Airport',
-      locationLabelAr: map['locationLabelAr'] as String? ?? 'مطار القاهرة الدولي',
+      locationLabel:
+          map['locationLabel'] as String? ?? 'Cairo International Airport',
       included: includedRaw.map((e) => e.toString()).toList(),
       itinerary: stops,
       isActive: map['isActive'] != false,
@@ -188,10 +177,8 @@ class TripModel {
     String? id,
     TripType? type,
     String? name,
-    String? nameAr,
     String? shortDescription,
     String? description,
-    String? descriptionAr,
     int? durationMinutes,
     int? flightMinutes,
     double? priceUsd,
@@ -201,7 +188,6 @@ class TripModel {
     String? routeLabel,
     String? mapHint,
     String? locationLabel,
-    String? locationLabelAr,
     List<String>? included,
     List<TripStop>? itinerary,
     bool? isActive,
@@ -212,10 +198,8 @@ class TripModel {
       id: id ?? this.id,
       type: type ?? this.type,
       name: name ?? this.name,
-      nameAr: nameAr ?? this.nameAr,
       shortDescription: shortDescription ?? this.shortDescription,
       description: description ?? this.description,
-      descriptionAr: descriptionAr ?? this.descriptionAr,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       flightMinutes: flightMinutes ?? this.flightMinutes,
       priceUsd: priceUsd ?? this.priceUsd,
@@ -225,7 +209,6 @@ class TripModel {
       routeLabel: routeLabel ?? this.routeLabel,
       mapHint: mapHint ?? this.mapHint,
       locationLabel: locationLabel ?? this.locationLabel,
-      locationLabelAr: locationLabelAr ?? this.locationLabelAr,
       included: included ?? this.included,
       itinerary: itinerary ?? this.itinerary,
       isActive: isActive ?? this.isActive,
@@ -254,8 +237,6 @@ class TripIconHelper {
     'local_dining': Icons.local_dining_rounded,
     'sailing': Icons.sailing_rounded,
     'walk': Icons.directions_walk_rounded,
-    'directions_walk': Icons.directions_walk_rounded,
-    'store': Icons.store_rounded,
     'place': Icons.place_rounded,
   };
 

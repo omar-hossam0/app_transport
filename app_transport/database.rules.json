@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "trips": {
+      ".read": true,
+      "$tripId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true",
+        "isActive": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true"
+        }
+      }
+    },
+    "trip_reviews": {
+      ".read": true,
+      "$tripId": {
+        ".read": true,
+        "$reviewId": {
+          ".write": "auth != null && newData.child('userId').val() == auth.uid",
+          ".validate": "newData.hasChildren(['userId','userName','rating','comment','createdAtEpoch']) && newData.child('rating').isNumber() && newData.child('rating').val() >= 1 && newData.child('rating').val() <= 5"
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".write": "$uid == auth.uid"
+      }
+    },
+    "bookings": {
+      "$uid": {
+        ".read": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".write": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)"
+      }
+    },
+    "favorites": {
+      "$uid": {
+        ".read": "$uid == auth.uid",
+        ".write": "$uid == auth.uid"
+      }
+    },
+    "email_index": {
+      "$emailKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() == auth.uid)"
+      }
+    },
+    "user_activity": {
+      "$uid": {
+        ".read": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)",
+        ".write": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)"
+      }
+    },
+    "system": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true"
+    }
+  }
+}
