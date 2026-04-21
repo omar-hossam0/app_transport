@@ -16,6 +16,7 @@ import '../../services/booking_service.dart';
 import '../../services/favorites_service.dart';
 import '../../services/trip_media_service.dart';
 import '../../services/trip_service.dart';
+import '../../widgets/trip_image.dart';
 import '../auth_widgets.dart';
 import '../sign_in_page.dart';
 
@@ -402,7 +403,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         }
                       },
                       icon: const Icon(Icons.cloud_upload_rounded, size: 18),
-                      label: Text('Upload All Local', style: roboto(fontSize: 12)),
+                      label: Text(
+                        'Upload All Local',
+                        style: roboto(fontSize: 12),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
@@ -638,7 +642,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 SnackBar(
                   content: Text(
                     'Trip uploaded successfully!',
-                    style: roboto(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: roboto(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
@@ -652,7 +659,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 SnackBar(
                   content: Text(
                     'Trip updated successfully!',
-                    style: roboto(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: roboto(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   backgroundColor: kBlue,
                   behavior: SnackBarBehavior.floating,
@@ -1048,30 +1058,7 @@ class _UrlImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url.isEmpty) return fallback();
-
-    if (url.startsWith('data:image')) {
-      final commaIndex = url.indexOf(',');
-      if (commaIndex <= 0 || commaIndex >= url.length - 1) {
-        return fallback();
-      }
-      try {
-        final bytes = base64Decode(url.substring(commaIndex + 1));
-        return Image.memory(
-          bytes,
-          fit: fit,
-          errorBuilder: (_, __, ___) => fallback(),
-        );
-      } catch (_) {
-        return fallback();
-      }
-    }
-
-    return Image.network(
-      url,
-      fit: fit,
-      errorBuilder: (_, __, ___) => fallback(),
-    );
+    return TripImage(imageUrl: url, fit: fit, errorBuilder: (_) => fallback());
   }
 }
 

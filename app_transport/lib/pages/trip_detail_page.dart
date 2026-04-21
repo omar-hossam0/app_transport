@@ -907,12 +907,17 @@ class _TripDetailPageState extends State<TripDetailPage>
       return;
     }
 
-    final uid = auth.currentUser!.uid;
+    final user = auth.currentUser!;
+    final uid = user.uid;
+    final now = DateTime.now();
     final rand = math.Random();
-    final bookingId = 'FLY-${rand.nextInt(90000) + 10000}';
+    final bookingId =
+        'FLY-${now.millisecondsSinceEpoch}-${rand.nextInt(900) + 100}';
 
     final booking = Booking(
       id: bookingId,
+      tripId: trip.id,
+      tripType: 'flying',
       tripName: _display(trip.name),
       tripImage: trip.imageUrl,
       date: date,
@@ -924,6 +929,11 @@ class _TripDetailPageState extends State<TripDetailPage>
       dropoffLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
       routeLabel: trip.mapHint,
       accentColor: trip.cardColor,
+      userId: uid,
+      userEmail: user.email,
+      userName: user.name,
+      createdAt: now,
+      updatedAt: now,
     );
 
     try {

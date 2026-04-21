@@ -96,10 +96,10 @@ class Booking {
       tripName: map['tripName'] as String? ?? '',
       tripImage: map['tripImage'] as String? ?? '',
       date: DateTime.fromMillisecondsSinceEpoch(
-        (map['dateEpoch'] as int?) ?? 0,
+        ((map['dateEpoch'] ?? 0) as num).toInt(),
       ),
       time: map['time'] as String? ?? '10:00 AM',
-      travelers: (map['travelers'] as int?) ?? 1,
+      travelers: ((map['travelers'] ?? 1) as num).toInt(),
       pricePerPerson: ((map['pricePerPerson'] ?? 0) as num).toDouble(),
       paymentMethod: map['paymentMethod'] as String? ?? '',
       pickupLocation: map['pickupLocation'] as String? ?? '',
@@ -112,10 +112,10 @@ class Booking {
       userEmail: map['userEmail'] as String? ?? '',
       userName: map['userName'] as String? ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(
-        (map['createdAtEpoch'] as int?) ?? 0,
+        ((map['createdAtEpoch'] ?? 0) as num).toInt(),
       ),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
-        (map['updatedAtEpoch'] as int?) ?? 0,
+        ((map['updatedAtEpoch'] ?? 0) as num).toInt(),
       ),
       status: BookingStatus.values.firstWhere(
         (s) => s.name == normalized,

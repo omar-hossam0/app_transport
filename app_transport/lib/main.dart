@@ -20,8 +20,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // Initialize Firebase using the generated options entrypoint.
-  // This uses `DefaultFirebaseOptions.currentPlatform` directly.
   try {
     debugPrint('\n═══════════════════════════════════════════════════════════');
     debugPrint('🔥 FIREBASE INITIALIZATION STARTED');
@@ -36,108 +34,60 @@ Future<void> main() async {
     );
     debugPrint('[Firebase Init] App ID: ${options.appId}');
 
-    await Firebase.initializeApp(options: options);
+    await Firebase.initializeApp(options: options).timeout(
+      const Duration(seconds: 12),
+      onTimeout: () {
+        throw TimeoutException(
+          'Firebase.initializeApp timed out after 12 seconds',
+        );
+      },
+    );
 
     debugPrint('✅ Firebase Initialized Successfully!');
     debugPrint('   Project: ${options.projectId}');
     debugPrint('   Database URL: ${options.databaseURL}');
-
-    // Quick Realtime Database connectivity check
-    bool dbConnected = false;
-    String dbError = '';
-
-    try {
-      debugPrint('\n[DB Connection Test] Starting...');
-      final db = FirebaseDatabase.instance;
-      debugPrint('[DB Connection Test] FirebaseDatabase instance created');
-      debugPrint('[DB Connection Test] Attempting lightweight health read...');
-
-      // Avoid root reads because some payload shapes can trigger map-cast
-      // issues in platform wrappers. A scalar path is safer for connectivity checks.
-      final connectedFuture = db.ref('system/trips_seeded').get().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('[DB Connection Test] ⏱️ TIMEOUT after 10 seconds');
-          throw TimeoutException(
-            'Database read timeout - check internet and Realtime DB status',
-          );
-        },
-      );
-
-      final infoSnap = await connectedFuture;
-      debugPrint('[DB Connection Test] Response received');
-      debugPrint('[DB Connection Test] Snapshot exists: ${infoSnap.exists}');
-      debugPrint(
-        '[DB Connection Test] Snapshot value type: ${infoSnap.value.runtimeType}',
-      );
-      dbConnected = true;
-      dbError = '✅ Database is reachable';
-      debugPrint('\n✅✅✅ SUCCESS! Realtime Database is CONNECTED!');
-    } catch (e) {
-      dbConnected = false;
-      debugPrint('[DB Connection Test] ❌ EXCEPTION: $e');
-      debugPrint('[DB Connection Test] Exception type: ${e.runtimeType}');
-
-      if (e.toString().contains('TimeoutException')) {
-        dbError =
-            '⏱️ TIMEOUT (10s)\nFixes:\n→ Check internet connection\n→ Realtime Database should be enabled';
-      } else if (e.toString().contains('PERMISSION_DENIED')) {
-        dbError =
-            '🔒 Permission Denied\nFix:\n→ Check Realtime Database rules in Firebase Console';
-      } else if (e.toString().contains('no address associated')) {
-        dbError = '🌐 No internet\nFix:\n→ Check device internet connection';
-      } else if (e.toString().contains('not a subtype')) {
-        dbError =
-            '⚠️ Data format mismatch during health-check\nFix:\n→ Check unexpected data at tested DB path';
-      } else {
-        dbError = '❌ Firebase Error: ${e.toString().split('\n').first}';
-      }
-    }
-
-    debugPrint('\n═══════════════════════════════════════════════════════════');
-    debugPrint('FINAL RESULT:');
-    debugPrint('Database Connected: $dbConnected');
-    debugPrint('Error Message: $dbError');
-    debugPrint('═══════════════════════════════════════════════════════════\n');
-
-    // Pass the DB state into the app so UI can show a message
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthService()),
-          ChangeNotifierProvider(create: (_) => BookingService()),
-          ChangeNotifierProvider(create: (_) => FavoritesService()),
-          ChangeNotifierProvider(create: (_) => TripService()),
-          ChangeNotifierProvider(create: (_) => AdminService()),
-          ChangeNotifierProvider(create: (_) => LanguageService()..load()),
-          Provider(create: (_) => NotificationService()),
-        ],
-        child: const MyApp(),
-      ),
-    );
+    runApp(_buildRootApp());
+    unawaited(_logDatabaseHealthCheck());
     return;
   } catch (e) {
-    // Print error so we can see failure on the console
     debugPrint('\n❌❌❌ FIREBASE INITIALIZATION FAILED');
     debugPrint('Error: $e');
     debugPrint('Error type: ${e.runtimeType}');
   }
 
-  // If initialization failed we still run the app (will show not-connected)
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => BookingService()),
-        ChangeNotifierProvider(create: (_) => FavoritesService()),
-        ChangeNotifierProvider(create: (_) => TripService()),
-        ChangeNotifierProvider(create: (_) => AdminService()),
-        ChangeNotifierProvider(create: (_) => LanguageService()..load()),
-        Provider(create: (_) => NotificationService()),
-      ],
-      child: const MyApp(),
-    ),
+  runApp(_buildRootApp());
+}
+
+Widget _buildRootApp() {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => AuthService()),
+      ChangeNotifierProvider(create: (_) => BookingService()),
+      ChangeNotifierProvider(create: (_) => FavoritesService()),
+      ChangeNotifierProvider(create: (_) => TripService()),
+      ChangeNotifierProvider(create: (_) => AdminService()),
+      ChangeNotifierProvider(create: (_) => LanguageService()..load()),
+      Provider(create: (_) => NotificationService()),
+    ],
+    child: const MyApp(),
   );
+}
+
+Future<void> _logDatabaseHealthCheck() async {
+  try {
+    final db = FirebaseDatabase.instance;
+    final snap = await db.ref('system/trips_seeded').get().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () {
+        throw TimeoutException('Database health-check timeout');
+      },
+    );
+    debugPrint(
+      '[DB Health Check] Connected. exists=${snap.exists}, type=${snap.value.runtimeType}',
+    );
+  } catch (e) {
+    debugPrint('[DB Health Check] Not reachable now: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

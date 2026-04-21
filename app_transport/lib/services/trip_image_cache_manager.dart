@@ -8,6 +8,16 @@ class TripImageCacheManager {
       _cacheKey,
       stalePeriod: const Duration(days: 120),
       maxNrOfCacheObjects: 3000,
+      fileService: _TimeoutHttpFileService(),
     ),
   );
+}
+
+class _TimeoutHttpFileService extends HttpFileService {
+  static const Duration _requestTimeout = Duration(seconds: 15);
+
+  @override
+  Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
+    return super.get(url, headers: headers).timeout(_requestTimeout);
+  }
 }

@@ -428,13 +428,18 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       return;
     }
 
-    final uid = auth.currentUser!.uid;
+    final user = auth.currentUser!;
+    final uid = user.uid;
+    final now = DateTime.now();
     final rand = math.Random();
-    final bookingId = 'TRX-${rand.nextInt(90000) + 10000}';
+    final bookingId =
+        'TRX-${now.millisecondsSinceEpoch}-${rand.nextInt(900) + 100}';
 
     final booking = Booking(
       id: bookingId,
-      tripName: trip.name,
+      tripId: trip.id,
+      tripType: 'transit',
+      tripName: _display(trip.name),
       tripImage: trip.imageUrl,
       date: date,
       time: _t('10:00 AM', '10:00 ص'),
@@ -445,6 +450,11 @@ class _TransitTripDetailPageState extends State<TransitTripDetailPage>
       dropoffLocation: _t('Cairo International Airport', 'مطار القاهرة الدولي'),
       routeLabel: trip.routeLabel,
       accentColor: trip.accentColor,
+      userId: uid,
+      userEmail: user.email,
+      userName: user.name,
+      createdAt: now,
+      updatedAt: now,
     );
 
     try {
