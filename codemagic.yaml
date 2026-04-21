@@ -1,0 +1,41 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    working_directory: app_transport
+    environment:
+      flutter: stable
+      vars:
+        GROQ_API_KEY: Encrypted(YOUR_ENCRYPTED_VALUE_HERE)
+    scripts:
+      - name: Create config.dart
+        script: |
+          echo "const kGroqApiKey = '$GROQ_API_KEY';" > lib/config.dart
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build Android
+        script: flutter build appbundle --debug
+    artifacts:
+      - build/**/outputs/**/*.aab
+
+  ios-workflow:
+    name: iOS Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    working_directory: app_transport
+    environment:
+      flutter: stable
+      vars:
+        GROQ_API_KEY: Encrypted(YOUR_ENCRYPTED_VALUE_HERE)
+    scripts:
+      - name: Create config.dart
+        script: |
+          echo "const kGroqApiKey = '$GROQ_API_KEY';" > lib/config.dart
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build iOS (no signing)
+        script: |
+          flutter build ios --debug --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
