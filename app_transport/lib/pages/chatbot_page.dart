@@ -167,7 +167,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     }
     final tripContext =
         '${_buildTripContext(tripService.activeTrips)}\n${_buildBookingContext(bookingService.bookings)}';
-      final reply = await _gemini.send(msg, tripContext: tripContext);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -297,7 +297,7 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
     }
     final tripContext =
         '${_buildTripContext(tripService.activeTrips)}\n${_buildBookingContext(bookingService.bookings)}';
-      final reply = await _gemini.send(msg, tripContext: tripContext);
+    final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
