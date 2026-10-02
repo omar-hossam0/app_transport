@@ -118,10 +118,10 @@ class _TripDetailPageState extends State<TripDetailPage>
     if (minutes >= 60) {
       final h = minutes ~/ 60;
       final m = minutes % 60;
-      if (isArabic) return m == 0 ? '${h}س' : '${h}س ${m}د';
+      if (isArabic) return m == 0 ? '$hس' : '$hس $mد';
       return m == 0 ? '${h}h' : '${h}h ${m}m';
     }
-    return isArabic ? '${minutes} د' : '${minutes} min';
+    return isArabic ? '$minutes د' : '$minutes min';
   }
 
   String _formatReviewDate(int? epoch) {

@@ -5,8 +5,11 @@ class SmoothPageWrapper extends StatefulWidget {
   final Widget child;
   final Color? backgroundColor;
 
-  const SmoothPageWrapper({Key? key, required this.child, this.backgroundColor})
-    : super(key: key);
+  const SmoothPageWrapper({
+    super.key,
+    required this.child,
+    this.backgroundColor,
+  });
 
   @override
   State<SmoothPageWrapper> createState() => _SmoothPageWrapperState();
@@ -70,10 +73,10 @@ class OptimizedPage<T> extends Page<T> {
     required this.pageBuilder,
     this.transitionDuration = const Duration(milliseconds: 400),
     this.reverseTransitionDuration = const Duration(milliseconds: 300),
-    LocalKey? key,
-    String? name,
-    Object? arguments,
-  }) : super(key: key, name: name, arguments: arguments);
+    super.key,
+    super.name,
+    super.arguments,
+  });
 
   @override
   Route<T> createRoute(BuildContext context) {

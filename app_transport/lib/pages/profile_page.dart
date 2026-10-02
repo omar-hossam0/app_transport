@@ -910,7 +910,7 @@ class _SectionBlock extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
           ),
@@ -1056,7 +1056,7 @@ class _ToggleTile extends StatelessWidget {
               Switch(
                 value: value,
                 onChanged: onChanged,
-                activeColor: kBlue,
+                activeThumbColor: kBlue,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],

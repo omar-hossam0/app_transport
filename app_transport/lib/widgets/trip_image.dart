@@ -41,7 +41,7 @@ class TripImage extends StatelessWidget {
           height: height,
           fit: fit,
           gaplessPlayback: true,
-          errorBuilder: (_, __, ___) => _error(context),
+          errorBuilder: (_, _, _) => _error(context),
         );
       } catch (_) {
         return _error(context);
@@ -58,7 +58,7 @@ class TripImage extends StatelessWidget {
       fadeInDuration: const Duration(milliseconds: 160),
       placeholderFadeInDuration: const Duration(milliseconds: 120),
       placeholder: (ctx, _) => _placeholder(ctx),
-      errorWidget: (ctx, _, __) => _error(ctx),
+      errorWidget: (ctx, _, _) => _error(ctx),
     );
   }
 

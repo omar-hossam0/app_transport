@@ -64,7 +64,7 @@ class FlyingTaxiTrip {
       final m = durationMinutes % 60;
       return m == 0 ? '${h}h' : '${h}h ${m}m';
     }
-    return '${durationMinutes} min';
+    return '$durationMinutes min';
   }
 
   String get flightLabel => '$flightMinutes min flight';

@@ -139,14 +139,14 @@ class AnimatedPageSwitcher extends StatelessWidget {
   final int? animationKey;
 
   const AnimatedPageSwitcher({
-    Key? key,
+    super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 400),
     this.reverseDuration = const Duration(milliseconds: 300),
     this.switchInCurve = Curves.easeOutCubic,
     this.switchOutCurve = Curves.easeInCubic,
     this.animationKey,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

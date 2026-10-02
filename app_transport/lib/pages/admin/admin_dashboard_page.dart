@@ -313,7 +313,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     onUpdateStatus: (status) =>
                         _updateBookingStatus(filtered[i], status),
                   ),
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemCount: filtered.length,
                 ),
         ),
@@ -458,7 +458,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           .setTripActive(trip.id, value),
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemCount: trips.length,
                 ),
         ),
@@ -533,7 +533,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           .setAdminRole(uid: user.uid, isAdmin: value),
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemCount: filtered.length,
                 ),
         ),
@@ -581,7 +581,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemCount: _orderFilters.length,
       ),
     );
@@ -1009,7 +1009,7 @@ class _TripCard extends StatelessWidget {
                 Switch(
                   value: trip.isActive,
                   onChanged: onToggleActive,
-                  activeColor: kBlue,
+                  activeThumbColor: kBlue,
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -1086,7 +1086,7 @@ class _AdminUserTile extends StatelessWidget {
         subtitle: Text(user.email, style: roboto(fontSize: 12)),
         trailing: Switch(
           value: user.isAdmin,
-          activeColor: kBlue,
+          activeThumbColor: kBlue,
           onChanged: onToggle,
         ),
       ),
@@ -1223,7 +1223,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
                         children: [
                           _sectionLabel('Trip Type'),
                           DropdownButtonFormField<TripType>(
-                            value: _type,
+                            initialValue: _type,
                             items: TripType.values
                                 .map(
                                   (t) => DropdownMenuItem(
@@ -1669,7 +1669,7 @@ class _TripEditorSheetState extends State<_TripEditorSheet> {
     return Image.memory(
       bytes ?? Uint8List(0),
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => fallback(),
+      errorBuilder: (_, _, _) => fallback(),
     );
   }
 

@@ -11,7 +11,7 @@ import 'package:app_transport/widgets/smooth_page_wrapper.dart';
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage1 extends StatelessWidget {
-  const ExamplePage1({Key? key}) : super(key: key);
+  const ExamplePage1({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class ExamplePage1 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage2 extends StatelessWidget {
-  const ExamplePage2({Key? key}) : super(key: key);
+  const ExamplePage2({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +106,7 @@ class ExamplePage2 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage3 extends StatelessWidget {
-  const ExamplePage3({Key? key}) : super(key: key);
+  const ExamplePage3({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +140,7 @@ class ExamplePage3 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage4 extends StatelessWidget {
-  const ExamplePage4({Key? key}) : super(key: key);
+  const ExamplePage4({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +185,7 @@ class ExamplePage4 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage5 extends StatelessWidget {
-  const ExamplePage5({Key? key}) : super(key: key);
+  const ExamplePage5({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +215,7 @@ class ExamplePage5 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class ExamplePage6 extends StatelessWidget {
-  const ExamplePage6({Key? key}) : super(key: key);
+  const ExamplePage6({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +235,7 @@ class ExamplePage6 extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class NextPage extends StatelessWidget {
-  const NextPage({Key? key}) : super(key: key);
+  const NextPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +255,7 @@ class NextPage extends StatelessWidget {
 class DetailPage extends StatelessWidget {
   final String item;
 
-  const DetailPage({Key? key, required this.item}) : super(key: key);
+  const DetailPage({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
