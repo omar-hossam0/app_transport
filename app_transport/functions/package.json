@@ -6,6 +6,9 @@
     "node": "18"
   },
   "main": "index.js",
+  "scripts": {
+    "provision-admin": "node provision_admin.js"
+  },
   "dependencies": {
     "firebase-admin": "^12.5.0",
     "firebase-functions": "^4.9.0",

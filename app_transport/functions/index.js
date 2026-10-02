@@ -6,6 +6,80 @@ admin.initializeApp();
 
 const db = admin.database();
 
+const chatWithGroq = functions.runWith({
+  secrets: ["GROQ_API_KEY"],
+});
+
+exports.chatWithGroq = chatWithGroq.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "You must be signed in to use the assistant.",
+    );
+  }
+
+  const message = typeof data?.message === "string" ? data.message.trim() : "";
+  const tripContext =
+    typeof data?.tripContext === "string" ? data.tripContext : "";
+  const history = Array.isArray(data?.history) ? data.history.slice(-12) : [];
+  if (!message) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Message is required.",
+    );
+  }
+
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: `${CHAT_SYSTEM_PROMPT}\n\n${tripContext}`,
+          },
+          ...history,
+        ],
+        temperature: 0.2,
+        max_tokens: 700,
+      }),
+    },
+  );
+
+  const result = await response.json();
+  if (!response.ok) {
+    functions.logger.error("Groq request failed", {
+      status: response.status,
+      error: result?.error?.message || "unknown_error",
+    });
+    const code = response.status === 429 ? "resource-exhausted" : "internal";
+    throw new functions.https.HttpsError(
+      code,
+      "The AI service is temporarily unavailable.",
+    );
+  }
+
+  const reply = result?.choices?.[0]?.message?.content;
+  if (typeof reply !== "string" || !reply.trim()) {
+    throw new functions.https.HttpsError(
+      "internal",
+      "The AI service returned no response.",
+    );
+  }
+  return { reply: reply.trim() };
+});
+
+const CHAT_SYSTEM_PROMPT = `You are a friendly specialized digital assistant for App Transport, a tourism application dedicated to Egypt.
+Help only with tourism and travel within Egypt, App Transport tours, transportation, landmarks, and bookings.
+For off-topic questions respond only: "I specialize only in tourism and travel within Egypt. I cannot answer that. Do you have a tourism-related question?"
+Respond in the same language as the user (Arabic or English). Be concise and never invent trip prices or availability.`;
+
 function createMailTransport() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);

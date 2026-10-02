@@ -55,12 +55,12 @@ class _SignUpPageState extends State<SignUpPage>
     _passCtrl.addListener(() => setState(() {}));
     _animCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 650),
     );
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.25),
+      begin: const Offset(0, 0.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.decelerate));
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _animCtrl.forward();
   }
@@ -168,7 +168,27 @@ class _SignUpPageState extends State<SignUpPage>
       return;
     }
 
-    _showErrorSnackBar(authService.errorMessage ?? 'Google sign up failed');
+    final error = authService.errorMessage ?? 'Google sign up failed';
+    if (error.contains('already registered')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'This Google account already exists. Please sign in instead.',
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          action: SnackBarAction(
+            label: 'Sign in',
+            textColor: Colors.white,
+            onPressed: _goToSignIn,
+          ),
+        ),
+      );
+      return;
+    }
+    _showErrorSnackBar(error);
   }
 
   void _showErrorSnackBar(String message) {
@@ -212,13 +232,13 @@ class _SignUpPageState extends State<SignUpPage>
   void _goToSignIn() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 550),
+        transitionDuration: const Duration(milliseconds: 450),
         pageBuilder: (context, anim, secAnim) => const SignInPage(),
         transitionsBuilder: (context, anim, secAnim, child) => SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(-1, 0),
             end: Offset.zero,
-          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
           child: child,
         ),
       ),
@@ -228,152 +248,208 @@ class _SignUpPageState extends State<SignUpPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kAuthHeaderEdgeBlue,
-      body: Column(
-        children: [
-          // ── Gradient header ──────────────────────────────────────────
-          AuthHeader(
-            trailingText: 'Already have an account?',
-            actionLabel: 'Sign In',
-            onActionTap: _goToSignIn,
-          ),
+      backgroundColor: kAuthLightBlueBg,
+      body: Container(
+        decoration: const BoxDecoration(gradient: kAuthBgGradient),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                children: [
+                  // ── Top Navigation Bar ─────────────────────────────────
+                  AuthTopBar(onBackTap: () => Navigator.of(context).maybePop()),
 
-          // ── White card — fills remaining height exactly ───────────────
-          Expanded(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // ── Top section: scrollable ──────────────────
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Get started free.',
-                                  style: roboto(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w800,
+                  // ── Scrollable Form Area ───────────────────────────────
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 26,
+                            vertical: 4,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // ── Centered Circular Drone Emblem with Engravings ──
+                              const AuthCircularBadge(size: 145),
+                              const SizedBox(height: 14),
+
+                              // ── Title & Subtitle ─────────────────────────
+                              Text(
+                                'Create Account',
+                                style: roboto(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Sign up to start your journey',
+                                style: roboto(
+                                  fontSize: 14,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+
+                              // ── Inputs ───────────────────────────────────
+                              AuthInputField(
+                                controller: _nameCtrl,
+                                label: 'Full name',
+                                hintText: 'John Doe',
+                                prefixIcon: const Icon(
+                                  Icons.person_outline_rounded,
+                                  color: Color(0xFF94A3B8),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              AuthInputField(
+                                controller: _emailCtrl,
+                                label: 'Email address',
+                                hintText: 'name@example.com',
+                                keyboardType: TextInputType.emailAddress,
+                                prefixIcon: const Icon(
+                                  Icons.email_outlined,
+                                  color: Color(0xFF94A3B8),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              AuthInputField(
+                                controller: _passCtrl,
+                                label: 'Password',
+                                hintText: '••••••••',
+                                obscure: _obscure,
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline_rounded,
+                                  color: Color(0xFF94A3B8),
+                                  size: 20,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscure
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: const Color(0xFF94A3B8),
+                                    size: 20,
                                   ),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Free forever. No credit card needed.',
-                                  style: roboto(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
-                                AuthInputField(
-                                  controller: _emailCtrl,
-                                  label: 'Email Address',
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-                                const SizedBox(height: 14),
-                                AuthInputField(
-                                  controller: _nameCtrl,
-                                  label: 'Your name',
-                                ),
-                                const SizedBox(height: 14),
-                                AuthInputField(
-                                  controller: _passCtrl,
-                                  label: 'Password',
-                                  obscure: _obscure,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: Colors.grey.shade400,
-                                      size: 20,
-                                    ),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
-                                  ),
-                                ),
-                                if (_passCtrl.text.isNotEmpty) ...[
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      ...List.generate(4, (i) {
-                                        return Expanded(
-                                          child: Container(
-                                            margin: EdgeInsets.only(
-                                              right: i < 3 ? 5 : 0,
-                                            ),
-                                            height: 4,
-                                            decoration: BoxDecoration(
-                                              color: i < _strength
-                                                  ? _strengthColor
-                                                  : Colors.grey.shade200,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
+                              ),
+
+                              // ── Password Strength Bar ────────────────────
+                              if (_passCtrl.text.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    ...List.generate(4, (i) {
+                                      return Expanded(
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 250,
+                                          ),
+                                          margin: EdgeInsets.only(
+                                            right: i < 3 ? 6 : 0,
+                                          ),
+                                          height: 4.5,
+                                          decoration: BoxDecoration(
+                                            color: i < _strength
+                                                ? _strengthColor
+                                                : Colors.grey.shade300,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
                                             ),
                                           ),
-                                        );
-                                      }),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        _strengthLabel,
-                                        style: roboto(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: _strengthColor,
                                         ),
+                                      );
+                                    }),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      _strengthLabel,
+                                      style: roboto(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: _strengthColor,
                                       ),
-                                    ],
-                                  ),
-                                ],
-                                const SizedBox(height: 24),
-                                Consumer<AuthService>(
-                                  builder: (context, authService, _) {
-                                    return AuthGradientButton(
-                                      label: authService.isLoading
-                                          ? 'Sign Up...'
-                                          : 'Sign up',
-                                      onTap: authService.isLoading
-                                          ? () {}
-                                          : _handleSignUp,
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 ),
                               ],
-                            ),
+                              const SizedBox(height: 24),
+
+                              // ── Modern Gradient Sign Up Button ───────────
+                              Consumer<AuthService>(
+                                builder: (context, authService, _) {
+                                  return AuthGradientButton(
+                                    label: authService.isLoading
+                                        ? 'Signing up...'
+                                        : 'Sign Up',
+                                    isLoading: authService.isLoading,
+                                    onTap: authService.isLoading
+                                        ? () {}
+                                        : _handleSignUp,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 18),
+
+                              // ── Already have an account? Sign In ─────────
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Already have an account? ',
+                                    style: roboto(
+                                      fontSize: 13,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: _goToSignIn,
+                                    child: Text(
+                                      'Sign In',
+                                      style: roboto(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: kBlue,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // ── Or sign up with ──────────────────────────
+                              const AuthOrDivider(label: 'Or sign up with'),
+                              const SizedBox(height: 18),
+
+                              // ── Social Google Sign Up ────────────────────
+                              AuthSocialRow(
+                                label: 'Sign up with Google',
+                                onGoogleTap: _handleGoogleSignUp,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
                           ),
                         ),
-
-                        // ── Bottom section: pinned ──────────────────
-                        Column(
-                          children: [
-                            const AuthOrDivider(label: 'Or sign up with'),
-                            const SizedBox(height: 18),
-                            AuthSocialRow(onGoogleTap: _handleGoogleSignUp),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

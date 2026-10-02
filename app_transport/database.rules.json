@@ -22,7 +22,7 @@
     "users": {
       "$uid": {
         ".read": "$uid == auth.uid || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() == true)",
-        ".write": "$uid == auth.uid"
+        ".write": "auth != null && ((($uid == auth.uid) && ((!data.exists() && newData.child('isAdmin').val() == false) || (data.exists() && newData.child('isAdmin').val() == data.child('isAdmin').val()))) || root.child('users').child(auth.uid).child('isAdmin').val() == true)"
       }
     },
     "bookings": {

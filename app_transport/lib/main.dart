@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/booking_service.dart';
@@ -15,10 +16,13 @@ import 'services/admin_service.dart';
 import 'services/notification_service.dart';
 import 'services/language_service.dart';
 import 'pages/sign_in_page.dart';
+import 'pages/home_page.dart';
+import 'pages/admin/admin_dashboard_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  await dotenv.load(fileName: '.env');
 
   try {
     debugPrint('\n═══════════════════════════════════════════════════════════');
@@ -76,12 +80,15 @@ Widget _buildRootApp() {
 Future<void> _logDatabaseHealthCheck() async {
   try {
     final db = FirebaseDatabase.instance;
-    final snap = await db.ref('system/trips_seeded').get().timeout(
-      const Duration(seconds: 8),
-      onTimeout: () {
-        throw TimeoutException('Database health-check timeout');
-      },
-    );
+    final snap = await db
+        .ref('system/trips_seeded')
+        .get()
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () {
+            throw TimeoutException('Database health-check timeout');
+          },
+        );
     debugPrint(
       '[DB Health Check] Connected. exists=${snap.exists}, type=${snap.value.runtimeType}',
     );
@@ -111,7 +118,9 @@ class MyApp extends StatelessWidget {
         builder: (context, child) {
           final mq = MediaQuery.of(context);
           return MediaQuery(
-            data: mq.copyWith(textScaler: TextScaler.linear(_appTextScale(context))),
+            data: mq.copyWith(
+              textScaler: TextScaler.linear(_appTextScale(context)),
+            ),
             child: child ?? const SizedBox.shrink(),
           );
         },
@@ -122,9 +131,19 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const SplashScreen(),
+        home: const AuthGate(),
       ),
     );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    context.watch<AuthService>();
+    return const SplashScreen();
   }
 }
 
@@ -132,15 +151,26 @@ class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   void _openSignIn(BuildContext context) {
-    Navigator.of(context).push(
+    final auth = context.read<AuthService>();
+    if (auth.isRestoringSession) return;
+
+    final user = auth.currentUser;
+    final destination = user == null
+        ? const SignInPage()
+        : user.isAdmin
+        ? const AdminDashboardPage()
+        : const HomePage();
+
+    Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 450),
-        pageBuilder: (context, anim, secAnim) => const SignInPage(),
+        pageBuilder: (context, anim, secAnim) => destination,
         transitionsBuilder: (context, anim, secAnim, child) => FadeTransition(
           opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
           child: child,
         ),
       ),
+      (_) => false,
     );
   }
 

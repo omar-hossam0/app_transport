@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -8,10 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
 
-/// Authentication service using Firebase Realtime Database only (no Firebase Auth SDK)
+/// Authentication service backed by Firebase Authentication and Realtime Database.
 class AuthService extends ChangeNotifier {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
@@ -19,24 +16,21 @@ class AuthService extends ChangeNotifier {
 
   UserModel? _currentUser;
   bool _isLoading = false;
+  bool _isRestoringSession = true;
   String? _errorMessage;
   bool _needsEmailVerification = false;
   String? _pendingVerificationEmail;
 
-  static const _seedAdminAccounts = [
-    ('admin@gmail.com', 'admin1234', 'Admin User'),
-  ];
-
   // Getters
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isRestoringSession => _isRestoringSession;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
   bool get needsEmailVerification => _needsEmailVerification;
   String? get pendingVerificationEmail => _pendingVerificationEmail;
 
   AuthService() {
-    _ensureAdminSeed();
     _loadSavedSession();
   }
 
@@ -52,10 +46,6 @@ class AuthService extends ChangeNotifier {
         final refreshed = _auth.currentUser;
         if (refreshed != null && refreshed.emailVerified) {
           var profile = await _ensureUserProfile(firebaseUser: refreshed);
-          profile = await _ensureSeededAdminRole(
-            firebaseUser: refreshed,
-            profile: profile,
-          );
           _currentUser = profile;
           notifyListeners();
           await _saveSession(refreshed.uid);
@@ -63,23 +53,6 @@ class AuthService extends ChangeNotifier {
         }
         if (refreshed != null && !refreshed.emailVerified) {
           var profile = await _ensureUserProfile(firebaseUser: refreshed);
-          profile = await _ensureSeededAdminRole(
-            firebaseUser: refreshed,
-            profile: profile,
-          );
-
-          if (_isSeededAdminEmail(
-                (refreshed.email ?? '').trim().toLowerCase(),
-              ) &&
-              profile.isAdmin) {
-            _currentUser = profile;
-            _needsEmailVerification = false;
-            _pendingVerificationEmail = null;
-            notifyListeners();
-            await _saveSession(refreshed.uid);
-            return;
-          }
-
           _needsEmailVerification = true;
           _pendingVerificationEmail = refreshed.email;
           _currentUser = profile;
@@ -95,6 +68,9 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('[Auth] Error loading saved session: $e');
+    } finally {
+      _isRestoringSession = false;
+      notifyListeners();
     }
   }
 
@@ -109,15 +85,6 @@ class AuthService extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────────
-  // Password Hashing (SHA-256)
-  // ─────────────────────────────────────────────────
-
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
   // ─────────────────────────────────────────────────
   // Email Key Encoding (Firebase doesn't allow . @ in keys)
   // ─────────────────────────────────────────────────
@@ -127,85 +94,6 @@ class AuthService extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────────
-  // Admin Seed (one-time)
-  // ─────────────────────────────────────────────────
-
-  Future<void> _ensureAdminSeed() async {
-    try {
-      final admins = _seedAdminAccounts;
-
-      final now = DateTime.now();
-
-      for (final (adminEmail, adminPassword, adminName) in admins) {
-        await _ensureAdminAccount(
-          adminEmail: adminEmail,
-          adminPassword: adminPassword,
-          adminName: adminName,
-          now: now,
-        );
-      }
-    } catch (e) {
-      debugPrint('[Auth] Admin seed skipped: $e');
-    }
-  }
-
-  Future<void> _ensureAdminAccount({
-    required String adminEmail,
-    required String adminPassword,
-    required String adminName,
-    required DateTime now,
-  }) async {
-    try {
-      final emailKey = _encodeEmail(adminEmail);
-      final passwordHash = _hashPassword(adminPassword);
-
-      // Always ensure this specific admin account exists and has admin role.
-      final indexSnap = await _database
-          .ref('email_index/$emailKey')
-          .get()
-          .timeout(const Duration(seconds: 8));
-
-      if (indexSnap.exists && indexSnap.value is Map) {
-        final uid = (indexSnap.value as Map)['uid'] as String?;
-        if (uid != null && uid.isNotEmpty) {
-          await _database
-              .ref('users/$uid')
-              .update({
-                'email': adminEmail,
-                'name': adminName,
-                'isAdmin': true,
-                'passwordHash': passwordHash,
-              })
-              .timeout(const Duration(seconds: 8));
-          return;
-        }
-      }
-
-      final uid = const Uuid().v4();
-
-      final adminUser = UserModel(
-        uid: uid,
-        email: adminEmail,
-        name: adminName,
-        isAdmin: true,
-        createdAt: now,
-        lastLogin: now,
-      );
-
-      await _database
-          .ref('users/$uid')
-          .set({...adminUser.toMap(), 'passwordHash': passwordHash})
-          .timeout(const Duration(seconds: 8));
-
-      await _database
-          .ref('email_index/$emailKey')
-          .set({'uid': uid})
-          .timeout(const Duration(seconds: 8));
-    } catch (e) {
-      debugPrint('[Auth] Error creating admin account for $adminEmail: $e');
-    }
-  }
-
   // ─────────────────────────────────────────────────
   // Load User from Database
   // ─────────────────────────────────────────────────
@@ -412,15 +300,7 @@ class AuthService extends ChangeNotifier {
       }
 
       var profile = await _ensureUserProfile(firebaseUser: refreshedUser);
-      profile = await _ensureSeededAdminRole(
-        firebaseUser: refreshedUser,
-        profile: profile,
-      );
-
-      final canBypassVerification =
-          _isSeededAdminEmail(trimmedEmail) && profile.isAdmin;
-
-      if (!refreshedUser.emailVerified && !canBypassVerification) {
+      if (!refreshedUser.emailVerified) {
         await refreshedUser.sendEmailVerification();
         _needsEmailVerification = true;
         _pendingVerificationEmail = trimmedEmail;
@@ -450,15 +330,7 @@ class AuthService extends ChangeNotifier {
     } on fb_auth.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' ||
           e.code == 'invalid-credential' ||
-          e.code == 'wrong-password') {
-        final adminBootstrap = await _trySeededAdminBootstrapLogin(
-          email: trimmedEmail,
-          password: password,
-        );
-        if (adminBootstrap) {
-          return signIn(email: trimmedEmail, password: password);
-        }
-      }
+          e.code == 'wrong-password') {}
 
       if (e.code == 'user-not-found') {
         _setError('Email not found. Please sign up');
@@ -578,11 +450,6 @@ class AuthService extends ChangeNotifier {
         firebaseUser: firebaseUser,
         name: firebaseUser.displayName,
       );
-      profile = await _ensureSeededAdminRole(
-        firebaseUser: firebaseUser,
-        profile: profile,
-      );
-
       final now = DateTime.now();
       await _database.ref('users/${profile.uid}').update({
         'lastLogin': now.toIso8601String(),
@@ -725,11 +592,6 @@ class AuthService extends ChangeNotifier {
         firebaseUser: firebaseUser,
         name: firebaseUser.displayName,
       );
-      profile = await _ensureSeededAdminRole(
-        firebaseUser: firebaseUser,
-        profile: profile,
-      );
-
       final now = DateTime.now();
       await _database.ref('users/${profile.uid}').update({
         'lastLogin': now.toIso8601String(),
@@ -791,102 +653,6 @@ class AuthService extends ChangeNotifier {
       );
     } catch (_) {
       _setError('Incorrect password');
-    }
-  }
-
-  String _seedAdminName(String email) {
-    for (final admin in _seedAdminAccounts) {
-      if (admin.$1 == email) {
-        return admin.$3;
-      }
-    }
-    return 'Admin';
-  }
-
-  Future<UserModel> _ensureSeededAdminRole({
-    required fb_auth.User firebaseUser,
-    required UserModel profile,
-  }) async {
-    final email = (firebaseUser.email ?? '').trim().toLowerCase();
-    if (!_isSeededAdminEmail(email) || profile.isAdmin) {
-      return profile;
-    }
-
-    final adminName = _seedAdminName(email);
-    await _database
-        .ref('users/${profile.uid}')
-        .update({'email': email, 'name': adminName, 'isAdmin': true})
-        .timeout(const Duration(seconds: 8));
-
-    await _database
-        .ref('email_index/${_encodeEmail(email)}')
-        .set({'uid': profile.uid})
-        .timeout(const Duration(seconds: 8));
-
-    return profile.copyWith(email: email, name: adminName, isAdmin: true);
-  }
-
-  bool _isSeededAdminEmail(String email) {
-    return _seedAdminAccounts.any((admin) => admin.$1 == email);
-  }
-
-  Future<bool> _trySeededAdminBootstrapLogin({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      if (!_isSeededAdminEmail(email)) {
-        return false;
-      }
-      final emailIndex = await _database
-          .ref('email_index/${_encodeEmail(email)}')
-          .get()
-          .timeout(const Duration(seconds: 8));
-
-      if (!emailIndex.exists || emailIndex.value is! Map) {
-        return false;
-      }
-
-      final uid = (emailIndex.value as Map)['uid'] as String?;
-      if (uid == null || uid.isEmpty) {
-        return false;
-      }
-
-      final userSnap = await _database
-          .ref('users/$uid')
-          .get()
-          .timeout(const Duration(seconds: 8));
-
-      if (!userSnap.exists || userSnap.value is! Map) {
-        return false;
-      }
-
-      final userData = Map<String, dynamic>.from(userSnap.value as Map);
-      final isAdmin = userData['isAdmin'] == true;
-      final storedHash = userData['passwordHash'] as String?;
-      if (!isAdmin || storedHash == null) {
-        return false;
-      }
-
-      if (storedHash != _hashPassword(password)) {
-        return false;
-      }
-
-      try {
-        await _auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } on fb_auth.FirebaseAuthException catch (e) {
-        if (e.code != 'email-already-in-use') {
-          return false;
-        }
-      }
-
-      return true;
-    } catch (e) {
-      debugPrint('[Auth] Admin bootstrap login failed for $email: $e');
-      return false;
     }
   }
 
@@ -1038,11 +804,7 @@ class AuthService extends ChangeNotifier {
       final nowIso = DateTime.now().toIso8601String();
       await _database
           .ref('users/$uid')
-          .update({
-            // Keep hash for compatibility with old data only.
-            'passwordHash': _hashPassword(newPassword),
-            'passwordUpdatedAt': nowIso,
-          })
+          .update({'passwordUpdatedAt': nowIso})
           .timeout(const Duration(seconds: 10));
 
       await _database.ref('user_activity/$uid/password_changes').push().set({

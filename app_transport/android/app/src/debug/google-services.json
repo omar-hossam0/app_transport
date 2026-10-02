@@ -13,7 +13,20 @@
           "package_name": "com.omar.app_transport"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "83204859004-ckon4cl6gkcn8ufp4k96a738r46jtrta.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.omar.app_transport",
+            "certificate_hash": "5f5ce2abd8677c86338716badbd784ca2675ba8c"
+          }
+        },
+        {
+          "client_id": "83204859004-gqgf5ift4mulq7qv2ai5m4ba772jsrr1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBZKOH97aKwLTOyqI4PT5dR54rgG2N4udw"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "83204859004-gqgf5ift4mulq7qv2ai5m4ba772jsrr1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

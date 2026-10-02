@@ -1,12 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'auth_widgets.dart';
-import '../config.dart';
 import '../services/smooth_navigation.dart';
 import '../services/ui_translation.dart';
 import '../services/trip_service.dart';
+import '../services/groq_chat_service.dart';
+import '../services/booking_service.dart';
+import '../services/auth_service.dart';
+import '../models/booking_model.dart';
 import '../models/trip_model.dart';
 
 // ── ChatBot external controller ───────────────────────────────────────────────
@@ -18,71 +20,16 @@ class ChatBotController {
 }
 
 // ── Groq AI service ────────────────────────────────────────────────────────
-const _kGroqApiKey = kGroqApiKey;
-const _kGroqModel = 'llama-3.3-70b-versatile';
 const _kChatBackgroundAsset = 'img/Background.png';
 
-const _kSystemPrompt = '''
-You are a friendly specialized digital assistant for App Transport, a tourism application dedicated to Egypt.
-Your function is to help travelers explore and book tours in Egypt.
-
-ALLOWED interactions:
-1. Greetings and farewells (hello, hi, اهلا, مرحبا, bye, etc.) — respond warmly and invite the user to ask about Egypt tourism
-2. Tour packages and trips within Egypt
-3. Booking transportation and travel between Egyptian cities
-4. Information about landmarks and tourist sites in Egypt
-5. The app's Flying Taxi aerial tours and Transit day trips
-6. General travel tips for visiting Egypt
-
-App Transport offers:
-- Flying Taxi aerial tours departing from Cairo Airport (Giza Pyramids, Alexandria, Luxor, Siwa, Aswan, Hurghada, etc.) starting from \$75
-- Transit day trips: Giza Pyramids + NMEC (8h/\$90), Old Cairo + Khan El-Khalili (5h/\$65), Cairo Tower + Felucca (4h/\$55), Saladin Citadel (5h/\$70), Memphis + Saqqara + Dahshur (8h/\$100)
-- All trips include airport pickup, certified English-speaking guide, and entry tickets
-- Free cancellation up to 2 hours before departure
-
-MANDATORY RULES:
-- For greetings, respond warmly and briefly mention you are the Egypt travel assistant, then ask how you can help with their trip
-- You are STRICTLY FORBIDDEN from answering anything unrelated to tourism or travel within Egypt
-- For ANY off-topic question (politics, sports, technology, weather, coding, etc.), respond ONLY with: "I specialize only in tourism and travel within Egypt. I cannot answer that. Do you have a tourism-related question?"
-- Do NOT apologize. Do NOT explain further for off-topic refusals.
-- Give accurate, concise, and helpful answers for travelers in Egypt
-- Always respond in the SAME LANGUAGE the user writes in (Arabic or English)
-''';
-
 class _GeminiChat {
-  final List<Map<String, String>> _history = [];
+  final GroqChatService _service = GroqChatService();
 
   Future<String> send(String message, {required String tripContext}) async {
-    _history.add({'role': 'user', 'content': message});
     try {
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_kGroqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': _kGroqModel,
-          'messages': [
-            {'role': 'system', 'content': '$_kSystemPrompt\n\n$tripContext'},
-            ..._history,
-          ],
-          'temperature': 0.2,
-          'max_tokens': 700,
-        }),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final reply = data['choices'][0]['message']['content'] as String;
-        _history.add({'role': 'assistant', 'content': reply});
-        return reply.trim();
-      } else {
-        _history.removeLast();
-        return 'Error ${response.statusCode}. Please try again. 🔌';
-      }
-    } catch (e) {
-      _history.removeLast();
-      return 'Connection error. Please check your internet and try again. 🔌';
+      return await _service.sendMessage(message, tripContext: tripContext);
+    } on GroqChatException catch (e) {
+      return e.message;
     }
   }
 }
@@ -98,7 +45,7 @@ const _kChips = [
 
 String _buildTripContext(List<TripModel> trips) {
   if (trips.isEmpty) {
-    return 'AVAILABLE TRIPS: none. If asked about trips, say that no trips are available right now.';
+    return 'TRIP DATA STATUS: unavailable in this request. Do not claim that a trip is unavailable. Say that trip availability is being refreshed and ask the user to try again.';
   }
 
   final buffer = StringBuffer(
@@ -118,49 +65,22 @@ String _buildTripContext(List<TripModel> trips) {
   return buffer.toString();
 }
 
-// ── (Keyword responses replaced by Gemini AI) ───────────────────────────────
-const kResponses = {
-  'flying taxi':
-      'We offer flying taxi aerial tours departing from Cairo Airport! Choose from 10 breathtaking destinations including the Giza Pyramids, Alexandria, Luxor, Siwa Oasis, Aswan, Hurghada and more. Prices start from \$75. Tap "Flying Taxi" in the bottom nav to explore all trips! ✈️',
-  'flying':
-      'Our Flying Taxi service takes you on scenic aerial tours across Egypt — all departing from Cairo Airport. From a 7-hour Fayoum loop to a 20-hour Siwa oasis journey, there\'s a trip for every layover length. 🚁',
-  'taxi':
-      'Our Flying Taxi service takes you on scenic aerial tours across Egypt — all departing from Cairo Airport. Prices start at \$75 per person. ✈️',
-  'transit':
-      'Our Transit Trips are guided land day-tours perfect for layovers! We offer 5 curated routes:\n• Giza Pyramids + NMEC (8h / \$90)\n• Old Cairo + Khan El-Khalili (5h / \$65)\n• Cairo Tower + Felucca Cruise (4h / \$55)\n• Saladin Citadel + Islamic Cairo (5h / \$70)\n• Memphis, Saqqara & Dahshur (8h / \$100)\nTap "Trips" in the bottom nav to book! 🚌',
-  'booking':
-      'You can view and manage all your bookings in the "Bookings" tab. You\'ll find upcoming and past trips, with options to modify your booking (change time or traveler count) or cancel for free up to 2 hours before departure. 📋',
-  'cancel':
-      'Free cancellation is available up to 2 hours before your trip departure. Head to "Bookings" → select your trip → tap "Cancel Booking" to confirm. A full refund will be processed within 3-5 business days. 💳',
-  'modify':
-      'To modify a booking, go to "Bookings" → select your upcoming trip → tap "Modify". You can change the departure time and number of travelers. The updated total price will be shown before you confirm. ✏️',
-  'price':
-      'Our trip prices range from:\n• \$55 — Cairo Tower + Felucca Cruise (4h)\n• \$65 — Old Cairo + Khan El-Khalili (5h)\n• \$70 — Saladin Citadel (5h)\n• \$90 — Giza Pyramids + NMEC (8h)\n• \$100 — Memphis + Saqqara + Dahshur (8h)\nFlying Taxi tours start from \$75 up to \$300. 💰',
-  'prices':
-      'Our trip prices range from \$55 to \$300 per person depending on the destination and duration. All prices include airport pickup, a certified guide, and entry tickets. 💰',
-  'egypt':
-      'Egypt is an incredible layover destination! 🌟 Whether you have 4 hours or a full day, we have the perfect tour:\n• Short layover (4h): Cairo Tower + Nile Cruise\n• Medium (5-6h): Old Cairo or Saladin Citadel\n• Full day (8h+): Pyramids of Giza or Memphis/Saqqara',
-  'cairo':
-      'Cairo is our hub city! All trips depart from Cairo International Airport. The city offers amazing experiences from the iconic Giza Pyramids to the medieval Islamic quarter of Khan El-Khalili. 🕌',
-  'pyramids':
-      'The Giza Pyramids tour is our most popular trip! 🏛️ The 8-hour "Giza Pyramids, NMEC & Nile Corniche" experience is priced at \$90/person and includes a visit to the Grand Egyptian Museum, the Sphinx, and a relaxing Nile walk. Book it in the "Trips" tab!',
-  'luxor':
-      'Our Luxor flying taxi tour (16h / \$250) departs from Cairo Airport and covers the Karnak Temple complex and Valley of the Kings — where pharaohs including Tutankhamun are buried. A truly once-in-a-lifetime experience! 🏺',
-  'hello':
-      'Hello! 👋 Welcome to App Transport — your layover travel companion. I can help you explore our Flying Taxi tours, Transit day trips, manage bookings, or answer any questions. What would you like to know?',
-  'hi':
-      'Hi there! 😊 I\'m your AI travel assistant. Ask me anything about:\n• Flying Taxi aerial tours\n• Transit day trips\n• Booking management\n• Destinations and prices',
-  'help':
-      'Of course! Here\'s what I can help with:\n✈️ Flying Taxi tours\n🚌 Transit day trips\n📋 Booking management (view, modify, cancel)\n💰 Pricing info\n📍 Egyptian destinations\n\nJust type your question or tap a suggestion chip above!',
-  'airport':
-      'All our trips depart from and return to Cairo International Airport (CAI — Terminal 2). Our drivers will meet you at the arrivals hall with a name sign. No foreign SIM card needed — just show your booking ID! 🛫',
-  'include':
-      'Our trip packages include:\n✅ Airport pickup & drop-off\n✅ Private or shared vehicle\n✅ Certified English-speaking guide\n✅ Entry tickets to all sites\n✅ Bottled water\nSome longer tours also include a light lunch or traditional tea. 🍵',
-  'payment':
-      'We accept all major credit/debit cards (Visa, Mastercard, Amex) as well as cash on pickup. Payment is captured at time of booking. For cancellations, refunds return to your original payment method within 3-5 business days. 💳',
-};
+String _buildBookingContext(List<Booking> bookings) {
+  if (bookings.isEmpty) {
+    return 'CURRENT USER BOOKINGS: none loaded. Do not claim that a booking exists. Direct the user to My Bookings to view or create one.';
+  }
 
-// _getResponse replaced by _GeminiChat
+  final buffer = StringBuffer('CURRENT USER BOOKINGS:\n');
+  for (final booking in bookings) {
+    buffer.writeln(
+      '- trip: ${booking.tripName} | date: ${booking.date.toIso8601String()} | time: ${booking.time} | status: ${booking.status.name} | travelers: ${booking.travelers}',
+    );
+  }
+  buffer.writeln(
+    'Do not change or cancel a booking from chat. Direct the user to My Bookings for actions.',
+  );
+  return buffer.toString();
+}
 
 // ── Public entry-point ─────────────────────────────────────────────────────
 void showChatBot(BuildContext context) {
@@ -237,8 +157,17 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _scrollToBottom();
 
     final tripService = context.read<TripService>();
-    final tripContext = _buildTripContext(tripService.activeTrips);
-    final reply = await _gemini.send(msg, tripContext: tripContext);
+    final bookingService = context.read<BookingService>();
+    final auth = context.read<AuthService>();
+    if (tripService.isLoading) {
+      await tripService.loadTrips();
+    }
+    if (auth.currentUser != null && bookingService.bookings.isEmpty) {
+      await bookingService.loadBookings(auth.currentUser!.uid);
+    }
+    final tripContext =
+        '${_buildTripContext(tripService.activeTrips)}\n${_buildBookingContext(bookingService.bookings)}';
+      final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -358,8 +287,17 @@ class _ChatBotSheetState extends State<_ChatBotSheet> {
     _scrollToBottom();
 
     final tripService = context.read<TripService>();
-    final tripContext = _buildTripContext(tripService.activeTrips);
-    final reply = await _gemini.send(msg, tripContext: tripContext);
+    final bookingService = context.read<BookingService>();
+    final auth = context.read<AuthService>();
+    if (tripService.isLoading) {
+      await tripService.loadTrips();
+    }
+    if (auth.currentUser != null && bookingService.bookings.isEmpty) {
+      await bookingService.loadBookings(auth.currentUser!.uid);
+    }
+    final tripContext =
+        '${_buildTripContext(tripService.activeTrips)}\n${_buildBookingContext(bookingService.bookings)}';
+      final reply = await _gemini.send(msg, tripContext: tripContext);
     if (!mounted) return;
 
     setState(() {
@@ -703,15 +641,77 @@ class _Bubble extends StatelessWidget {
                     offset: const Offset(0, 3),
                   ),
                 ],
+                border: isUser
+                    ? null
+                    : Border.all(color: const Color(0xFFE3ECF5)),
               ),
-              child: Text(
-                isUser ? msg.text : UiTranslation.display(context, msg.text),
-                style: roboto(
-                  fontSize: 13,
-                  color: isUser ? Colors.white : const Color(0xFF1A1A2E),
-                  height: 1.5,
-                ),
-              ),
+              child: isUser
+                  ? Text(
+                      msg.text,
+                      style: roboto(
+                        fontSize: 13,
+                        color: Colors.white,
+                        height: 1.5,
+                      ),
+                    )
+                  : MarkdownBody(
+                      data: UiTranslation.display(context, msg.text),
+                      selectable: true,
+                      shrinkWrap: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: roboto(
+                          fontSize: 13,
+                          color: const Color(0xFF1A1A2E),
+                          height: 1.5,
+                        ),
+                        h1: roboto(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF102A43),
+                        ),
+                        h2: roboto(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF102A43),
+                        ),
+                        h3: roboto(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF102A43),
+                        ),
+                        listBullet: roboto(
+                          fontSize: 13,
+                          color: kBlue,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        strong: roboto(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF102A43),
+                        ),
+                        tableHead: roboto(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                        tableBody: roboto(
+                          fontSize: 12,
+                          color: const Color(0xFF1A1A2E),
+                          height: 1.35,
+                        ),
+                        tableBorder: TableBorder.all(
+                          color: const Color(0xFFD9E2EC),
+                          width: 1,
+                        ),
+                        tableHeadAlign: TextAlign.left,
+                        blockSpacing: 8,
+                        blockquote: roboto(
+                          fontSize: 13,
+                          color: const Color(0xFF486581),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
             ),
           ),
           if (isUser) const SizedBox(width: 8),
