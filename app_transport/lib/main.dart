@@ -114,6 +114,9 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF187BCD)),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(foregroundColor: Colors.white),
+          ),
         ),
         builder: (context, child) {
           final mq = MediaQuery.of(context);

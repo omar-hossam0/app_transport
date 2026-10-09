@@ -247,8 +247,12 @@ class _SignUpPageState extends State<SignUpPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    final s = (screenH / 720).clamp(0.68, 1.0);
+
     return Scaffold(
       backgroundColor: kAuthLightBlueBg,
+      resizeToAvoidBottomInset: false,
       body: Container(
         decoration: const BoxDecoration(gradient: kAuthBgGradient),
         child: SafeArea(
@@ -260,45 +264,42 @@ class _SignUpPageState extends State<SignUpPage>
                   // ── Top Navigation Bar ─────────────────────────────────
                   AuthTopBar(onBackTap: () => Navigator.of(context).maybePop()),
 
-                  // ── Scrollable Form Area ───────────────────────────────
+                  // ── No-scroll Form Area ────────────────────────────────
                   Expanded(
                     child: FadeTransition(
                       opacity: _fadeAnim,
                       child: SlideTransition(
                         position: _slideAnim,
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 26,
-                            vertical: 4,
-                          ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(26 * s, 2 * s, 26 * s, 0),
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // ── Centered Circular Drone Emblem with Engravings ──
-                              const AuthCircularBadge(size: 145),
-                              const SizedBox(height: 14),
+                              // ── Circular Badge ──────────────────────────
+                              AuthCircularBadge(size: 110 * s),
+                              SizedBox(height: 8 * s),
 
                               // ── Title & Subtitle ─────────────────────────
                               Text(
                                 'Create Account',
                                 style: roboto(
-                                  fontSize: 26,
+                                  fontSize: 24 * s,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF0F172A),
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              SizedBox(height: 4 * s),
                               Text(
                                 'Sign up to start your journey',
                                 style: roboto(
-                                  fontSize: 14,
+                                  fontSize: 13 * s,
                                   color: const Color(0xFF64748B),
                                 ),
                               ),
-                              const SizedBox(height: 22),
+                              SizedBox(height: 18 * s),
 
-                              // ── Inputs ───────────────────────────────────
+                              // ── Full Name Input ───────────────────────────
                               AuthInputField(
                                 controller: _nameCtrl,
                                 label: 'Full name',
@@ -309,8 +310,9 @@ class _SignUpPageState extends State<SignUpPage>
                                   size: 20,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              SizedBox(height: 11 * s),
 
+                              // ── Email Input ───────────────────────────────
                               AuthInputField(
                                 controller: _emailCtrl,
                                 label: 'Email address',
@@ -322,8 +324,9 @@ class _SignUpPageState extends State<SignUpPage>
                                   size: 20,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              SizedBox(height: 11 * s),
 
+                              // ── Password Input ────────────────────────────
                               AuthInputField(
                                 controller: _passCtrl,
                                 label: 'Password',
@@ -347,9 +350,9 @@ class _SignUpPageState extends State<SignUpPage>
                                 ),
                               ),
 
-                              // ── Password Strength Bar ────────────────────
+                              // ── Password Strength Bar ─────────────────────
                               if (_passCtrl.text.isNotEmpty) ...[
-                                const SizedBox(height: 10),
+                                SizedBox(height: 8 * s),
                                 Row(
                                   children: [
                                     ...List.generate(4, (i) {
@@ -366,9 +369,8 @@ class _SignUpPageState extends State<SignUpPage>
                                             color: i < _strength
                                                 ? _strengthColor
                                                 : Colors.grey.shade300,
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                         ),
                                       );
@@ -385,9 +387,9 @@ class _SignUpPageState extends State<SignUpPage>
                                   ],
                                 ),
                               ],
-                              const SizedBox(height: 24),
+                              SizedBox(height: 20 * s),
 
-                              // ── Modern Gradient Sign Up Button ───────────
+                              // ── Sign Up Button ────────────────────────────
                               Consumer<AuthService>(
                                 builder: (context, authService, _) {
                                   return AuthGradientButton(
@@ -401,9 +403,9 @@ class _SignUpPageState extends State<SignUpPage>
                                   );
                                 },
                               ),
-                              const SizedBox(height: 18),
+                              SizedBox(height: 14 * s),
 
-                              // ── Already have an account? Sign In ─────────
+                              // ── Sign In link ──────────────────────────────
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -427,18 +429,18 @@ class _SignUpPageState extends State<SignUpPage>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 20),
+                              SizedBox(height: 16 * s),
 
-                              // ── Or sign up with ──────────────────────────
+                              // ── Divider ───────────────────────────────────
                               const AuthOrDivider(label: 'Or sign up with'),
-                              const SizedBox(height: 18),
+                              SizedBox(height: 14 * s),
 
-                              // ── Social Google Sign Up ────────────────────
+                              // ── Google Sign Up ────────────────────────────
                               AuthSocialRow(
                                 label: 'Sign up with Google',
                                 onGoogleTap: _handleGoogleSignUp,
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 8 * s),
                             ],
                           ),
                         ),
@@ -454,3 +456,4 @@ class _SignUpPageState extends State<SignUpPage>
     );
   }
 }
+

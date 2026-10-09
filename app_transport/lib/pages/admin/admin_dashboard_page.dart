@@ -1,5 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -64,6 +65,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
 
     final isCompact = MediaQuery.of(context).size.width < 900;
+    if (isCompact) {
+      return _mobileScaffold(auth.currentUser!);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F8),
@@ -93,6 +97,700 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
       ),
     );
+  }
+
+  Widget _mobileScaffold(UserModel user) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F9FD),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _mobileHeader(user),
+            Expanded(
+              child: IndexedStack(
+                index: _navIndex,
+                children: [_mobileOrders(), _mobileTrips(), _buildAdminsTab()],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _mobileNav(),
+    );
+  }
+
+  Widget _mobileHeader(UserModel user) {
+    if (_navIndex == 1) {
+      return Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF102D57), Color(0xFF0A4E86)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: () => setState(() => _navIndex = 0),
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              tooltip: 'Back to orders',
+            ),
+            Text(
+              'Trips',
+              style: roboto(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.search_rounded, color: Colors.white),
+              tooltip: 'Search trips',
+            ),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: () => _openTripEditor(context),
+              icon: const Icon(
+                Icons.add_circle_rounded,
+                color: Color(0xFF2D8FEA),
+              ),
+              tooltip: 'Add trip',
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 178,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF102D57), Color(0xFF0A4E86)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          Positioned(
+            right: -18,
+            bottom: -46,
+            child: Container(
+              width: 245,
+              height: 130,
+              decoration: BoxDecoration(
+                color: const Color(0xFF65B3E3).withValues(alpha: .22),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(180),
+                  topRight: Radius.circular(100),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.flight_takeoff_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      'TripNest',
+                      style: roboto(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    CircleAvatar(
+                      radius: 15,
+                      backgroundColor: const Color(0xFF8BD4FF),
+                      child: Text(
+                        (user.name.isEmpty ? 'A' : user.name[0]).toUpperCase(),
+                        style: roboto(
+                          color: const Color(0xFF075293),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  'Good morning, Admin 👋',
+                  style: roboto(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  "Here's what's happening with your trips",
+                  style: roboto(
+                    color: Colors.white.withValues(alpha: .8),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileOrders() {
+    final service = context.watch<BookingService>();
+    final all = service.allBookings;
+    final counts = [
+      all.length,
+      all.where((b) => b.status == BookingStatus.pending).length,
+      all.where((b) => b.status == BookingStatus.completed).length,
+      all.where((b) => b.status == BookingStatus.accepted).length,
+    ];
+    final filtered = _filterBookings(all);
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 15, 14, 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8FBFF),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(30),
+              bottom: Radius.circular(22),
+            ),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 105,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 4,
+                  separatorBuilder: (_, _) => const SizedBox(width: 9),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: 108,
+                    child: _MobileOrderStat(
+                      title: [
+                        'Total Orders',
+                        'Pending',
+                        'Completed',
+                        'Accepted',
+                      ][i],
+                      value: '${counts[i]}',
+                      icon: [
+                        Icons.flight_takeoff_rounded,
+                        Icons.schedule_rounded,
+                        Icons.check_circle_rounded,
+                        Icons.cancel_rounded,
+                      ][i],
+                      color: [
+                        const Color(0xFF45A9EF),
+                        const Color(0xFFFFA72E),
+                        const Color(0xFF2FB879),
+                        const Color(0xFF8848D8),
+                      ][i],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _mobileOrderFilters(),
+            ],
+          ),
+        ),
+        Expanded(
+          child: service.isAllLoading
+              ? const Center(child: CircularProgressIndicator(color: kBlue))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 9),
+                  itemBuilder: (_, i) => _mobileOrderCard(filtered[i]),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mobileOrderFilters() {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _orderFilters.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        itemBuilder: (_, i) {
+          final selected = i == _orderFilterIndex;
+          return ChoiceChip(
+            label: Text(_orderFilters[i]),
+            selected: selected,
+            onSelected: (_) => setState(() => _orderFilterIndex = i),
+            selectedColor: const Color(0xFF173B5A),
+            backgroundColor: Colors.white,
+            side: BorderSide.none,
+            labelStyle: roboto(
+              fontSize: 9,
+              color: selected ? Colors.white : const Color(0xFF7890A5),
+              fontWeight: FontWeight.w700,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _mobileOrderCard(Booking booking) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () => _showMobileBookingActions(booking),
+      child: Container(
+        padding: const EdgeInsets.all(9),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF367AA8).withValues(alpha: .08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: SizedBox(
+                width: 57,
+                height: 57,
+                child: _UrlImage(
+                  url: booking.tripImage,
+                  fit: BoxFit.cover,
+                  fallback: () => Container(
+                    color: const Color(0xFFDCEFFF),
+                    child: const Icon(
+                      Icons.landscape_rounded,
+                      color: Color(0xFF67A9D8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    booking.tripName.isEmpty
+                        ? 'New trip booking'
+                        : booking.tripName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: roboto(fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${booking.date.day}/${booking.date.month}/${booking.date.year} • ${booking.travelers} travelers',
+                    style: roboto(fontSize: 8, color: const Color(0xFF8BA1B2)),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              children: [
+                _StatusBadge(status: booking.status),
+                const SizedBox(height: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFF8EA9BE),
+                  size: 19,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileTrips() {
+    final service = context.watch<TripService>();
+    final trips = service.trips;
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.fromLTRB(0, 12, 0, 10),
+              height: 102,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0D6DB0), Color(0xFF61B5E6)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 15, 14, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Manage trip catalog',
+                            style: roboto(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'Upload new trips and manage available\ntrips for your users',
+                            style: roboto(
+                              color: Colors.white.withValues(alpha: .88),
+                              fontSize: 9,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .18),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.flight_takeoff_rounded,
+                        color: Colors.white,
+                        size: 31,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: Row(
+                children: [
+                  _tripTab('All Trips', trips.length),
+                  _tripTab('Active', trips.where((t) => t.isActive).length),
+                  _tripTab('Inactive', trips.where((t) => !t.isActive).length),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 9, 4, 6),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search trips...',
+                  hintStyle: roboto(
+                    fontSize: 10,
+                    color: const Color(0xFF9BAFC0),
+                  ),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 17),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 2),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: const Color(0xFFE1EBF4)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: const Color(0xFFE1EBF4)),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: service.isLoading
+                  ? const Center(child: CircularProgressIndicator(color: kBlue))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(10, 3, 10, 70),
+                      itemCount: trips.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 7),
+                      itemBuilder: (_, i) => _mobileTripCard(trips[i]),
+                    ),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 15,
+          child: FloatingActionButton(
+            heroTag: 'add-trip-mobile',
+            mini: true,
+            backgroundColor: kBlue,
+            onPressed: () => _openTripEditor(context),
+            child: const Icon(Icons.add_rounded, color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tripTab(String title, int count) {
+    final selected = title == 'All Trips';
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF173B5A) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF173B5A).withValues(alpha: .18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: roboto(
+                  fontSize: 9,
+                  color: selected ? Colors.white : const Color(0xFF728CA2),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withValues(alpha: .16)
+                      : const Color(0xFFF0F4F8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: roboto(
+                    fontSize: 8,
+                    color: selected ? Colors.white : const Color(0xFF728CA2),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileTripCard(TripModel trip) {
+    return Container(
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4D86AD).withValues(alpha: .08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9),
+            child: SizedBox(
+              width: 61,
+              height: 61,
+              child: _UrlImage(
+                url: trip.imageUrl,
+                fit: BoxFit.cover,
+                fallback: () => Container(
+                  color: trip.accentColor.withValues(alpha: .15),
+                  child: Icon(
+                    trip.isFlying
+                        ? Icons.flight_rounded
+                        : Icons.directions_bus_rounded,
+                    color: trip.accentColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  trip.name.isEmpty ? 'Untitled trip' : trip.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: roboto(fontSize: 11, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${trip.type.name.toUpperCase()} • ${trip.durationLabel}',
+                  style: roboto(fontSize: 8, color: const Color(0xFF8AA1B3)),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  trip.priceLabel,
+                  style: roboto(
+                    fontSize: 10,
+                    color: const Color(0xFFE28A19),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    trip.isActive ? 'Active' : 'Inactive',
+                    style: roboto(
+                      fontSize: 8,
+                      color: trip.isActive
+                          ? const Color(0xFF28A96D)
+                          : Colors.grey,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    iconSize: 17,
+                    onSelected: (value) {
+                      if (value == 'edit') _openTripEditor(context, trip: trip);
+                      if (value == 'delete') _confirmDeleteTrip(context, trip);
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                ],
+              ),
+              Transform.scale(
+                scale: .72,
+                child: Switch(
+                  value: trip.isActive,
+                  onChanged: (value) =>
+                      context.read<TripService>().setTripActive(trip.id, value),
+                  activeThumbColor: const Color(0xFF278FEA),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mobileNav() {
+    const labels = ['Orders', 'Trip', 'Accounts'];
+    const icons = [
+      Icons.receipt_long_rounded,
+      Icons.flight_takeoff_rounded,
+      Icons.groups_rounded,
+    ];
+    return Container(
+      decoration: const BoxDecoration(color: Colors.white),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: List.generate(
+            3,
+            (i) => Expanded(
+              child: InkWell(
+                onTap: () => setState(() => _navIndex = i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icons[i],
+                        size: 20,
+                        color: _navIndex == i ? kBlue : const Color(0xFFA7B8C6),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        labels[i],
+                        style: roboto(
+                          fontSize: 9,
+                          color: _navIndex == i
+                              ? kBlue
+                              : const Color(0xFFA7B8C6),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showMobileBookingActions(Booking booking) async {
+    final selected = await showGeneralDialog<BookingStatus>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: .28),
+      pageBuilder: (_, _, _) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Center(child: _BookingActionDialog(booking: booking)),
+      ),
+    );
+    if (selected != null && mounted) {
+      await _updateBookingStatus(booking, selected);
+    }
   }
 
   String _sectionTitle() {
@@ -716,6 +1414,170 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SignInPage()),
       (_) => false,
+    );
+  }
+}
+
+class _MobileOrderStat extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _MobileOrderStat({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .12),
+            blurRadius: 9,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 29,
+            height: 29,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: roboto(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF173B5A),
+            ),
+          ),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: roboto(fontSize: 8, color: const Color(0xFF8BA1B2)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingActionDialog extends StatelessWidget {
+  final Booking booking;
+  const _BookingActionDialog({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: MediaQuery.of(context).size.width * .84,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.flight_takeoff_rounded, color: kBlue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Review booking',
+                    style: roboto(fontSize: 17, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              booking.tripName.isEmpty ? 'Trip booking' : booking.tripName,
+              style: roboto(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${booking.userName.isEmpty ? booking.userEmail : booking.userName}\n'
+              '${booking.date.day}/${booking.date.month}/${booking.date.year}',
+              style: roboto(fontSize: 11, color: const Color(0xFF7890A5)),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                _action(
+                  context,
+                  'Accept',
+                  BookingStatus.accepted,
+                  Colors.green,
+                ),
+                const SizedBox(width: 7),
+                _action(
+                  context,
+                  'Pending',
+                  BookingStatus.pending,
+                  Colors.orange,
+                ),
+                const SizedBox(width: 7),
+                _action(context, 'Cancel', BookingStatus.cancelled, Colors.red),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _action(
+    BuildContext context,
+    String label,
+    BookingStatus status,
+    Color color,
+  ) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => Navigator.pop(context, status),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: roboto(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

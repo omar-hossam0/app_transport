@@ -219,12 +219,15 @@ class _SignInPageState extends State<SignInPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    // Scale factor: 1.0 on a 700px+ screen, smaller on compact screens
+    final s = (screenH / 720).clamp(0.70, 1.0);
+
     return Scaffold(
       backgroundColor: kAuthLightBlueBg,
+      resizeToAvoidBottomInset: false,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: kAuthBgGradient,
-        ),
+        decoration: const BoxDecoration(gradient: kAuthBgGradient),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -236,45 +239,42 @@ class _SignInPageState extends State<SignInPage>
                     onBackTap: () => Navigator.of(context).maybePop(),
                   ),
 
-                  // ── Scrollable Form Area ───────────────────────────────
+                  // ── No-scroll Form Area ────────────────────────────────
                   Expanded(
                     child: FadeTransition(
                       opacity: _fadeAnim,
                       child: SlideTransition(
                         position: _slideAnim,
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 26,
-                            vertical: 4,
-                          ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(26 * s, 8 * s, 26 * s, 0),
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // ── Centered Circular Drone Emblem with Engravings ──
-                              const AuthCircularBadge(size: 150),
-                              const SizedBox(height: 16),
+                              // ── Circular Badge ──────────────────────────
+                              AuthCircularBadge(size: 120 * s),
+                              SizedBox(height: 10 * s),
 
                               // ── Title & Subtitle ─────────────────────────
                               Text(
                                 'Welcome Back',
                                 style: roboto(
-                                  fontSize: 26,
+                                  fontSize: 24 * s,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF0F172A),
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              SizedBox(height: 3 * s),
                               Text(
                                 'Login to access your account',
                                 style: roboto(
-                                  fontSize: 14,
+                                  fontSize: 13 * s,
                                   color: const Color(0xFF64748B),
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 16 * s),
 
-                              // ── Inputs ───────────────────────────────────
+                              // ── Email Input ───────────────────────────────
                               AuthInputField(
                                 controller: _emailCtrl,
                                 label: 'Email address',
@@ -286,8 +286,9 @@ class _SignInPageState extends State<SignInPage>
                                   size: 20,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              SizedBox(height: 12 * s),
 
+                              // ── Password Input ────────────────────────────
                               AuthInputField(
                                 controller: _passCtrl,
                                 label: 'Password',
@@ -310,9 +311,9 @@ class _SignInPageState extends State<SignInPage>
                                       setState(() => _obscure = !_obscure),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 10 * s),
 
-                              // ── Remember me & Forgot Password Row ────────
+                              // ── Remember me & Forgot Password ────────────
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -367,15 +368,15 @@ class _SignInPageState extends State<SignInPage>
                                       style: roboto(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFFE11D48),
+                                        color: kBlue,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 16 * s),
 
-                              // ── Modern Gradient Login Button ─────────────
+                              // ── Login Button ──────────────────────────────
                               Consumer<AuthService>(
                                 builder: (context, authService, _) {
                                   return AuthGradientButton(
@@ -389,9 +390,9 @@ class _SignInPageState extends State<SignInPage>
                                   );
                                 },
                               ),
-                              const SizedBox(height: 18),
+                              SizedBox(height: 12 * s),
 
-                              // ── Don't have an account? Sign Up ───────────
+                              // ── Sign Up link ──────────────────────────────
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -415,18 +416,18 @@ class _SignInPageState extends State<SignInPage>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 20),
+                              SizedBox(height: 14 * s),
 
-                              // ── Or sign in with ──────────────────────────
+                              // ── Divider ───────────────────────────────────
                               const AuthOrDivider(label: 'Or sign in with'),
-                              const SizedBox(height: 18),
+                              SizedBox(height: 12 * s),
 
-                              // ── Social Google Login ──────────────────────
+                              // ── Google Sign In ────────────────────────────
                               AuthSocialRow(
                                 label: 'Login with Google',
                                 onGoogleTap: _handleGoogleSignIn,
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 4 * s),
                             ],
                           ),
                         ),
